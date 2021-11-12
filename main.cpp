@@ -10,7 +10,6 @@
 #include <cmath>
 #include <fstream>
 #include <sys/time.h>
-#include <videostab.h>
 #include <ctime>
 
 #include "common/TimeUtil.hpp"
@@ -43,23 +42,40 @@ int main() {
         images.push_back(imread(ip));
     }
 
-    Mat src1;
+    Mat src1; Mat src1o;
     Mat src2;
+    int cp_width = 0;
+    int cp_height = 0;
+    Rect srcrect;
+    Rect dstrect;
+
     TIMER* all;
     all = new TIMER();    
     StartTimer(all);    
 
     for(int i = 0; i < images.size() ; i ++) {
 
-        src1 = images[i];
-        resize(src1, src1, Size(src1.cols/4, src1.rows/4), 0,0,1);
-        cvtColor(src1, src1, COLOR_BGR2GRAY);
+        src1o = images[i];
+        int owidth = int(src1o.cols/4);
+        resize(src1o, src1o, Size(src1o.cols/4, src1o.rows/4), 0,0,1);
+        cvtColor(src1o, src1o, COLOR_BGR2GRAY);
 
         if( i == 0) {
-            src2 = src1;
+            src2 = src1o;
             continue;
         }
+        if(cp_width == 0 ) {
+            src1o.copyTo(src1);
+        }
+        else if(owidth != cp_width) {
+            src1 = src1o(dstrect);
+        } else {
+            src1o.copyTo(src1);            
+        }
+
         cout<< " i : " <<i << " start " << endl; 
+        imwrite("saved/src1.png", src1);
+        imwrite("saved/src2.png", src2);
 
         vector <Point2f> features1, features2;
         vector <Point2f> goodFeatures1, goodFeatures2;
@@ -96,30 +112,44 @@ int main() {
 
         Point ptsrc;
         Point ptdst;
+        cp_width = src1.cols - int(abs(realx));
+        cp_height = src1.rows - int(abs(realy));
 
-        ptsrc.x = realx <= 0 ? 0 : int(realx);
-        printf(" %d == %d \n", int(realx), ptsrc.x);        
-        ptsrc.x = realy <= 0 ? 0 : int(realy);
-        int cp_width = src1.cols - int(abs(realx));
-        int cp_height = src1.rows - int(abs(realy));
+        if(realx >= 0) {
+            ptsrc.x = realx;
+            ptdst.x = 0;
+        } else {
+            ptsrc.x = 0;
+            ptdst.x = -realx;
+        }
 
-        ptdst.x = realx <= 0 ? int(-realx) : 0;
-        ptdst.y = realy <= 0 ? int(-realy) : 0;
-        Rect srcrect = Rect(ptsrc.x, ptsrc.y, cp_width, cp_height);
-        Rect dstrect = Rect(ptdst.x, ptdst.y, cp_width, cp_height);
+        if(realy >= 0) {
+            ptsrc.y = realy;
+            ptdst.y = 0;
+
+        } else {
+            ptsrc.y = 0;
+            ptdst.y = -realy;
+        }
+
+        srcrect = Rect(ptsrc.x, ptsrc.y, cp_width, cp_height);
+        dstrect = Rect(ptdst.x, ptdst.y, cp_width, cp_height);
         printf("cp_width %d cp_ehgith %d ptsrc.x %d y %d ptdst.x %d y %d \n", cp_width, cp_height, ptsrc.x, ptsrc.y, ptdst.x, ptdst.y);
-        Mat tranimg;
-        src1(srcrect).copyTo(tranimg(dstrect));
+
+        Mat transrc1;
+        Mat transrc2;
+        //src1(srcrect).copyTo(tranimg(dstrect));
+        src2(srcrect).copyTo(transrc2);
+        src1(dstrect).copyTo(transrc1);;
 
         char filename[30];
-        sprintf(filename, "saved/%d_tran.png", i);
-        imwrite(filename, tranimg);
-        tranimg.release();
+        sprintf(filename, "saved/%d_tran_src1.png", i);
+        imwrite(filename, transrc1);
+        sprintf(filename, "saved/%d_tran_src2.png", i);
+        imwrite(filename, transrc2);
 
 
-        src2.release();
-        src2 = src1;
-        src1.release();
+        transrc1.copyTo(src2);
         
         Logger("[%d] %f ", i, LapTimer(all));
     }
