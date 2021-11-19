@@ -42,28 +42,35 @@ int main() {
         images.push_back(imread(ip));
     }
 
-    Mat src1; Mat src1o;
+    Mat src1; Mat src1oc; Mat src1o;
     Mat src2;
+    Mat smth;
     int cp_width = 0;
     int cp_height = 0;
     Rect srcrect;
     Rect dstrect;
+    char filename[30];
+    int scale = 4;
 
     TIMER* all;
     all = new TIMER();    
     StartTimer(all);    
+    smth.create(2 , 3 , CV_64F);    
 
     for(int i = 0; i < images.size() ; i ++) {
 
-        src1o = images[i];
-        int owidth = int(src1o.cols/4);
-        resize(src1o, src1o, Size(src1o.cols/4, src1o.rows/4), 0,0,1);
+        src1oc = images[i];
+        int owidth = int(src1oc.cols/4);
+        resize(src1oc, src1o, Size(int((float)src1oc.cols/scale), int(float(src1oc.rows)/scale)), 0,0,1);
         cvtColor(src1o, src1o, COLOR_BGR2GRAY);
 
         if( i == 0) {
             src2 = src1o;
+            sprintf(filename, "saved/%d_src1.png", i);
+            imwrite(filename, src1oc);
             continue;
         }
+        /*
         if(cp_width == 0 ) {
             src1o.copyTo(src1);
         }
@@ -71,18 +78,21 @@ int main() {
             src1 = src1o(dstrect);
         } else {
             src1o.copyTo(src1);            
-        }
+        }*/
 
+        src1o.copyTo(src1);            
         cout<< " i : " <<i << " start " << endl; 
-        imwrite("saved/src1.png", src1);
-        imwrite("saved/src2.png", src2);
+        // sprintf(filename, "saved/%d_src1.png", i);        
+        // imwrite(filename, src1);
+        // sprintf(filename, "saved/%d_src2.png", i);        
+        // imwrite(filename, src2);
 
         vector <Point2f> features1, features2;
         vector <Point2f> goodFeatures1, goodFeatures2;
         vector <uchar> status;
         vector <float> err;
 
-        goodFeaturesToTrack(src1, features1, 100, 0.01  , 30 );
+        goodFeaturesToTrack(src1, features1, 30, 0.01  , 20 );
         calcOpticalFlowPyrLK(src1, src2, features1, features2, status, err );
 
         for(size_t i=0; i < status.size(); i++)
@@ -103,8 +113,25 @@ int main() {
         double ds_x = affine.at<double>(0,0)/cos(da);
         double ds_y = affine.at<double>(1,1)/cos(da);
 
-        cout << "dx : " << dx << "dy : "<< dy << endl;
+        cout << "dx : " << dx << " dy : "<< dy << " a : " << da << " dsx : " <<ds_x << " ds_y : " <<ds_y << endl;
+        cout << "dx : " << dx * scale<< " dy : "<< dy * scale<< " a : " << da << " dsx : " <<ds_x << " ds_y : " <<ds_y << endl;        
 
+        smth.at<double>(0,0) = ds_x * cos(da);
+        smth.at<double>(0,1) = ds_x * -sin(da);
+        smth.at<double>(1,0) = ds_y * sin(da);
+        smth.at<double>(1,1) = ds_y * cos(da);
+        smth.at<double>(0,2) = dx;
+        smth.at<double>(1,2) = dy;
+        warpAffine(src1, src1, smth, src1.size());        
+
+        smth.at<double>(0,2) = dx * scale;
+        smth.at<double>(1,2) = dy * scale;        
+
+        warpAffine(src1oc, src1oc, smth, src1oc.size());
+        sprintf(filename, "saved/%d_src1_warp.png", i);
+        imwrite(filename, src1oc);
+        src1.copyTo(src2);        
+/*
         double realx = dx;
         double realy = dy;
         double real_sx = ds_x;
@@ -142,7 +169,6 @@ int main() {
         src2(srcrect).copyTo(transrc2);
         src1(dstrect).copyTo(transrc1);;
 
-        char filename[30];
         sprintf(filename, "saved/%d_tran_src1.png", i);
         imwrite(filename, transrc1);
         sprintf(filename, "saved/%d_tran_src2.png", i);
@@ -150,7 +176,7 @@ int main() {
 
 
         transrc1.copyTo(src2);
-        
+*/        
         Logger("[%d] %f ", i, LapTimer(all));
     }
 
