@@ -20,6 +20,7 @@ using namespace cv;
 
 
 const int HORIZONTAL_BORDER_CROP = 30;
+int MakeMask(Mat& mask, int width, int height);
 
 int main() {
     /* image input 
@@ -50,19 +51,22 @@ int main() {
     Mat mask;
     Mat src2;
     Mat smth;
+    Mat pre_affine;
+    Mat affine;
     int cp_width = 0;
     int cp_height = 0;
     Rect srcrect;
     Rect dstrect;
     char filename[30];
-    int scale = 5;
+    int scale = 4;
     int i = 0;
+    int threshold = 10;
 
     TIMER* all;
     all = new TIMER();    
     StartTimer(all);    
     smth.create(2 , 3 , CV_64F);    
-    mask.create(1920/scale, 1080/scale, CV_8UC1);
+    MakeMask(mask, 1920/scale, 1080/scale);
 
     output.open("join-1.mp4", VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));
 
@@ -93,7 +97,7 @@ int main() {
         }*/
 
         src1o.copyTo(src1);            
-        cout<< " i : " <<i << " start " << endl; 
+        //cout<< " i : " <<i << " start " << endl; 
         // sprintf(filename, "saved/%d_src1.png", i);        
         // imwrite(filename, src1);
         // sprintf(filename, "saved/%d_src2.png", i);        
@@ -117,7 +121,13 @@ int main() {
         }
 
 //        Mat affine = estimateRigidTransform(goodFeatures1, goodFeatures2, false);
-        Mat affine = estimateAffine2D(goodFeatures1, goodFeatures2);
+        if(goodFeatures1.size() < threshold || goodFeatures2.size() < threshold) {
+             cout<< i << " no feature to track.. "<< endl;
+             pre_affine.copyTo(affine);
+         }
+         else {
+            affine = estimateAffine2D(goodFeatures1, goodFeatures2);
+        }
 
         double dx = affine.at<double>(0,2);
         double dy = affine.at<double>(1,2);
@@ -125,8 +135,8 @@ int main() {
         double ds_x = affine.at<double>(0,0)/cos(da);
         double ds_y = affine.at<double>(1,1)/cos(da);
 
-        cout << "dx : " << dx << " dy : "<< dy << " a : " << da << " dsx : " <<ds_x << " ds_y : " <<ds_y << endl;
-        cout << "dx : " << dx * scale<< " dy : "<< dy * scale<< " a : " << da << " dsx : " <<ds_x << " ds_y : " <<ds_y << endl;        
+        //cout << "dx : " << dx << " dy : "<< dy << " a : " << da << " dsx : " <<ds_x << " ds_y : " <<ds_y << endl;
+        //cout << "dx : " << dx * scale<< " dy : "<< dy * scale<< " a : " << da << " dsx : " <<ds_x << " ds_y : " <<ds_y << endl;        
 
         smth.at<double>(0,0) = ds_x * cos(da);
         smth.at<double>(0,1) = ds_x * -sin(da);
@@ -144,7 +154,8 @@ int main() {
         imwrite(filename, src1oc);
         i++;
         output << src1oc;
-        src1.copyTo(src2);        
+        src1.copyTo(src2);     
+        affine.copyTo(pre_affine);   
 /*
         double realx = dx;
         double realy = dy;
@@ -196,6 +207,13 @@ int main() {
 
 }
 
+int MakeMask(Mat& mask, int width, int height) {
+    cout<< "mask width , height : " << width << " , "<< height<<endl;
+    int border = width/12;
+    mask = Mat::zeros(height, width, CV_8UC1);
+    rectangle(mask, Point(border, border), Point(width - border, height - border), Scalar(255), -1);
+    imwrite("mask.png", mask);
+}
 /*
 int main()
 {
