@@ -22,6 +22,7 @@ using namespace cv;
 const int HORIZONTAL_BORDER_CROP = 30;
 
 int main() {
+    /* image input 
     string path = "image/";
     vector<string>image_paths;
 
@@ -41,8 +42,12 @@ int main() {
         cout << ip << endl;
         images.push_back(imread(ip));
     }
+    */
+    VideoCapture stab("join.mp4");
+    VideoWriter output;
 
     Mat src1; Mat src1oc; Mat src1o;
+    Mat mask;
     Mat src2;
     Mat smth;
     int cp_width = 0;
@@ -50,17 +55,23 @@ int main() {
     Rect srcrect;
     Rect dstrect;
     char filename[30];
-    int scale = 4;
+    int scale = 5;
+    int i = 0;
 
     TIMER* all;
     all = new TIMER();    
     StartTimer(all);    
     smth.create(2 , 3 , CV_64F);    
+    mask.create(1920/scale, 1080/scale, CV_8UC1);
 
-    for(int i = 0; i < images.size() ; i ++) {
+    output.open("join-1.mp4", VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));
 
-        src1oc = images[i];
-        int owidth = int(src1oc.cols/4);
+    while(true) {
+
+        stab >> src1oc;
+        if(src1oc.data == NULL)
+            break;
+
         resize(src1oc, src1o, Size(int((float)src1oc.cols/scale), int(float(src1oc.rows)/scale)), 0,0,1);
         cvtColor(src1o, src1o, COLOR_BGR2GRAY);
 
@@ -68,6 +79,7 @@ int main() {
             src2 = src1o;
             sprintf(filename, "saved/%d_src1.png", i);
             imwrite(filename, src1oc);
+            i++;
             continue;
         }
         /*
@@ -92,7 +104,7 @@ int main() {
         vector <uchar> status;
         vector <float> err;
 
-        goodFeaturesToTrack(src1, features1, 30, 0.01  , 20 );
+        goodFeaturesToTrack(src1, features1, 30, 0.01  , 30, noArray(), 11, false, 0.04);
         calcOpticalFlowPyrLK(src1, src2, features1, features2, status, err );
 
         for(size_t i=0; i < status.size(); i++)
@@ -130,6 +142,8 @@ int main() {
         warpAffine(src1oc, src1oc, smth, src1oc.size());
         sprintf(filename, "saved/%d_src1_warp.png", i);
         imwrite(filename, src1oc);
+        i++;
+        output << src1oc;
         src1.copyTo(src2);        
 /*
         double realx = dx;
