@@ -46,11 +46,13 @@ int main() {
     */
     VideoCapture stab("join.mp4");
     VideoWriter output;
+    //VideoWriter dual;    
 
     Mat src1; Mat src1oc; Mat src1o;
     Mat mask;
     Mat src2;
     Mat smth;
+
     Mat pre_affine;
     Mat affine;
     int cp_width = 0;
@@ -69,6 +71,7 @@ int main() {
     MakeMask(mask, 1920/scale, 1080/scale);
 
     output.open("join-1.mp4", VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));
+    //dual.open("dual-1.mp4", VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(3840+ 10, 1080));    
 
     while(true) {
 
@@ -147,13 +150,18 @@ int main() {
         warpAffine(src1, src1, smth, src1.size());        
 
         smth.at<double>(0,2) = dx * scale;
-        smth.at<double>(1,2) = dy * scale;        
+        smth.at<double>(1,2) = dy * scale;      
+        //Mat canvas = Mat::zeros(1080, src1oc.cols*2 +10, src1oc.type());          
+        //src1oc.copyTo(canvas(Range::all(), Range(0, src1oc.cols)));
 
         warpAffine(src1oc, src1oc, smth, src1oc.size());
         sprintf(filename, "saved/%d_src1_warp.png", i);
         imwrite(filename, src1oc);
         i++;
+        //src1oc.copyTo(canvas(Range::all(), Range(1930, 3850)));        
+
         output << src1oc;
+        //dual << canvas;
         src1.copyTo(src2);     
         affine.copyTo(pre_affine);   
 /*
