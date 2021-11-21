@@ -44,7 +44,7 @@ int main() {
         images.push_back(imread(ip));
     }
     */
-    VideoCapture stab("join.mp4");
+    VideoCapture stab("003060_join.mp4");
     VideoWriter output;
     //VideoWriter dual;    
 
@@ -62,7 +62,7 @@ int main() {
     char filename[30];
     int scale = 4;
     int i = 0;
-    int threshold = 10;
+    int threshold = 6;
 
     TIMER* all;
     all = new TIMER();    
@@ -70,7 +70,7 @@ int main() {
     smth.create(2 , 3 , CV_64F);    
     MakeMask(mask, 1920/scale, 1080/scale);
 
-    output.open("join-1.mp4", VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));
+    output.open("003060_join-1.mp4", VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));
     //dual.open("dual-1.mp4", VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(3840+ 10, 1080));    
 
     while(true) {
@@ -123,13 +123,15 @@ int main() {
             }
         }
 
-//        Mat affine = estimateRigidTransform(goodFeatures1, goodFeatures2, false);
         if(goodFeatures1.size() < threshold || goodFeatures2.size() < threshold) {
-             cout<< i << " no feature to track.. "<< endl;
+             cout<< i << " no feature to track.. feature cnt : "<< goodFeatures1.size() << endl;
+             sprintf(filename, "%d_no_feature.png", i);
+             imwrite(filename, src1oc);
              pre_affine.copyTo(affine);
          }
          else {
             affine = estimateAffine2D(goodFeatures1, goodFeatures2);
+            //affine = estimateRigidTransform(goodFeatures1, goodFeatures2, false);                
         }
 
         double dx = affine.at<double>(0,2);
