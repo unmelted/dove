@@ -17,10 +17,46 @@
 
 using namespace std;
 using namespace cv;
+#define Q1 0.004
+#define R1 0.2
+double sum_scaleX = 0;
+double sum_scaleY = 0;
+double sum_thetha = 0;
+double sum_transX = 0;
+double sum_transY = 0;
+double scaleX = 0;
+double scaleY = 0;
+double thetha = 0;
+double transX = 0;
+double transY = 0;
+double diff_scaleX = 0;
+double diff_scaleY = 0;
+double diff_transX = 0;
+double diff_transY = 0;
+double diff_thetha = 0;
+double errscaleX = 1;
+double errscaleY = 1;
+double errthetha = 1;
+double errtransX = 1;
+double errtransY = 1;
+
+double Q_scaleX = Q1;
+double Q_scaleY = Q1;
+double Q_thetha = Q1;
+double Q_transX = Q1;
+double Q_transY = Q1;
+
+double R_scaleX = R1;
+double R_scaleY = R1;
+double R_thetha = R1;
+double R_transX = R1;
+double R_transY = R1;
+
 
 
 const int HORIZONTAL_BORDER_CROP = 30;
 int MakeMask(Mat& mask, int width, int height);
+void Kalman_Filter(double *scaleX , double *scaleY , double *thetha , double *transX , double *transY);
 
 int main() {
     /* image input 
@@ -44,6 +80,8 @@ int main() {
         images.push_back(imread(ip));
     }
     */
+
+
     VideoCapture stab("003060_join.mp4");
     VideoWriter output;
     //VideoWriter dual;    
@@ -125,8 +163,8 @@ int main() {
 
         if(goodFeatures1.size() < threshold || goodFeatures2.size() < threshold) {
              cout<< i << " no feature to track.. feature cnt : "<< goodFeatures1.size() << endl;
-             sprintf(filename, "%d_no_feature.png", i);
-             imwrite(filename, src1oc);
+             //sprintf(filename, "%d_no_feature.png", i);
+             //imwrite(filename, src1oc);
              pre_affine.copyTo(affine);
          }
          else {
@@ -139,22 +177,51 @@ int main() {
         double da = atan2(affine.at<double>(1,0), affine.at<double>(0,0));
         double ds_x = affine.at<double>(0,0)/cos(da);
         double ds_y = affine.at<double>(1,1)/cos(da);
-
+        double sx = ds_x;
+        double sy = ds_y;
         //cout << "dx : " << dx << " dy : "<< dy << " a : " << da << " dsx : " <<ds_x << " ds_y : " <<ds_y << endl;
         //cout << "dx : " << dx * scale<< " dy : "<< dy * scale<< " a : " << da << " dsx : " <<ds_x << " ds_y : " <<ds_y << endl;        
 
+        sum_transX += dx;
+        sum_transY += dy;
+        sum_thetha += da;
+        sum_scaleX += ds_x;
+        sum_scaleY += ds_y;
+
+        if(i > 1)
+            Kalman_Filter(&scaleX , &scaleY , &thetha , &transX , &transY); 
+
+        diff_scaleX = scaleX - sum_scaleX;
+        diff_scaleY = scaleY - sum_scaleY;
+        diff_transX = transX - sum_transX;
+        diff_transY = transY - sum_transY;
+        diff_thetha = thetha - sum_thetha;
+
+        ds_x = ds_x + diff_scaleX;
+        ds_y = ds_y + diff_scaleY;
+        dx = dx + diff_transX;
+        dy = dy + diff_transY;
+        da = da + diff_thetha;
+
+        /* nokalman
         smth.at<double>(0,0) = ds_x * cos(da);
         smth.at<double>(0,1) = ds_x * -sin(da);
         smth.at<double>(1,0) = ds_y * sin(da);
-        smth.at<double>(1,1) = ds_y * cos(da);
+        smth.at<double>(1,1) = ds_y * cos(da); */
+        smth.at<double>(0,0) = sx * cos(da);
+        smth.at<double>(0,1) = sx * -sin(da);
+        smth.at<double>(1,0) = sy * sin(da);
+        smth.at<double>(1,1) = sy * cos(da);
+
         smth.at<double>(0,2) = dx;
         smth.at<double>(1,2) = dy;
-        warpAffine(src1, src1, smth, src1.size());        
 
-        smth.at<double>(0,2) = dx * scale;
-        smth.at<double>(1,2) = dy * scale;      
+        warpAffine(src1, src1, smth, src1.size());
+
         //Mat canvas = Mat::zeros(1080, src1oc.cols*2 +10, src1oc.type());          
         //src1oc.copyTo(canvas(Range::all(), Range(0, src1oc.cols)));
+        smth.at<double>(0,2) = -dx * scale;
+        smth.at<double>(1,2) = -dy * scale;      
 
         warpAffine(src1oc, src1oc, smth, src1oc.size());
         sprintf(filename, "saved/%d_src1_warp.png", i);
@@ -216,6 +283,39 @@ int main() {
     }
 
 }
+void Kalman_Filter(double *scaleX , double *scaleY , double *thetha , double *transX , double *transY)
+{
+    double frame_1_scaleX = *scaleX;
+    double frame_1_scaleY = *scaleY;
+    double frame_1_thetha = *thetha;
+    double frame_1_transX = *transX;
+    double frame_1_transY = *transY;
+
+    double frame_1_errscaleX = errscaleX + Q_scaleX;
+    double frame_1_errscaleY = errscaleY + Q_scaleY;
+    double frame_1_errthetha = errthetha + Q_thetha;
+    double frame_1_errtransX = errtransX + Q_transX;
+    double frame_1_errtransY = errtransY + Q_transY;
+
+    double gain_scaleX = frame_1_errscaleX / (frame_1_errscaleX + R_scaleX);
+    double gain_scaleY = frame_1_errscaleY / (frame_1_errscaleY + R_scaleY);
+    double gain_thetha = frame_1_errthetha / (frame_1_errthetha + R_thetha);
+    double gain_transX = frame_1_errtransX / (frame_1_errtransX + R_transX);
+    double gain_transY = frame_1_errtransY / (frame_1_errtransY + R_transY);
+
+    *scaleX = frame_1_scaleX + gain_scaleX * (sum_scaleX - frame_1_scaleX);
+    *scaleY = frame_1_scaleY + gain_scaleY * (sum_scaleY - frame_1_scaleY);
+    *thetha = frame_1_thetha + gain_thetha * (sum_thetha - frame_1_thetha);
+    *transX = frame_1_transX + gain_transX * (sum_transX - frame_1_transX);
+    *transY = frame_1_transY + gain_transY * (sum_transY - frame_1_transY);
+
+    errscaleX = ( 1 - gain_scaleX ) * frame_1_errscaleX;
+    errscaleY = ( 1 - gain_scaleY ) * frame_1_errscaleX;
+    errthetha = ( 1 - gain_thetha ) * frame_1_errthetha;
+    errtransX = ( 1 - gain_transX ) * frame_1_errtransX;
+    errtransY = ( 1 - gain_transY ) * frame_1_errtransY;
+}
+
 
 int MakeMask(Mat& mask, int width, int height) {
     cout<< "mask width , height : " << width << " , "<< height<<endl;
