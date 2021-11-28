@@ -1,35 +1,23 @@
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include "opencv2/features2d/features2d.hpp"
-#include "opencv2/xfeatures2d/nonfree.hpp"
-#include "opencv2/flann/flann.hpp"
-#include "opencv2/calib3d/calib3d.hpp"
-#include <opencv2/opencv.hpp>
-#include <iostream>
-#include <cmath>
-#include <fstream>
-#include <sys/time.h>
-#include <ctime>
 
-#include "common/TimeUtil.hpp"
+/*****************************************************************************
+*                                                                            *
+*                            stab_2dof         								 *
+*                                                                            *
+*   Copyright (C) 2021 By 4dreplay, Incoporated. All Rights Reserved.        *
+******************************************************************************
 
+    File Name       : stab_2dof.cpp
+    Author(S)       : Me Eunkyung
+    Created         : 28 nov 2021
 
-using namespace std;
-using namespace cv;
+    Description     : stab_2dof.cpp
+    Notes           : 2dof video stabilization with opticalflow
+*/
 
+#pragma once 
+#include "stab.hpp"
 
-const int HORIZONTAL_BORDER_CROP = 30;
-int MakeMask(Mat& mask, int width, int height);
-
-int main(int argc, char* argv[]) {
-
-    char infile[40];
-    char outfile[40];
-    sprintf(infile,"%s.mp4", argv[1]);
-    sprintf(outfile, "%s_out1.mp4", argv[1]);
-    cout<<infile<<endl;
-    cout<<outfile<<endl;
+int stab_2dof(char* in, char* out) { 
 
     VideoCapture stab(infile);
     VideoWriter output;
@@ -55,7 +43,7 @@ int main(int argc, char* argv[]) {
     all = new TIMER();    
     StartTimer(all);    
     smth.create(2 , 3 , CV_64F);    
-    MakeMask(mask, 1920/scale, 1080/scale);
+    MakeMask2(mask, 1920/scale, 1080/scale);
 
     while(true) {
 
@@ -126,51 +114,7 @@ int main(int argc, char* argv[]) {
         smth.at<double>(0,2) = dx * scale;
         smth.at<double>(1,2) = dy * scale;      
         warpAffine(src1oc, src1oc, smth, src1oc.size());
-/*
-        double realx = dx * scale;
-        double realy = dy * scale;
-        double real_sx = ds_x;
-        double real_sy = ds_y;
-
-        Point ptsrc;
-        Point ptdst;
-        cp_width = src1oc.cols - int(abs(realx));
-        cp_height = src1oc.rows - int(abs(realy));
-
-        if(realx >= 0) {
-            ptsrc.x = realx;
-            ptdst.x = 0;
-        } else {
-            ptsrc.x = 0;
-            ptdst.x = -realx;
-        }
-
-        if(realy >= 0) {
-            ptsrc.y = realy;
-            ptdst.y = 0;
-
-        } else {
-            ptsrc.y = 0;
-            ptdst.y = -realy;
-        }
-
-        srcrect = Rect(ptsrc.x, ptsrc.y, cp_width, cp_height);
-        dstrect = Rect(ptdst.x, ptdst.y, cp_width, cp_height);
-        printf("cp_width %d cp_ehgith %d ptsrc.x %d y %d ptdst.x %d y %d \n", cp_width, cp_height, ptsrc.x, ptsrc.y, ptdst.x, ptdst.y);
-
-        Mat transrc1;
-        Mat transrc2;
-        //src1(srcrect).copyTo(tranimg(dstrect));
-        src1oc(dstrect).copyTo(transrc1);
-        src1(dstrect).copyTo(transrc2);
-
-        char filename[30];
-        sprintf(filename, "saved/%d_tran_src1.png", i);
-        imwrite(filename, transrc1);
-        sprintf(filename, "saved/%d_tran_src2.png", i);
-        imwrite(filename, transrc2);
-*/
-        output << src1oc;
+                output << src1oc;
         src1.copyTo(src2);     
         affine.copyTo(pre_affine);   
 
@@ -178,13 +122,13 @@ int main(int argc, char* argv[]) {
         
         Logger("[%d] %f ", i, LapTimer(all));
     }
-
 }
 
-int MakeMask(Mat& mask, int width, int height) {
+int MakeMask2(Mat& mask, int width, int height) {
     cout<< "mask width , height : " << width << " , "<< height<<endl;
     int border = width/12;
     mask = Mat::zeros(height, width, CV_8UC1);
     rectangle(mask, Point(631, 247), Size(300, 200), Scalar(255), -1);
     imwrite("mask.png", mask);
 }
+
