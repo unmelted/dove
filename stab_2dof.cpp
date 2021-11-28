@@ -127,7 +127,6 @@ int stab_2dof(char* in, char* out) {
 
 int MakeMask2(Mat& mask, int width, int height) {
     cout<< "mask width , height : " << width << " , "<< height<<endl;
-    int border = width/12;
     mask = Mat::zeros(height, width, CV_8UC1);
     rectangle(mask, Point(631, 247), Size(300, 200), Scalar(255), -1);
     imwrite("mask.png", mask);

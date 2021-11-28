@@ -72,7 +72,11 @@ static double R_transY = R1;
 
 int stab_6dof(char* in, char* out);
 int stab_2dof(char* in, char* out);
+int stab_fastwin(char* in, char* out);
 
 int MakeMask6(Mat& mask, int width, int height);
 int MakeMask2(Mat& mask, int width, int height);
 void Kalman_Filter(double *scaleX , double *scaleY , double *thetha , double *transX , double *transY);
+
+Mat PickArea(Mat& src, int x ,int y, int winsize, int range);
+int Search(Mat& src1, Mat& src2, int range, int* dx, int* dy);

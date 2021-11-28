@@ -12,11 +12,17 @@ int main(int argc, char* argv[]) {
     cout<<infile<<endl;
     cout<<outfile<<endl;
     int mode_dof = 2;
+    int mode_cal = 2; //1 : optical flow, 2 : integral + search window
     int result = 0;
 
-    if(mode_dof == 2) {
-        result = stab_2dof(infile, outfile);        
-    } else if (mode_dof== 6) {
-        result = stab_6dof(infile, outfile);
+    if(mode_cal == 1) { 
+        if(mode_dof == 2) {
+            result = stab_2dof(infile, outfile);        
+        } else if (mode_dof== 6) {
+            result = stab_6dof(infile, outfile);
+        }
+    }
+    else if(mode_cal == 2) {
+        result = stab_fastwin(infile, outfile);
     }
 }
