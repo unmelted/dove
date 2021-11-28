@@ -13,7 +13,6 @@
     Description     : stab_6dof.cpp
     Notes           : 6dof video stabilization with opticalflow
 */
-#pragma once 
 #include "stab.hpp"
 
 int stab_6dof(char* in, char* out) {
@@ -170,6 +169,8 @@ int stab_6dof(char* in, char* out) {
         affine.copyTo(pre_affine);   
         Logger("[%d] %f ", i, LapTimer(all));        
     }
+
+    return 1;
 }
 
 void Kalman_Filter(double *scaleX , double *scaleY , double *thetha , double *transX , double *transY)
@@ -212,4 +213,6 @@ int MakeMask6(Mat& mask, int width, int height) {
     mask = Mat::zeros(height, width, CV_8UC1);
     rectangle(mask, Point(border, border), Point(width - border, height - border), Scalar(255), -1);
     imwrite("mask.png", mask);
+
+    return 1;
 }
