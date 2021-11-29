@@ -109,10 +109,17 @@ Mat PickArea(Mat& src, int x ,int y, int winsize, int range) {
 
 int cvt_win_to_vstmap(int sx, int sy, int range, int dx, int dy, int* tx, int ty) {
 
+    return 1;
+}
+
+int GetImageSum(Mat& itg, int xx, int yy, int x, int y) {
+    int sum = itg.at<CV_32SC1>(yy, xx) + itg.at<CV_32SC1>(y,x) - itg.at<CV_32SC1>(yy, xx) - itg.at<CV_32SC1>(yy, x);
+    return sum;
 }
 
 int Search(Mat& src1, Mat& src2, int range, WIN_RESULT* win_result) {
 
+    int sx = 0; int sy = 0;
     int cx = sx + range/2; int cy = sy + range/2;
     int kernel = 0;
     int* vst_map = (int *)malloc(sizeof(int) * range * range );
@@ -120,10 +127,13 @@ int Search(Mat& src1, Mat& src2, int range, WIN_RESULT* win_result) {
     int step_cnt = 8;
     int stepx[8] = {-1, -1,  0,  1, 1, 1, 0, -1};
     int stepy[8] = { 0, -1, -1, -1, 0, 1, 1,  1};
-
+    sx = cx;
+    sy = cy;
     for(int i = 0; i < range/2; i++) {
         kernel = i * 2 + 1;
         if (kernel == 1) {
+            
+        } else {
 
         }
 

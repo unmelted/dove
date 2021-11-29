@@ -97,4 +97,5 @@ void Kalman_Filter(double *scaleX , double *scaleY , double *thetha , double *tr
 
 Mat PickArea(Mat& src, int x ,int y, int winsize, int range);
 int cvt_coord_to_vstmap(int sx, int sy, int range, int dx, int dy, int* tx, int ty);
+int GetImageSum(Mat& itg, int xx, int yy, int x, int y);
 int Search(Mat& src1, Mat& src2, int range, WIN_RESULT* win_result);
