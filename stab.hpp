@@ -70,22 +70,19 @@ static double R_transX = R1;
 static double R_transY = R1;
 
 
-typedef struct _win_result {
+typedef struct _win_info {
+
     int glb_x;
     int glb_y;
     int loc_x;
     int loc_y;
+    int width;
+    int height;
+    int range;
+
     int min_sum_diff;
 
-    void copy(_win_result* a, const _win_result* b) {
-        a->glb_x = b->glb_x;
-        a->glb_y = b->glb_y;
-        a->loc_x = b->loc_x;
-        a->loc_y = b->loc_y;
-        a->min_sum_diff = b->min_sum_diff;
-    }
-
-} WIN_RESULT;
+} WIN_INFO;
 
 int stab_6dof(char* in, char* out);
 int stab_2dof(char* in, char* out);
@@ -98,4 +95,5 @@ void Kalman_Filter(double *scaleX , double *scaleY , double *thetha , double *tr
 Mat PickArea(Mat& src, int x ,int y, int winsize, int range);
 int cvt_coord_to_vstmap(int sx, int sy, int range, int dx, int dy, int* tx, int ty);
 int GetImageSum(Mat& itg, int xx, int yy, int x, int y);
-int Search(Mat& src1, Mat& src2, int range, WIN_RESULT* win_result);
+int Search(Mat& src1, Mat& src2, int range, WIN_INFO* win_info);
+int Recursive(int t_sum, int anc_x, int anc_y, int* vst_map, Mat& itg, WIN_INFO* win_info);

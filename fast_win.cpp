@@ -20,8 +20,8 @@ int stab_fastwin(char* in, char* out) {
 
     VideoCapture stab(in);
     VideoWriter output;
-    WIN_RESULT* cal_result = new WIN_RESULT();    
-    WIN_RESULT* cal_result_pre = new WIN_RESULT();
+    WIN_INFO* cal_info = new WIN_INFO();    
+    WIN_INFO* cal_info_pre = new WIN_INFO();
 
 
     char filename[30];
@@ -72,7 +72,7 @@ int stab_fastwin(char* in, char* out) {
         winitg = PickArea(src1o, x , y, win, range);            
         winitg.copyTo(src1);
         
-        Search(src1, src2, range, cal_result);
+        Search(src1, src2, range, cal_info);
 
         smth.at<double>(0,0) = 1; //ds_x * cos(da);
         smth.at<double>(0,1) = 0; //ds_x * -sin(da);
@@ -88,13 +88,13 @@ int stab_fastwin(char* in, char* out) {
         warpAffine(src1oc, src1oc, smth, src1oc.size());
         output << src1oc;
         src1.copyTo(src2);     
-        cal_result_pre = cal_result;        
+        cal_info_pre = cal_info;
        
         Logger("[%d] %f ", i, LapTimer(all));
     }
 
-    delete cal_result;
-    delete cal_result_pre;
+    delete cal_info;
+    delete cal_info_pre;
 
     return 1;
 }
@@ -113,11 +113,11 @@ int cvt_win_to_vstmap(int sx, int sy, int range, int dx, int dy, int* tx, int ty
 }
 
 int GetImageSum(Mat& itg, int xx, int yy, int x, int y) {
-    int sum = itg.at<CV_32SC1>(yy, xx) + itg.at<CV_32SC1>(y,x) - itg.at<CV_32SC1>(yy, xx) - itg.at<CV_32SC1>(yy, x);
+    int sum = itg.at<int>(yy, xx) + itg.at<int>(y,x) - itg.at<int>(yy, xx) - itg.at<int>(yy, x);
     return sum;
 }
 
-int Search(Mat& src1, Mat& src2, int range, WIN_RESULT* win_result) {
+int Search(Mat& src1, Mat& src2, int range, WIN_INFO* win_info) {
 
     int sx = 0; int sy = 0;
     int cx = sx + range/2; int cy = sy + range/2;
@@ -125,8 +125,6 @@ int Search(Mat& src1, Mat& src2, int range, WIN_RESULT* win_result) {
     int* vst_map = (int *)malloc(sizeof(int) * range * range );
     memset(vst_map, 0, sizeof(int) * range * range);
     int step_cnt = 8;
-    int stepx[8] = {-1, -1,  0,  1, 1, 1, 0, -1};
-    int stepy[8] = { 0, -1, -1, -1, 0, 1, 1,  1};
     sx = cx;
     sy = cy;
     for(int i = 0; i < range/2; i++) {
@@ -141,4 +139,30 @@ int Search(Mat& src1, Mat& src2, int range, WIN_RESULT* win_result) {
 
     free(vst_map);
     return 0;
+}
+
+int Recursive(int t_sum, int anc_x, int anc_y, int* vst_map, Mat& itg, WIN_INFO* win_info) {
+
+    int stepx[9] = {0, -1, -1,  0,  1, 1, 1, 0, -1};
+    int stepy[9] = {0,  0, -1, -1, -1, 0, 1, 1,  1};
+    int width = win_info->width;
+
+    for(int i = 0; i < sizeof(stepx)/sizeof(stepx[0]) ; i ++) {
+        int newx = anc_x + stepx[i];
+        int newy = anc_y + stepy[i];
+        if(vst_map[ newy * width + newx] == 0 ) {
+            vst_map[ newy * width + newx ] = 1;            
+            int q_sum = GetImageSum(itg, newx, newy, newx - win_info->width, newy - win_info->height);
+
+            if(t_sum == q_sum) {
+                //recored result
+                return 1;
+            } else if (abs(t_sum - q_sum) < win_info->min_sum_diff) {
+                win_info->loc_x = anc_x + stepx[i];
+                win_info->loc_y = anc_y + stepy[i];
+            }
+        }
+    }
+           
+    Recursive( t_sum, anc_x + stepx[1], anc_y + stepy[1], vst_map, itg, win_info );
 }
