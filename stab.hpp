@@ -70,6 +70,23 @@ static double R_transX = R1;
 static double R_transY = R1;
 
 
+typedef struct _win_result {
+    int glb_x;
+    int glb_y;
+    int loc_x;
+    int loc_y;
+    int min_sum_diff;
+
+    void copy(_win_result* a, const _win_result* b) {
+        a->glb_x = b->glb_x;
+        a->glb_y = b->glb_y;
+        a->loc_x = b->loc_x;
+        a->loc_y = b->loc_y;
+        a->min_sum_diff = b->min_sum_diff;
+    }
+
+} WIN_RESULT;
+
 int stab_6dof(char* in, char* out);
 int stab_2dof(char* in, char* out);
 int stab_fastwin(char* in, char* out);
@@ -79,4 +96,5 @@ int MakeMask2(Mat& mask, int width, int height);
 void Kalman_Filter(double *scaleX , double *scaleY , double *thetha , double *transX , double *transY);
 
 Mat PickArea(Mat& src, int x ,int y, int winsize, int range);
-int Search(Mat& src1, Mat& src2, int range, int* dx, int* dy);
+int cvt_coord_to_vstmap(int sx, int sy, int range, int dx, int dy, int* tx, int ty);
+int Search(Mat& src1, Mat& src2, int range, WIN_RESULT* win_result);

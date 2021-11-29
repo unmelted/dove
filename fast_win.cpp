@@ -20,11 +20,14 @@ int stab_fastwin(char* in, char* out) {
 
     VideoCapture stab(in);
     VideoWriter output;
+    WIN_RESULT* cal_result = new WIN_RESULT();    
+    WIN_RESULT* cal_result_pre = new WIN_RESULT();
+
 
     char filename[30];
     int result = -1;
-    int range = 20;
-    int win = 100;
+    int range = 21;
+    int win = 20;
     int initial_x = 600; //after sacle
     int initial_y = 105;
     int x = initial_x;
@@ -69,7 +72,7 @@ int stab_fastwin(char* in, char* out) {
         winitg = PickArea(src1o, x , y, win, range);            
         winitg.copyTo(src1);
         
-        result = Search(src1, src2, range, &dx, &dy);
+        Search(src1, src2, range, cal_result);
 
         smth.at<double>(0,0) = 1; //ds_x * cos(da);
         smth.at<double>(0,1) = 0; //ds_x * -sin(da);
@@ -81,13 +84,17 @@ int stab_fastwin(char* in, char* out) {
         warpAffine(src1, src1, smth, src1.size());        
         smth.at<double>(0,2) = dx * scale;
         smth.at<double>(1,2) = dy * scale;      
-        warpAffine(src1oc, src1oc, smth, src1oc.size());
-                output << src1oc;
-        src1.copyTo(src2);     
 
+        warpAffine(src1oc, src1oc, smth, src1oc.size());
+        output << src1oc;
+        src1.copyTo(src2);     
+        cal_result_pre = cal_result;        
        
         Logger("[%d] %f ", i, LapTimer(all));
     }
+
+    delete cal_result;
+    delete cal_result_pre;
 
     return 1;
 }
@@ -100,8 +107,28 @@ Mat PickArea(Mat& src, int x ,int y, int winsize, int range) {
     return pickitg;
 }
 
-int Search(Mat& src1, Mat& src2, int range, int* dx, int* dy) {
-    int sx = 20; int sy = 20;
-    
-    return 1;
+int cvt_win_to_vstmap(int sx, int sy, int range, int dx, int dy, int* tx, int ty) {
+
+}
+
+int Search(Mat& src1, Mat& src2, int range, WIN_RESULT* win_result) {
+
+    int cx = sx + range/2; int cy = sy + range/2;
+    int kernel = 0;
+    int* vst_map = (int *)malloc(sizeof(int) * range * range );
+    memset(vst_map, 0, sizeof(int) * range * range);
+    int step_cnt = 8;
+    int stepx[8] = {-1, -1,  0,  1, 1, 1, 0, -1};
+    int stepy[8] = { 0, -1, -1, -1, 0, 1, 1,  1};
+
+    for(int i = 0; i < range/2; i++) {
+        kernel = i * 2 + 1;
+        if (kernel == 1) {
+
+        }
+
+    }
+
+    free(vst_map);
+    return 0;
 }
