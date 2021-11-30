@@ -31,8 +31,6 @@ int stab_2dof(char* in, char* out) {
     Mat affine;
     int cp_width = 0;
     int cp_height = 0;
-    Rect srcrect;
-    Rect dstrect;
     char filename[30];
     int scale = 2;
     int i = 0;

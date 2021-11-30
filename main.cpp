@@ -42,8 +42,11 @@ int main(int argc, char* argv[]) {
     }
     else if(mode_cal == 2) {
         int coord[4];
-        for(int i = 0 ; i < 4 ; i ++) 
-            coord[i] = argv[i+2] - 'a';
+        for(int i = 0 ; i < 4 ; i ++)  {
+            char t[2];
+            strcpy(argv[i+2], t);
+            coord[i] =  'a';
+        }
 
         cout<< coord <<endl;
         result = stab_fastwin(infile, outfile, coord);
