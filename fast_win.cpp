@@ -57,18 +57,16 @@ int stab_fastwin(char* in, char* out, int coord[4]) {
         GaussianBlur(temp, src1o, {11, 11}, 0.9, 0.9);        
 
         if( i == 0) {
-            winitg = PickArea(src1o, coord, range, t_win);
-            src2 = winitg;
+            PickArea(src1o, coord, range, t_win);
+            q_win = t_win;
             // sprintf(filename, "%d_winmat0.png", i);
             // imwrite(filename, src2);
             i++;
             continue;
         }
 
-        winitg = PickArea(src1o, coord, win, range, q_win);            
-        winitg.copyTo(src1);
-        
-        Search(src1, src2, range, cal_info);
+        PickArea(src1o, coord, win, range, q_win);        
+        Search(t_win, q_win);
 
         smth.at<double>(0,0) = 1; //ds_x * cos(da);
         smth.at<double>(0,1) = 0; //ds_x * -sin(da);
@@ -96,6 +94,13 @@ int stab_fastwin(char* in, char* out, int coord[4]) {
 }
 
 Mat PickArea(Mat& src, int coord[4], int range, WIN_INFO* _info) {
+    _info->glb_x = coord[0];
+    _info->glb_y = coord[1];
+    _info->width = coord[2];    
+    _info->height = coord[3];
+    _info->loc_x = _info->glb_x + _info->width;
+    _info->loc_y = _info->glb_y + _info->height;
+        
 
     Rect rec = Rect(coord[0], coord[1], coord[2], coord[3]);
     Mat pick = src(rec);
