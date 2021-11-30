@@ -1,3 +1,20 @@
+
+/*****************************************************************************
+*                                                                            *
+*                            main          								 *
+*                                                                            *
+*   Copyright (C) 2021 By 4dreplay, Incoporated. All Rights Reserved.        *
+******************************************************************************
+
+    File Name       : main.cpp
+    Author(S)       : Me Eunkyung
+    Created         : 28 nov 2021
+
+    Description     : main.cpp
+    Notes           : video stabil main procedure
+*/
+
+
 #include "stab.hpp"
 
 using namespace std;
@@ -9,6 +26,7 @@ int main(int argc, char* argv[]) {
     char outfile[40];
     sprintf(infile,"%s.mp4", argv[1]);
     sprintf(outfile, "%s_out1.mp4", argv[1]);
+
     cout<<infile<<endl;
     cout<<outfile<<endl;
     int mode_dof = 2;
@@ -23,6 +41,11 @@ int main(int argc, char* argv[]) {
         }
     }
     else if(mode_cal == 2) {
-        result = stab_fastwin(infile, outfile);
+        int coord[4];
+        for(int i = 0 ; i < 4 ; i ++) 
+            coord[i] = argv[i+2] - 'a';
+
+        cout<< coord <<endl;
+        result = stab_fastwin(infile, outfile, coord);
     }
 }

@@ -16,22 +16,17 @@
 
 #include "stab.hpp"
 
-int stab_fastwin(char* in, char* out) {
+int stab_fastwin(char* in, char* out, int coord[4]) {
 
     VideoCapture stab(in);
     VideoWriter output;
-    WIN_INFO* cal_info = new WIN_INFO();    
-    WIN_INFO* cal_info_pre = new WIN_INFO();
-
+    WIN_INFO* t_win = new WIN_INFO();    
+    WIN_INFO* q_win = new WIN_INFO();
 
     char filename[30];
     int result = -1;
-    int range = 21;
+    int range = 30;
     int win = 20;
-    int initial_x = 600; //after sacle
-    int initial_y = 105;
-    int x = initial_x;
-    int y = initial_y;
 
     Mat src1; Mat src1oc; Mat src1o;
     Mat winmat;
@@ -56,12 +51,13 @@ int stab_fastwin(char* in, char* out) {
         stab >> src1oc;
         if(src1oc.data == NULL)
             break;
-
+        Mat temp;
         resize(src1oc, src1o, Size(int((float)src1oc.cols/scale), int(float(src1oc.rows)/scale)), 0,0,1);
-        cvtColor(src1o, src1o, COLOR_BGR2GRAY);
+        cvtColor(src1o, temp, COLOR_BGR2GRAY);
+        GaussianBlur(temp, src1o, {11, 11}, 0.9, 0.9);        
 
         if( i == 0) {
-            winitg = PickArea(src1o, initial_x , initial_y , win, range);
+            winitg = PickArea(src1o, coord, range, t_win);
             src2 = winitg;
             // sprintf(filename, "%d_winmat0.png", i);
             // imwrite(filename, src2);
@@ -69,7 +65,7 @@ int stab_fastwin(char* in, char* out) {
             continue;
         }
 
-        winitg = PickArea(src1o, x , y, win, range);            
+        winitg = PickArea(src1o, coord, win, range, q_win);            
         winitg.copyTo(src1);
         
         Search(src1, src2, range, cal_info);
@@ -93,14 +89,15 @@ int stab_fastwin(char* in, char* out) {
         Logger("[%d] %f ", i, LapTimer(all));
     }
 
-    delete cal_info;
-    delete cal_info_pre;
+    delete t_win;
+    delete q_win;
 
     return 1;
 }
 
-Mat PickArea(Mat& src, int x ,int y, int winsize, int range) {
-    Rect rec = Rect(x - range, y - range, winsize + range*2, winsize+ range*2);
+Mat PickArea(Mat& src, int coord[4], int range, WIN_INFO* _info) {
+
+    Rect rec = Rect(coord[0], coord[1], coord[2], coord[3]);
     Mat pick = src(rec);
     Mat pickitg;
     integral(pick, pickitg);
@@ -124,19 +121,8 @@ int Search(Mat& src1, Mat& src2, int range, WIN_INFO* win_info) {
     int kernel = 0;
     int* vst_map = (int *)malloc(sizeof(int) * range * range );
     memset(vst_map, 0, sizeof(int) * range * range);
-    int step_cnt = 8;
-    sx = cx;
-    sy = cy;
-    for(int i = 0; i < range/2; i++) {
-        kernel = i * 2 + 1;
-        if (kernel == 1) {
-            
-        } else {
-
-        }
-
-    }
-
+    int t_sum = GetImageSum();
+    Recursive(t_sum, );
     free(vst_map);
     return 0;
 }
