@@ -72,7 +72,7 @@ int stab_fastwin(char* in, char* out, int coord[4]) {
         PickArea(src1o, coord, q_win, p);        
 
         Search(t_win, q_win, p);
-
+        
         smth.at<double>(0,0) = 1; //ds_x * cos(da);
         smth.at<double>(0,1) = 0; //ds_x * -sin(da);
         smth.at<double>(1,0) = 0; //ds_y * sin(da);
@@ -87,7 +87,10 @@ int stab_fastwin(char* in, char* out, int coord[4]) {
         warpAffine(src1oc, src1oc, smth, src1oc.size());
         output << src1oc;
         t_win = q_win;
-       
+        i++;
+        
+        if(i == 2)
+            break;
         Logger("[%d] %f ", i, LapTimer(all));
     }
 

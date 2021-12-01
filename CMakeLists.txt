@@ -18,11 +18,12 @@ add_definitions(-D_DEBUG)
 add_definitions(-D_IMGDEBUG)
 
 set(PRJ_PATH        ${CMAKE_CURRENT_SOURCE_DIR})
-file(GLOB PRJ_SRC   ${PRJ_PATH}/*.cpp
-                    ${PRJ_PATH}/common/*.cpp)
+file(GLOB PRJ_SRC   ${PRJ_PATH}/main.cpp
+                    ${PRJ_PATH}/src/*.cpp
+                    ${PRJ_PATH}/src/common/*.cpp)
 
-file(GLOB PRJ_INC      ${PRJ_PATH}/*.hpp
-                       ${PRJ_PATH}/common/*.hpp)
+file(GLOB PRJ_INC      ${PRJ_PATH}/src/*.hpp
+                       ${PRJ_PATH}/src/common/*.hpp)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include_directories(${PRJ_INC} ${OpenCV_INCLUDE_DIRS})
