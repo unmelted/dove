@@ -26,6 +26,10 @@ int stab_fastwin(char* in, char* out, int coord[4]) {
     t_win->init();
     q_win->init();
     p->scale = 2;
+    p->sx = coord[0];
+    p->sy = coord[1];
+    p->width = coord[2];
+    p->height = coord[3];    
     p->range = 31;
     p->blur_size = 11;
     p->blur_sigma = 0.9;
@@ -64,12 +68,13 @@ int stab_fastwin(char* in, char* out, int coord[4]) {
         imwrite(filename, src1o);
 
         if( i == 0) {
-            PickArea(src1o, coord, t_win, p);
+            PickArea(src1o, t_win, p);
             i++;
             continue;
         }
 
-        PickArea(src1o, coord, q_win, p);        
+        PickArea(src1o, q_win, p);        
+        ShowData(q_win, p);
 
         Search(t_win, q_win, p);
         
@@ -101,29 +106,28 @@ int stab_fastwin(char* in, char* out, int coord[4]) {
     return 1;
 }
 
-int PickArea(Mat& src, int coord[4], WIN_INFO* _info, PARAM* p) {
-    _info->glb_x = coord[0];
-    _info->glb_y = coord[1];
-    _info->width = coord[2];    
-    _info->height = coord[3];
-    _info->loc_x = _info->glb_x + _info->width;
-    _info->loc_y = _info->glb_y + _info->height;
+int PickArea(Mat& src, WIN_INFO* _info, PARAM* p) {
+    _info->glb_x = p->sx / p->scale;
+    _info->glb_y = p->sy / p->scale;
+    _info->width = p->width / p->scale;    
+    _info->height = p->height / p->scale;
+    _info->loc_x = _info->glb_x - p->range;
+    _info->loc_y = _info->glb_y - p->range;
 
     _info->srch_x = _info->width + p->range;
     _info->srch_y = _info->height + p->range;
-    _info->tt_width =  _info->width + p->range * 2;
-    _info->tt_height = _info->height + p->range *2;
+    _info->tt_width =  _info->width + (p->range) * 2;
+    _info->tt_height = _info->height + (p->range) *2;
     _info->min_dx = 0;
     _info->min_dy = 0;
 
-    Rect rec = Rect(_info->glb_x - p->range, _info->glb_y - p->range, 
-        _info->width + (p->range *2 ), _info->height +(p->range *2));
+    Rect rec = Rect(_info->loc_x, _info->loc_y, _info->tt_width, _info->tt_height);
     Mat pick = src(rec);
     Mat pickitg;
-    integral(pick, pickitg);
+    integral(pick, pickitg, CV_32S);
     _info->itg = pickitg;
 
-    ShowPickArea(_info);
+    //ShowPickArea(_info);
     return 1;
 }
 
@@ -133,7 +137,8 @@ int cvt_win_to_vstmap(int sx, int sy, int range, int dx, int dy, int* tx, int ty
 }
 
 int GetImageSum(Mat& itg, int xx, int yy, int x, int y) {
-    int sum = itg.at<int>(yy, xx) + itg.at<int>(y,x) - itg.at<int>(yy, xx) - itg.at<int>(yy, x);
+    printf("GetImageSum %d %d %d %d \n", xx, yy ,x , y);
+    int sum = 0;//itg.at<int>(yy, xx) + itg.at<int>(y,x) - itg.at<int>(yy, xx) - itg.at<int>(yy, x);
     return sum;
 }
 
@@ -179,15 +184,28 @@ int Recursive(int t_sum, int _x, int _y, int* vst_map, WIN_INFO* _win, PARAM* p)
         }
     }
            
-    Recursive(t_sum, _x + stepx[1], _y + stepy[1], vst_map, _win, p );
+    return Recursive(t_sum, _x + stepx[1], _y + stepy[1], vst_map, _win, p );
 } 
 
-void ShowPickArea(WIN_INFO* _win) {
+void ShowData(WIN_INFO* _win, PARAM* _p) {
+    printf(" ==== PARAM  === \n");    
+    printf("scale %d  \n", _p->scale);
+    printf("start x %d y %d  \n", _p->sx, _p->sy);
+    printf("area width %d  height %d \n", _p->width, _p->height);
 
+    printf(" ==== WIN INFO === \n");
+    printf(" glb _x %d _y %d \n", _win->glb_x, _win->glb_y);
+    printf(" loc _x %d _y %d \n", _win->loc_x, _win->loc_y);    
+    printf(" width %d height %d  \n", _win->width, _win->height);
+    printf(" srch _x %d _y %d \n", _win->srch_x, _win->srch_y);    
+    printf(" total width %d height %d  \n", _win->tt_width, _win->tt_height);    
+
+/* -- integral imag e
     for(int i = 0; i < _win->tt_height ; i++) {
         for(int j = 0 ; j < _win->tt_width ; j ++) {
             printf(" %8d ", _win->itg.at<int>(i, j));
         }
         printf("\n [%d]", i);
     }
+*/
 }

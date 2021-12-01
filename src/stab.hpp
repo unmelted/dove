@@ -75,6 +75,10 @@ typedef struct _param {
     int blur_size;
     float blur_sigma;
 
+    int sx;
+    int sy;
+    int width;
+    int height;
     int range;
 
 
@@ -86,10 +90,10 @@ typedef struct _win_info {
     int glb_y;
     int loc_x;
     int loc_y;
-    int width;
-    int height;
     int range;
 
+    int width;
+    int height;
     int srch_x;
     int srch_y;
 
@@ -129,10 +133,10 @@ int MakeMask6(Mat& mask, int width, int height);
 int MakeMask2(Mat& mask, int width, int height);
 void Kalman_Filter(double *scaleX , double *scaleY , double *thetha , double *transX , double *transY);
 
-int PickArea(Mat& src, int coord[4], WIN_INFO* _info, PARAM* p);
+int PickArea(Mat& src, WIN_INFO* _info, PARAM* p);
 int cvt_coord_to_vstmap(int sx, int sy, int range, int dx, int dy, int* tx, int ty);
 int GetImageSum(Mat& itg, int xx, int yy, int x, int y);
 int Search(WIN_INFO* t_win, WIN_INFO* q_win, PARAM* p);
 int Recursive(int t_sum, int anc_x, int anc_y, int* vst_map, WIN_INFO* win_info, PARAM* p);
 
-void ShowPickArea(WIN_INFO* _win);
+void ShowData(WIN_INFO* _win, PARAM* _p);
