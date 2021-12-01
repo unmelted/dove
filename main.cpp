@@ -29,6 +29,7 @@ int main(int argc, char* argv[]) {
 
     cout<<infile<<endl;
     cout<<outfile<<endl;
+
     int mode_dof = 2;
     int mode_cal = 2; //1 : optical flow, 2 : integral + search window
     int result = 0;
@@ -45,7 +46,7 @@ int main(int argc, char* argv[]) {
         for(int i = 0 ; i < 4 ; i ++)  {
             char t[2];
             strcpy(argv[i+2], t);
-            coord[i] =  'a';
+            coord[i] = t[0] - 'a';
         }
 
         cout<< coord <<endl;
