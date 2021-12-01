@@ -137,6 +137,10 @@ int PickArea(Mat& src, WIN_INFO* _info, PARAM* p);
 int cvt_coord_to_vstmap(int sx, int sy, int range, int dx, int dy, int* tx, int ty);
 int GetImageSum(Mat& itg, int xx, int yy, int x, int y);
 int Search(WIN_INFO* t_win, WIN_INFO* q_win, PARAM* p);
-int Recursive(int t_sum, int anc_x, int anc_y, int* vst_map, WIN_INFO* win_info, PARAM* p);
+int RecursiveParent(int t_sum, int _x, int _y, int* vst_map, WIN_INFO* _win, PARAM* p);
+int Recursive(int t_sum, int anc_x, int anc_y, int* vst_map, WIN_INFO* win_info, PARAM* p, int a);
+int SpiralSearch(int t_sum, int _x, int _y, int* vst_map, WIN_INFO* _win, PARAM* p);
 
 void ShowData(WIN_INFO* _win, PARAM* _p);
+void ShowVisitMap(int* vst, int width, int height);
+int test_search();

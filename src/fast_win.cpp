@@ -77,6 +77,8 @@ int stab_fastwin(char* in, char* out, int coord[4]) {
         ShowData(q_win, p);
 
         Search(t_win, q_win, p);
+        if(i == 2)
+            break;
         
         smth.at<double>(0,0) = 1; //ds_x * cos(da);
         smth.at<double>(0,1) = 0; //ds_x * -sin(da);
@@ -94,8 +96,6 @@ int stab_fastwin(char* in, char* out, int coord[4]) {
         t_win = q_win;
         i++;
         
-        if(i == 2)
-            break;
         Logger("[%d] %f ", i, LapTimer(all));
     }
 
@@ -121,6 +121,7 @@ int PickArea(Mat& src, WIN_INFO* _info, PARAM* p) {
     _info->min_dx = 0;
     _info->min_dy = 0;
 
+    printf("Pick -- %d %d %d %d \n", _info->loc_x, _info->loc_y, _info->tt_width, _info->tt_height);
     Rect rec = Rect(_info->loc_x, _info->loc_y, _info->tt_width, _info->tt_height);
     Mat pick = src(rec);
     Mat pickitg;
@@ -138,44 +139,108 @@ int cvt_win_to_vstmap(int sx, int sy, int range, int dx, int dy, int* tx, int ty
 
 int GetImageSum(Mat& itg, int xx, int yy, int x, int y) {
     printf("GetImageSum %d %d %d %d \n", xx, yy ,x , y);
-    int sum = 0;//itg.at<int>(yy, xx) + itg.at<int>(y,x) - itg.at<int>(yy, xx) - itg.at<int>(yy, x);
+    int sum = itg.at<int>(yy, xx) + itg.at<int>(y,x) - itg.at<int>(yy, xx) - itg.at<int>(yy, x);
     return sum;
 }
 
 int Search(WIN_INFO* t_win, WIN_INFO* q_win, PARAM* p) {
 
-    int* vst_map = (int *)malloc(sizeof(unsigned char) *  t_win->tt_width * t_win->tt_height);
-    memset(vst_map, 0, sizeof(unsigned char) *  t_win->tt_width * t_win->tt_height);
+    int* vst_map = (int *)malloc(sizeof(int) *  t_win->tt_width * t_win->tt_height);
+    memset(vst_map, 0, sizeof(int) *  t_win->tt_width * t_win->tt_height);
     int t_sum = GetImageSum(t_win->itg, t_win->srch_x, t_win->srch_y, t_win->srch_x - t_win->width, 
         t_win->srch_y - t_win->height);
-    Recursive(t_sum, q_win->srch_x, q_win->srch_y, vst_map, q_win, p);
+    SpiralSearch(t_sum, q_win->srch_x, q_win->srch_y, vst_map, q_win, p);
     Logger("Search Result min_diff %d dx %d dy %d" , q_win->min_sum_diff, q_win->min_dx, q_win->min_dy);
 
     free(vst_map);
     return 0;
 }
+int SpiralSearch(int t_sum, int _x, int _y, int* vst_map, WIN_INFO* _win, PARAM* p)
+{
+    int np = (p->range * 2) * (p->range * 2);
+    int di = 1;
+    int dj = 0;
+    int segment_length = 1;
+    // current position (i, j) and how much of current segment we passed
+    int i = 0;
+    int j = 0;
+    int segment_passed = 0;
 
-int Recursive(int t_sum, int _x, int _y, int* vst_map, WIN_INFO* _win, PARAM* p) {
+    int q_sum = GetImageSum(_win->itg, _x, _y, _x - _win->width,  _y - _win->height);
 
-    int stepx[9] = {0, -1, -1,  0,  1, 1, 1, 0, -1};
-    int stepy[9] = {0,  0, -1, -1, -1, 0, 1, 1,  1};
-    int width = _win->width;
+    for (int k = 0; k < np; ++k) {
+        // make a step, add 'direction' vector (di, dj) to current position (i, j)
+        i += di;
+        j += dj;
+        ++segment_passed;
 
-    if(_x < _win->srch_x - p->range)
+        int newx = _x + i;
+        int newy = _y + j;
+        printf("[%d] -- %d  %d  --  %d %d \n", k, i , j , newx, newy);
+        vst_map[ newy * _win->tt_width + newx] = 1;
+        
+        int q_sum = GetImageSum(_win->itg, newx, newy, newx - _win->width,  newy - _win->height);
+        if(t_sum == q_sum) {
+            Logger("Same point is found! %d %d ", newx, newy);
+            _win->min_dx = newx;
+            _win->min_dy = newy;
+            _win->min_sum_diff = 0;
+            break;
+
+        } else if (abs(t_sum - q_sum) < _win->min_sum_diff) {
+            Logger("minimum point update! %d %d ", newx, newy);
+            _win->min_dx = newx;
+            _win->min_dy = newy;
+            _win->min_sum_diff = abs(t_sum - q_sum);
+        }
+
+        if (segment_passed == segment_length) {
+            // done with current segment
+            segment_passed = 0;
+
+            // 'rotate' directions
+            int buffer = di;
+            di = -dj;
+            dj = buffer;
+
+            // increase segment length if necessary
+            if (dj == 0) {
+                ++segment_length;
+            }
+        }
+    }
+
+    ShowVisitMap(vst_map, _win->tt_width, _win->tt_height);
+}
+
+int Recursive(int t_sum, int _x, int _y, int* vst_map, WIN_INFO* _win, PARAM* p, int a) {
+
+    int stepx[5] = {0, -1, -1, 1, 0};
+    int stepy[5] = {0,  0, -1, 1, 1};
+    int width = _win->tt_width;
+
+    if(_x < _win->srch_x - p->range || _x > _win->srch_x + p->range ||
+       _y < _win->srch_y - p->range || _y > _win->srch_y + p->range) {
+        printf("ragne over. finish. \n");
+        return 1;
+    }
 
     for(int i = 0; i < sizeof(stepx)/sizeof(stepx[0]) ; i ++) {
         int newx = _x + stepx[i];
         int newy = _y + stepy[i];
+        printf("newx %d newy %d vst %d  \n ", newx, newy, vst_map[ newy * width + newx]);
+
         if(vst_map[ newy * width + newx] == 0 ) {
             vst_map[ newy * width + newx ] = 1;            
-            int q_sum = GetImageSum(_win->itg, newx, newy, newx - _win->width, newy - _win->height);
+            int q_sum = GetImageSum(_win->itg, newx, newy, newx - _win->width,  newy - _win->height);
 
             if(t_sum == q_sum) {
-                Logger("Same point is found! %d %d ", newx, newy);
+                //Logger("Same point is found! %d %d ", newx, newy);
                 _win->min_dx = newx;
                 _win->min_dy = newy;
                 _win->min_sum_diff = 0;
-                return 1;
+                //return 1;
+
             } else if (abs(t_sum - q_sum) < _win->min_sum_diff) {
                 _win->min_dx = newx - _win->srch_x;
                 _win->min_dy = newy - _win->srch_y;
@@ -183,8 +248,12 @@ int Recursive(int t_sum, int _x, int _y, int* vst_map, WIN_INFO* _win, PARAM* p)
             }
         }
     }
-           
-    return Recursive(t_sum, _x + stepx[1], _y + stepy[1], vst_map, _win, p );
+    if (a < sizeof(stepx)/sizeof(stepx[0])) {
+        a++;
+        Recursive(t_sum, _x + stepx[a], _y + stepy[a], vst_map, _win, p, a);
+    }
+
+    printf("---- for loop close ---- \n");           
 } 
 
 void ShowData(WIN_INFO* _win, PARAM* _p) {
@@ -208,4 +277,14 @@ void ShowData(WIN_INFO* _win, PARAM* _p) {
         printf("\n [%d]", i);
     }
 */
+}
+
+void ShowVisitMap(int* vst, int width, int height) {
+
+    for(int i = 51 ; i < width; i ++) {
+        for(int j = 51 ; j < height ; j ++){
+            printf("%d ", vst[j * width + i]);
+        }
+        printf("\n");
+    }
 }
