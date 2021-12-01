@@ -107,6 +107,7 @@ int stab_2dof(char* in, char* out) {
         smth.at<double>(0,2) = dx;
         smth.at<double>(1,2) = dy;
 
+        printf("[%d] dx %f dy %f \n", i, dx, dy);
         warpAffine(src1, src1, smth, src1.size());        
         smth.at<double>(0,2) = dx * scale;
         smth.at<double>(1,2) = dy * scale;      
@@ -116,6 +117,9 @@ int stab_2dof(char* in, char* out) {
         affine.copyTo(pre_affine);   
 
         //transrc1.copyTo(src2);
+        i++;
+        // if(i == 30)
+        //      break;
         
         Logger("[%d] %f ", i, LapTimer(all));
     }

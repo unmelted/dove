@@ -80,7 +80,8 @@ typedef struct _param {
     int width;
     int height;
     int range;
-
+    int stop_threshold;
+    int same_threshold;
 
 }PARAM;
 
@@ -140,7 +141,8 @@ int Search(WIN_INFO* t_win, WIN_INFO* q_win, PARAM* p);
 int RecursiveParent(int t_sum, int _x, int _y, int* vst_map, WIN_INFO* _win, PARAM* p);
 int Recursive(int t_sum, int anc_x, int anc_y, int* vst_map, WIN_INFO* win_info, PARAM* p, int a);
 int SpiralSearch(int t_sum, int _x, int _y, int* vst_map, WIN_INFO* _win, PARAM* p);
+void InfoMove(WIN_INFO* t, WIN_INFO* q);
 
-void ShowData(WIN_INFO* _win, PARAM* _p);
+void ShowData(WIN_INFO* _win, PARAM* _p, int mode );
 void ShowVisitMap(int* vst, int width, int height);
 int test_search();
