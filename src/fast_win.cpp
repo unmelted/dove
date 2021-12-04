@@ -35,11 +35,11 @@ int stab_fastwin(char* in, char* out, int coord[4]) {
     p->sy = coord[1];
     p->width = coord[2];
     p->height = coord[3];    
-    p->range = 21;
+    p->range = 10;
     p->blur_size = 11;
     p->blur_sigma = 1.3;
-    p->stop_threshold = 200;
-    p->same_threshold = 300;
+    p->stop_threshold = 50;
+    p->same_threshold = 100;
 
     char filename[30];
     int result = -1;
@@ -53,8 +53,10 @@ int stab_fastwin(char* in, char* out, int coord[4]) {
     Mat pre_affine;
     Mat affine;
     int i = 0;
-    int dx = 0;
-    int dy = 0;
+    double dx  = 0;
+    double ddx = 0;
+    double dy = 0;
+    double ddy = 0;
 
     TIMER* all;
     all = new TIMER();    
@@ -80,8 +82,8 @@ int stab_fastwin(char* in, char* out, int coord[4]) {
             imwrite(filename, src1o);
             
             PickArea(src1o, t_win, p);
-            sprintf(filename, "%d_out.png", i);
-            imwrite(filename, src1oc);
+            // sprintf(filename, "%d_out.png", i);
+            // imwrite(filename, src1oc);
 
             i++;
             continue;
@@ -95,8 +97,19 @@ int stab_fastwin(char* in, char* out, int coord[4]) {
             i++;
             continue;
         }
-        dx = (q_win->srch_x - q_win->min_dx);
-        dy = (q_win->srch_y - q_win->min_dy);
+        ddx = (q_win->srch_x - q_win->min_dx);
+        ddy = (q_win->srch_y - q_win->min_dy);
+        printf("ddx %f ddy %f \n ", ddx, ddy);
+        if( ddx < 1 && ddy < 1) {
+            InfoMove(t_win, q_win);
+            output << src1oc;                        
+            i++;
+            continue;
+        }
+
+        dx = (q_win->srch_x - q_win->min_dx) * p->scale * 0.6;
+        dy = (q_win->srch_y - q_win->min_dy) * p->scale * 0.6;
+
 
         smth.at<double>(0,0) = 1; //ds_x * cos(da);
         smth.at<double>(0,1) = 0; //ds_x * -sin(da);
@@ -108,20 +121,21 @@ int stab_fastwin(char* in, char* out, int coord[4]) {
         //warpAffine(src1, src1, smth, src1.size());        
         //smth.at<double>(0,2) = dx * p->scale;
         //smth.at<double>(1,2) = dy * p->scale;      
-        sprintf(filename, "%d_ori.png", i);
-        imwrite(filename, src1oc);
-        sprintf(filename, "%d_pro_o.png", i);
-        imwrite(filename, src1o);
+        // sprintf(filename, "%d_ori.png", i);
+        // imwrite(filename, src1oc);
+        // sprintf(filename, "%d_pro_o.png", i);
+        // imwrite(filename, src1o);
 
         warpAffine(src1oc, src1oc, smth, src1oc.size());
         output << src1oc;
-        sprintf(filename, "%d_out.png", i);
-        imwrite(filename, src1oc);
+        // sprintf(filename, "%d_out.png", i);
+        // imwrite(filename, src1oc);
 
         InfoMove(t_win, q_win);
+        dx = 0; dy = 0;
         i++;
-        // if(i == 30)
-        //      break;
+        if(i == 30)
+            break;
         
         Logger("[%d] %f ", i, LapTimer(all));
     }
@@ -153,11 +167,11 @@ int PickArea(Mat& src, WIN_INFO* _info, PARAM* p) {
     integral(pick, pickitg, CV_32S);
     _info->itg = pickitg;
 
-    // char filename[30];
-    // static int i = 0;
-    // sprintf(filename, "%d_pick.png", i);
-    // imwrite(filename, pick);
-    // i++;
+    char filename[30];
+    static int i = 0;
+    sprintf(filename, "%d_pick.png", i);
+    imwrite(filename, pick);
+    i++;
 
     //ShowData(_info, p, 1);
     //ShowData(_info, p, 2);    
@@ -279,7 +293,7 @@ void InfoMove(WIN_INFO* t, WIN_INFO* q) {
 void ShowData(WIN_INFO* _win, PARAM* _p, int mode) {
     if(mode == 1) {
         printf(" ==== PARAM  === \n");    
-        printf("scale %d  \n", _p->scale);
+        printf("scale %f  \n", _p->scale);
         printf("start x %d y %d  \n", _p->sx, _p->sy);
         printf("area width %d  height %d \n", _p->width, _p->height);
 

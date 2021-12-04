@@ -32,7 +32,7 @@ int stab_2dof(char* in, char* out) {
     int cp_width = 0;
     int cp_height = 0;
     char filename[30];
-    int scale = 2;
+    int scale = 1;
     int i = 0;
     int threshold = 6;
 
@@ -118,10 +118,10 @@ int stab_2dof(char* in, char* out) {
 
         //transrc1.copyTo(src2);
         i++;
-        // if(i == 30)
-        //      break;
+        if(i == 30)
+            break;
         
-        Logger("[%d] %f ", i, LapTimer(all));
+        //Logger("[%d] %f ", i, LapTimer(all));
     }
 
     return 1;

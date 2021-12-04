@@ -71,7 +71,7 @@ static double R_transX = R1;
 static double R_transY = R1;
 
 typedef struct _param {
-    int scale;
+    float scale;
     int blur_size;
     float blur_sigma;
 
