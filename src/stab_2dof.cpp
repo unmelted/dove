@@ -16,11 +16,22 @@
 
 #include "stab.hpp"
 
-int stab_2dof(char* in, char* out) { 
+int stab_2dof(char* in, char* out, int coord[4]) { 
 
     VideoCapture stab(in);
     VideoWriter output;
     output.open(out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));    
+    PARAM pr;
+    PARAM* p =&pr;
+    p->scale = 1;    
+    p->sx = coord[0];
+    p->sy = coord[1];
+    p->width = coord[2];
+    p->height = coord[3];    
+    p->blur_size = 11;
+    p->blur_sigma = 1.3;
+    p->dst_width = 1920;
+    p->dst_height = 1080;
 
     Mat src1; Mat src1oc; Mat src1o;
     Mat mask;
@@ -32,7 +43,6 @@ int stab_2dof(char* in, char* out) {
     int cp_width = 0;
     int cp_height = 0;
     char filename[30];
-    int scale = 1;
     int i = 0;
     int threshold = 6;
 
@@ -40,16 +50,21 @@ int stab_2dof(char* in, char* out) {
     all = new TIMER();    
     StartTimer(all);    
     smth.create(2 , 3 , CV_64F);    
-    MakeMask2(mask, 1920/scale, 1080/scale);
+    MakeMask2(mask, p);
 
     while(true) {
 
         stab >> src1oc;
         if(src1oc.data == NULL)
             break;
+        Mat temp;
+        if(p->scale != 1)
+            resize(src1oc, src1o, Size(int((float)src1oc.cols/p->scale), int(float(src1oc.rows)/p->scale)), 0,0,1);
+        else
+            src1oc.copyTo(src1o);
 
-        resize(src1oc, src1o, Size(int((float)src1oc.cols/scale), int(float(src1oc.rows)/scale)), 0,0,1);
-        cvtColor(src1o, src1o, COLOR_BGR2GRAY);
+        cvtColor(src1o, temp, COLOR_BGR2GRAY);
+        GaussianBlur(temp, src1o, {p->blur_size, p->blur_size}, p->blur_sigma, p->blur_sigma);
 
         if( i == 0) {
             src2 = src1o;
@@ -71,7 +86,7 @@ int stab_2dof(char* in, char* out) {
         vector <uchar> status;
         vector <float> err;
 
-        goodFeaturesToTrack(src1, features1, 30, 0.01  , 30, noArray(), 11, false, 0.04);
+        goodFeaturesToTrack(src1, features1, 30, 0.01  , 30, mask, 11, false, 0.04);
         calcOpticalFlowPyrLK(src1, src2, features1, features2, status, err );
 
         for(size_t i=0; i < status.size(); i++)
@@ -109,8 +124,8 @@ int stab_2dof(char* in, char* out) {
 
         printf("[%d] dx %f dy %f \n", i, dx, dy);
         warpAffine(src1, src1, smth, src1.size());        
-        smth.at<double>(0,2) = dx * scale;
-        smth.at<double>(1,2) = dy * scale;      
+        smth.at<double>(0,2) = dx * p->scale;
+        smth.at<double>(1,2) = dy * p->scale;      
         warpAffine(src1oc, src1oc, smth, src1oc.size());
                 output << src1oc;
         src1.copyTo(src2);     
@@ -118,19 +133,19 @@ int stab_2dof(char* in, char* out) {
 
         //transrc1.copyTo(src2);
         i++;
-        if(i == 30)
-            break;
+        // if(i == 30)
+        //     break;
         
-        //Logger("[%d] %f ", i, LapTimer(all));
+        Logger("[%d] %f ", i, LapTimer(all));
     }
 
     return 1;
 }
 
-int MakeMask2(Mat& mask, int width, int height) {
-    cout<< "mask width , height : " << width << " , "<< height<<endl;
-    mask = Mat::zeros(height, width, CV_8UC1);
-    rectangle(mask, Point(631, 247), Size(300, 200), Scalar(255), -1);
+int MakeMask2(Mat& mask, PARAM* p) {
+    cout<< "mask width , height : " << p->dst_width << " , "<< p->dst_height<<endl;
+    mask = Mat::zeros(p->dst_height, p->dst_width, CV_8UC1);
+    rectangle(mask, Point(p->sx, p->sy), Point(p->sx + p->width, p->sy + p->height), Scalar(255), -1);
     imwrite("mask.png", mask);
 
     return 1;

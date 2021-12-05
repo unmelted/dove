@@ -83,6 +83,9 @@ typedef struct _param {
     int stop_threshold;
     int same_threshold;
 
+    int dst_width;
+    int dst_height;
+
 }PARAM;
 
 typedef struct _win_info {
@@ -127,11 +130,11 @@ typedef struct _win_info {
 } WIN_INFO;
 
 int stab_6dof(char* in, char* out);
-int stab_2dof(char* in, char* out);
+int stab_2dof(char* in, char* out, int coord[4]);
 int stab_fastwin(char* in, char* out, int coord[4]);
 
 int MakeMask6(Mat& mask, int width, int height);
-int MakeMask2(Mat& mask, int width, int height);
+int MakeMask2(Mat& mask, PARAM* p);
 void Kalman_Filter(double *scaleX , double *scaleY , double *thetha , double *transX , double *transY);
 
 int PickArea(Mat& src, WIN_INFO* _info, PARAM* p);

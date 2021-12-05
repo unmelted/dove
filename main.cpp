@@ -33,12 +33,21 @@ int main(int argc, char* argv[]) {
     cout<<outfile<<endl;
 
     int mode_dof = 2;
-    int mode_cal = 2; //1 : optical flow, 2 : integral + search window
+    int mode_cal = 1; //1 : optical flow, 2 : integral + search window
+    int mask = 1; //0 : no mask. 1: mask. region
     int result = 0;
 
     if(mode_cal == 1) { 
         if(mode_dof == 2) {
-            result = stab_2dof(infile, outfile);        
+            int coord[4] = {0, };
+            if(mask == 1) {
+                for(int i = 0 ; i < 4 ; i ++)  {
+                    coord[i] = atoi(argv[i+2]);
+                    printf("coord [%d] %d  \n", i, coord[i]);
+                }
+            }
+            result = stab_2dof(infile, outfile, coord);            
+            
         } else if (mode_dof== 6) {
             result = stab_6dof(infile, outfile);
         }
