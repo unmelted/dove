@@ -22,20 +22,41 @@ using namespace cv;
 
 Dove::Dove() {
     p = new PARAM;
-    t = new TIMER();
+    t = new TIMER;
+    dl = Dlog();        
+
+}
+
+Dove::Dove(bool has_mask, int* coord, string id) {
+    Dove();
+    if(has_mask == true) 
+        Initialize(true, coord);
+    else 
+        Initialize(false, 0);    
+    dl.SetLogFilename(id);        
 }
 
 Dove::~Dove() {
-
+    delete p;
+    delete t;
+    delete dl;
 }
 
-void Dove::Initialize(int* coord, bool has_mask) {
+int Dove::Process() {
+};
 
-    p->scale = 2;    
-    p->sx = coord[0];
-    p->sy = coord[1];
-    p->width = coord[2];
-    p->height = coord[3];    
+
+void Dove::Initialize(bool has_mask, int* coord) {
+
+    p->scale = 2;
+    if(has_mask == true) {
+        p->has_mask = true;
+        p->sx = coord[0];
+        p->sy = coord[1];
+        p->width = coord[2];
+        p->height = coord[3];    
+    }
+
     p->blur_size = 11;
     p->blur_sigma = 1.3;
     p->dst_width = 1920;
@@ -43,47 +64,51 @@ void Dove::Initialize(int* coord, bool has_mask) {
 
 }
 
-int Dove::CalculateShift(Mat& src1, Mat& src2, Mat& smth) {
-        vector <Point2f> features1, features2;
-        vector <Point2f> goodFeatures1, goodFeatures2;
-        vector <uchar> status;
-        vector <float> err;
+int Dove::CalculateMove(Mat& src1, Mat& src2, Mat& smth) {
+    vector <Point2f> features1, features2;
+    vector <Point2f> goodFeatures1, goodFeatures2;
+    vector <uchar> status;
+    vector <float> err;
 
-        goodFeaturesToTrack(src1, features1, 30, 0.01  , 30, mask, 11, false, 0.04);
-        calcOpticalFlowPyrLK(src1, src2, features1, features2, status, err );
+    goodFeaturesToTrack(src1, features1, 30, 0.01  , 30, mask, 11, false, 0.04);
+    calcOpticalFlowPyrLK(src1, src2, features1, features2, status, err );
 
-        for(size_t i=0; i < status.size(); i++)
+    for(size_t i=0; i < status.size(); i++)
+    {
+        if(status[i])
         {
-            if(status[i])
-            {
-                goodFeatures1.push_back(features1[i]);
-                goodFeatures2.push_back(features2[i]);
-            }
+            goodFeatures1.push_back(features1[i]);
+            goodFeatures2.push_back(features2[i]);
         }
+    }
 
-        if(goodFeatures1.size() < threshold || goodFeatures2.size() < threshold) {
-             cout<< i << " no feature to track.. feature cnt : "<< goodFeatures1.size() << endl;
-             sprintf(filename, "%d_no_feature.png", i);
-             imwrite(filename, src1oc);
-             pre_affine.copyTo(affine);
-         }
-         else {
-            //affine = estimateAffine2D(goodFeatures1, goodFeatures2);
-            affine = estimateRigidTransform(goodFeatures1, goodFeatures2, false);                
+    if(goodFeatures1.size() < threshold || goodFeatures2.size() < threshold) {
+            cout<< i << " no feature to track.. feature cnt : "<< goodFeatures1.size() << endl;
+            sprintf(filename, "%d_no_feature.png", i);
+            imwrite(filename, src1oc);
+            pre_affine.copyTo(affine);
         }
+        else {
+        //affine = estimateAffine2D(goodFeatures1, goodFeatures2);
+        affine = estimateRigidTransform(goodFeatures1, goodFeatures2, false);                
+    }
 
-        double dx = affine.at<double>(0,2);
-        double dy = affine.at<double>(1,2);
-        double da = atan2(affine.at<double>(1,0), affine.at<double>(0,0));
-        double ds_x = affine.at<double>(0,0)/cos(da);
-        double ds_y = affine.at<double>(1,1)/cos(da);
+    double dx = affine.at<double>(0,2);
+    double dy = affine.at<double>(1,2);
+    double da = atan2(affine.at<double>(1,0), affine.at<double>(0,0));
+    double ds_x = affine.at<double>(0,0)/cos(da);
+    double ds_y = affine.at<double>(1,1)/cos(da);
 
-        smth.at<double>(0,0) = 1; //ds_x * cos(da);
-        smth.at<double>(0,1) = 0; //ds_x * -sin(da);
-        smth.at<double>(1,0) = 0; //ds_y * sin(da);
-        smth.at<double>(1,1) = 1; //ds_y * cos(da);
-        smth.at<double>(0,2) = dx;
-        smth.at<double>(1,2) = dy;
+    smth.at<double>(0,0) = 1; //ds_x * cos(da);
+    smth.at<double>(0,1) = 0; //ds_x * -sin(da);
+    smth.at<double>(1,0) = 0; //ds_y * sin(da);
+    smth.at<double>(1,1) = 1; //ds_y * cos(da);
+    smth.at<double>(0,2) = dx;
+    smth.at<double>(1,2) = dy;
+}
+
+int Dove::ApplyImage(Mat& src, Mat& dst, Mat& smth) {
+    warpAffine(src1, src1, smth, src1.size());    
 }
 
 int Dove::MakeMask(Mat& mask, PARAM* p) {

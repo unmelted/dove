@@ -39,6 +39,10 @@ int main(int argc, char* argv[]) {
     int result = 0;
 
     Dove stblz = Dove();
+    VideoCapture stab(infile);
+    VideoWriter output;
+    output.open(outfile, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));    
+
 
     if(mode_cal == 1) { 
         if(mode_dof == 2) {

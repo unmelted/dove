@@ -25,6 +25,7 @@ class Dove {
 public: 
     PARAM* p;
     TIMER* t;
+    Dlog dl;
 
     Mat src1; Mat src1oc; Mat src1o;
     Mat mask;
@@ -41,12 +42,14 @@ public:
 
 
     Dove();
+    Dove(bool has_mask, int* coord, string id = "TEST");
     ~Dove();
 
+    int Process();
     void Initialize(int* coord, bool has_mask);
-    int CalculateShift(Mat& src1, Mat& src2, Mat& smth);
-
+    int CalculateMove(Mat& src1, Mat& src2, Mat& smth);
     int MakeMask(Mat& mask, PARAM* p);
+    int ApplyImage(Mat& src, Mat& dst, Mat& smth);
 
     int stab_2dof(char* in, char* out, int coord[4]);
     int stab_fastwin(char* in, char* out, int coord[4]);

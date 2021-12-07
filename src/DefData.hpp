@@ -35,6 +35,13 @@
 using namespace std;
 using namespace cv;
 
+enum _calmode {
+
+    OPTICALFLOW_LK_2DOF = 1,
+    OPTICALFLOW_LK_6DOF = 2,
+    INTEGRAL_IMAGE      = 3,
+
+}CALMODE;
 
 typedef struct _param {
     bool has_mask;
