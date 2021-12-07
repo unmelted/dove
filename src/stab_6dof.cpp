@@ -13,7 +13,7 @@
     Description     : stab_6dof.cpp
     Notes           : 6dof video stabilization with opticalflow
 */
-#include "stab.hpp"
+#include "DefData.h"
 
 int stab_6dof(char* in, char* out) {
 

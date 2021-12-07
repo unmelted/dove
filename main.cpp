@@ -17,7 +17,8 @@
 
 #include <stdlib.h>
 #include <iostream>
-#include "src/stab.hpp"
+#include "src/DefData.hpp"
+#include "src/Stabilization.hpp"
 
 using namespace std;
 using namespace cv;
@@ -31,11 +32,17 @@ int main(int argc, char* argv[]) {
 
     cout<<infile<<endl;
     cout<<outfile<<endl;
-
+    
     int mode_dof = 2;
     int mode_cal = 1; //1 : optical flow, 2 : integral + search window
     int mask = 1; //0 : no mask. 1: mask. region
     int result = 0;
+
+    Dove stblz = Dove();
+    VideoCapture stab(infile);
+    VideoWriter output;
+    output.open(outfile, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));    
+
 
     if(mode_cal == 1) { 
         if(mode_dof == 2) {
@@ -46,10 +53,10 @@ int main(int argc, char* argv[]) {
                     printf("coord [%d] %d  \n", i, coord[i]);
                 }
             }
-            result = stab_2dof(infile, outfile, coord);            
+            result = stblz.stab_2dof(infile, outfile, coord);            
             
         } else if (mode_dof== 6) {
-            result = stab_6dof(infile, outfile);
+            result = stblz.stab_6dof(infile, outfile);
         }
     }
     else if(mode_cal == 2) {
@@ -59,6 +66,6 @@ int main(int argc, char* argv[]) {
             printf("coord [%d] %d  \n", i, coord[i]);
         }
 
-        result = stab_fastwin(infile, outfile, coord);
+        result = stblz.stab_fastwin(infile, outfile, coord);
     }
 }

@@ -14,7 +14,7 @@
     Notes           : 2dof video stabilization with opticalflow
 */
 
-#include "stab.hpp"
+#include "DefData.hpp"
 
 int stab_2dof(char* in, char* out, int coord[4]) { 
 
@@ -23,7 +23,7 @@ int stab_2dof(char* in, char* out, int coord[4]) {
     output.open(out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));    
     PARAM pr;
     PARAM* p =&pr;
-    p->scale = 1;    
+    p->scale = 2;    
     p->sx = coord[0];
     p->sy = coord[1];
     p->width = coord[2];
