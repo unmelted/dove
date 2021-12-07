@@ -14,7 +14,7 @@
     Notes           : 2dof video stabilization with integral image search
 */
 
-#include "stab.hpp"
+#include "DefData.hpp"
 
 int stab_fastwin(char* in, char* out, int coord[4]) {
 

@@ -35,42 +35,9 @@
 using namespace std;
 using namespace cv;
 
-#define Q1 0.004
-#define R1 0.2
-static double sum_scaleX = 0;
-static double sum_scaleY = 0;
-static double sum_thetha = 0;
-static double sum_transX = 0;
-static double sum_transY = 0;
-static double scaleX = 0;
-static double scaleY = 0;
-static double thetha = 0;
-static double transX = 0;
-static double transY = 0;
-static double diff_scaleX = 0;
-static double diff_scaleY = 0;
-static double diff_transX = 0;
-static double diff_transY = 0;
-static double diff_thetha = 0;
-static double errscaleX = 1;
-static double errscaleY = 1;
-static double errthetha = 1;
-static double errtransX = 1;
-static double errtransY = 1;
-
-static double Q_scaleX = Q1;
-static double Q_scaleY = Q1;
-static double Q_thetha = Q1;
-static double Q_transX = Q1;
-static double Q_transY = Q1;
-
-static double R_scaleX = R1;
-static double R_scaleY = R1;
-static double R_thetha = R1;
-static double R_transX = R1;
-static double R_transY = R1;
 
 typedef struct _param {
+    bool has_mask;
     float scale;
     int blur_size;
     float blur_sigma;
@@ -129,23 +96,42 @@ typedef struct _win_info {
 
 } WIN_INFO;
 
-int stab_6dof(char* in, char* out);
-int stab_2dof(char* in, char* out, int coord[4]);
-int stab_fastwin(char* in, char* out, int coord[4]);
+typedef struct _kalman {
 
-int MakeMask6(Mat& mask, int width, int height);
-int MakeMask2(Mat& mask, PARAM* p);
-void Kalman_Filter(double *scaleX , double *scaleY , double *thetha , double *transX , double *transY);
+    #define Q1 0.004
+    #define R1 0.2
+    double sum_scaleX = 0;
+    double sum_scaleY = 0;
+    double sum_thetha = 0;
+    double sum_transX = 0;
+    double sum_transY = 0;
+    double scaleX = 0;
+    double scaleY = 0;
+    double thetha = 0;
+    double transX = 0;
+    double transY = 0;
+    double diff_scaleX = 0;
+    double diff_scaleY = 0;
+    double diff_transX = 0;
+    double diff_transY = 0;
+    double diff_thetha = 0;
+    double errscaleX = 1;
+    double errscaleY = 1;
+    double errthetha = 1;
+    double errtransX = 1;
+    double errtransY = 1;
+    double Q_scaleX = Q1;
+    double Q_scaleY = Q1;
+    double Q_thetha = Q1;
+    double Q_transX = Q1;
+    double Q_transY = Q1;
+    double R_scaleX = R1;
+    double R_scaleY = R1;
+    double R_thetha = R1;
+    double R_transX = R1;
+    double R_transY = R1;
+} KALMAN;
 
-int PickArea(Mat& src, WIN_INFO* _info, PARAM* p);
-int cvt_coord_to_vstmap(int sx, int sy, int range, int dx, int dy, int* tx, int ty);
-int GetImageSum(Mat& itg, int xx, int yy, int x, int y);
-int Search(WIN_INFO* t_win, WIN_INFO* q_win, PARAM* p);
-int RecursiveParent(int t_sum, int _x, int _y, int* vst_map, WIN_INFO* _win, PARAM* p);
-int Recursive(int t_sum, int anc_x, int anc_y, int* vst_map, WIN_INFO* win_info, PARAM* p, int a);
-int SpiralSearch(int t_sum, int _x, int _y, int* vst_map, WIN_INFO* _win, PARAM* p);
-void InfoMove(WIN_INFO* t, WIN_INFO* q);
 
-void ShowData(WIN_INFO* _win, PARAM* _p, int mode );
-void ShowVisitMap(int* vst, int width, int height);
-int test_search();
+
+//int test_search();

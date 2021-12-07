@@ -1,28 +1,36 @@
 
 /*****************************************************************************
 *                                                                            *
-*                            stab_2dof         								 *
+*                           Stabilization.cpp  								 *
 *                                                                            *
 *   Copyright (C) 2021 By 4dreplay, Incoporated. All Rights Reserved.        *
 ******************************************************************************
 
-    File Name       : stab_2dof.cpp
+    File Name       : Stabilization.cpp
     Author(S)       : Me Eunkyung
-    Created         : 28 nov 2021
+    Created         : 07 dec 2021
 
-    Description     : stab_2dof.cpp
-    Notes           : 2dof video stabilization with opticalflow
+    Description     : Stabilization.cpp
+    Notes           : Stabilization main class
 */
 
-#include "DefData.hpp"
 
-int stab_2dof(char* in, char* out, int coord[4]) { 
+#include "Stabilization.hpp"
 
-    VideoCapture stab(in);
-    VideoWriter output;
-    output.open(out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));    
-    PARAM pr;
-    PARAM* p =&pr;
+using namespace std;
+using namespace cv;
+
+Dove::Dove() {
+    p = new PARAM;
+    t = new TIMER();
+}
+
+Dove::~Dove() {
+
+}
+
+void Dove::Initialize(int* coord, bool has_mask) {
+
     p->scale = 2;    
     p->sx = coord[0];
     p->sy = coord[1];
@@ -33,54 +41,9 @@ int stab_2dof(char* in, char* out, int coord[4]) {
     p->dst_width = 1920;
     p->dst_height = 1080;
 
-    Mat src1; Mat src1oc; Mat src1o;
-    Mat mask;
-    Mat src2;
-    Mat smth;
+}
 
-    Mat pre_affine;
-    Mat affine;
-    int cp_width = 0;
-    int cp_height = 0;
-    char filename[30];
-    int i = 0;
-    int threshold = 6;
-
-    TIMER* all;
-    all = new TIMER();    
-    StartTimer(all);    
-    smth.create(2 , 3 , CV_64F);    
-    MakeMask2(mask, p);
-
-    while(true) {
-
-        stab >> src1oc;
-        if(src1oc.data == NULL)
-            break;
-        Mat temp;
-        if(p->scale != 1)
-            resize(src1oc, src1o, Size(int((float)src1oc.cols/p->scale), int(float(src1oc.rows)/p->scale)), 0,0,1);
-        else
-            src1oc.copyTo(src1o);
-
-        cvtColor(src1o, temp, COLOR_BGR2GRAY);
-        GaussianBlur(temp, src1o, {p->blur_size, p->blur_size}, p->blur_sigma, p->blur_sigma);
-
-        if( i == 0) {
-            src2 = src1o;
-            sprintf(filename, "saved/%d_src1.png", i);
-            imwrite(filename, src1oc);
-            i++;
-            continue;
-        }
-
-        src1o.copyTo(src1);            
-        //cout<< " i : " <<i << " start " << endl; 
-        // sprintf(filename, "saved/%d_src1.png", i);        
-        // imwrite(filename, src1);
-        // sprintf(filename, "saved/%d_src2.png", i);        
-        // imwrite(filename, src2);
-
+int Dove::CalculateShift(Mat& src1, Mat& src2, Mat& smth) {
         vector <Point2f> features1, features2;
         vector <Point2f> goodFeatures1, goodFeatures2;
         vector <uchar> status;
@@ -121,28 +84,9 @@ int stab_2dof(char* in, char* out, int coord[4]) {
         smth.at<double>(1,1) = 1; //ds_y * cos(da);
         smth.at<double>(0,2) = dx;
         smth.at<double>(1,2) = dy;
-
-        printf("[%d] dx %f dy %f \n", i, dx, dy);
-        warpAffine(src1, src1, smth, src1.size());        
-        smth.at<double>(0,2) = dx * p->scale;
-        smth.at<double>(1,2) = dy * p->scale;      
-        warpAffine(src1oc, src1oc, smth, src1oc.size());
-                output << src1oc;
-        src1.copyTo(src2);     
-        affine.copyTo(pre_affine);   
-
-        //transrc1.copyTo(src2);
-        i++;
-        // if(i == 30)
-        //     break;
-        
-        Logger("[%d] %f ", i, LapTimer(all));
-    }
-
-    return 1;
 }
 
-int MakeMask2(Mat& mask, PARAM* p) {
+int Dove::MakeMask(Mat& mask, PARAM* p) {
     cout<< "mask width , height : " << p->dst_width << " , "<< p->dst_height<<endl;
     mask = Mat::zeros(p->dst_height, p->dst_width, CV_8UC1);
     rectangle(mask, Point(p->sx, p->sy), Point(p->sx + p->width, p->sy + p->height), Scalar(255), -1);
@@ -150,4 +94,3 @@ int MakeMask2(Mat& mask, PARAM* p) {
 
     return 1;
 }
-
