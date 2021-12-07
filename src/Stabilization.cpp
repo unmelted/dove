@@ -75,7 +75,7 @@ int Dove::ImageProcess(Mat& src, Mat& dst){
 
 }
 
-int Dove::CalculateMove(Mat& cur, Mat& smth) {
+int Dove::CalculateMove(Mat& cur) {
     vector <Point2f> features1, features2;
     vector <Point2f> goodFeatures1, goodFeatures2;
     vector <uchar> status;
@@ -116,7 +116,11 @@ int Dove::CalculateMove(Mat& cur, Mat& smth) {
     smth.at<double>(1,2) = dy;
 }
 
-int Dove::ApplyImage(Mat& src, Mat& dst, Mat& smth) {
+int Dove::ApplyImage(Mat& src, bool scaled) {
+    if(scaled == true) {
+        smth.at<double>(0,2) = smth.at<double>(0,2) * p->scale;
+        smth.at<double>(1,2) = smth.at<double>(1,2) * p->scale;      
+    }
     warpAffine(src1, src1, smth, src1.size());    
 }
 

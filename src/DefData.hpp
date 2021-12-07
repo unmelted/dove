@@ -35,7 +35,7 @@
 using namespace std;
 using namespace cv;
 
-enum _calmode {
+typedef enum _calmode {
 
     OPTICALFLOW_LK_2DOF = 1,
     OPTICALFLOW_LK_6DOF = 2,

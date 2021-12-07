@@ -48,11 +48,11 @@ public:
 
     int Process();
     int ImageProcess(Mat& src, Mat& dst);
-    void SetRef(Mat& _src) {ref = _src2; };
+    void SetRef(Mat& _src) {ref = _src; };
     void Initialize(bool has_mask, int* coord);
-    int CalculateMove(Mat& cur, Mat& smth);
+    int CalculateMove(Mat& cur);
     int MakeMask(Mat& mask, PARAM* p);
-    int ApplyImage(Mat& src, Mat& dst, Mat& smth);
+    int ApplyImage(Mat& src, bool scaled = false);
 
     int stab_2dof(char* in, char* out, int coord[4]);
     int stab_fastwin(char* in, char* out, int coord[4]);

@@ -67,8 +67,10 @@ int main(int argc, char* argv[]) {
         }
     
         stblz.CalculateMove(src1o);
+        stblz.ApplyImage(src1o);
+        stblz.ApplyImage(src1oc, true);
 
-
+        stblz.SetRef(src1o);
         i++;
     }
 
