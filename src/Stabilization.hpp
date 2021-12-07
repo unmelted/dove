@@ -27,10 +27,11 @@ public:
     TIMER* t;
     Dlog dl;
 
-    Mat src1; Mat src1oc; Mat src1o;
+    Mat src1;
     Mat mask;
     Mat src2;
     Mat smth;
+    Mat ref;
 
     Mat pre_affine;
     Mat affine;
@@ -42,12 +43,14 @@ public:
 
 
     Dove();
-    Dove(bool has_mask, int* coord, string id = "TEST");
+    Dove(int mode, bool has_mask, int* coord, string id = "TEST");
     ~Dove();
 
     int Process();
-    void Initialize(int* coord, bool has_mask);
-    int CalculateMove(Mat& src1, Mat& src2, Mat& smth);
+    int ImageProcess(Mat& src, Mat& dst);
+    void SetRef(Mat& _src) {ref = _src2; };
+    void Initialize(bool has_mask, int* coord);
+    int CalculateMove(Mat& cur, Mat& smth);
     int MakeMask(Mat& mask, PARAM* p);
     int ApplyImage(Mat& src, Mat& dst, Mat& smth);
 

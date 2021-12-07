@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  2019.10.01 created by Kelly @nepes
  *  UTIL FOR TIMEER
  *  TimeUtil.hpp
@@ -37,3 +37,10 @@ float LapTimer(TIMER *times);
 std::string getSerial();
 std::string getCurrentDateTime( std::string s );
 void Logger(const char *format, ...);
+
+class Dlog {
+public :
+    std::string fname;
+    void SetLogFilename(std::string fn) { fname = fn; };
+    void Logger(const char* format, ...);
+};

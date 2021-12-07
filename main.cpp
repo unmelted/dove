@@ -32,40 +32,46 @@ int main(int argc, char* argv[]) {
 
     cout<<infile<<endl;
     cout<<outfile<<endl;
-    
-    int mode_dof = 2;
-    int mode_cal = 1; //1 : optical flow, 2 : integral + search window
-    int mask = 1; //0 : no mask. 1: mask. region
-    int result = 0;
-
-    Dove stblz = Dove();
     VideoCapture stab(infile);
     VideoWriter output;
     output.open(outfile, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));    
 
+    int coord[4] = {0, };
 
-    if(mode_cal == 1) { 
-        if(mode_dof == 2) {
-            int coord[4] = {0, };
-            if(mask == 1) {
-                for(int i = 0 ; i < 4 ; i ++)  {
-                    coord[i] = atoi(argv[i+2]);
-                    printf("coord [%d] %d  \n", i, coord[i]);
-                }
-            }
-            result = stblz.stab_2dof(infile, outfile, coord);            
-            
-        } else if (mode_dof== 6) {
-            result = stblz.stab_6dof(infile, outfile);
-        }
-    }
-    else if(mode_cal == 2) {
-        int coord[4];
+    int mode = OPTICALFLOW_LK_2DOF;
+    bool has_mask =true;
+    int result = 0;
+    int i = 0;
+    if(has_mask == true) {
         for(int i = 0 ; i < 4 ; i ++)  {
             coord[i] = atoi(argv[i+2]);
             printf("coord [%d] %d  \n", i, coord[i]);
         }
-
-        result = stblz.stab_fastwin(infile, outfile, coord);
     }
+
+    Dove stblz = Dove(mode, has_mask, coord);
+    Mat src1oc; Mat src1o;
+
+    while(true) {
+        stab >> src1oc;
+        if(src1oc.data == NULL)
+            break;
+        
+        stblz.ImageProcess(src1oc, src1o);
+
+        if ( i == 0)
+        {
+            stblz.SetRef(src1o);
+            i++;
+            continue;
+        }
+    
+        stblz.CalculateMove(src1o);
+
+
+        i++;
+    }
+
+
+
 }
