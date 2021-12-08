@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  2019.10.01 created by Kelly @nepes
  *  UTIL FOR TIMER
  *  TimeUtil.cpp
@@ -106,7 +106,7 @@ string getSerial()
 	timeinfo = localtime(&rawtime);
 
 	strftime(buffer, sizeof(buffer), "%m%d%H%M%S", timeinfo);
-	std::string dstr(buffer);
+	std::string dstr(buffer); 
 
 	return dstr;
 }
@@ -139,6 +139,30 @@ void Logger(const char *format, ...)
 
 #ifdef _DEBUG
      printf("[%s]\t%s \n", now.c_str(), buf); fflush(stdout);
+#endif
+
+    ofs.close();
+}
+
+void Dlog::Logger(const char* format, ...) {
+
+#if defined _WIN_ || _WINDOWS
+    string filePath = "recalibration\\log\\log_" + fname +"_" + getCurrentDateTime("date") + ".txt";
+#else
+    string filePath = "recalibration/log/logd_" + fname +"_" + getCurrentDateTime("date") + ".txt";
+#endif    
+    va_list ap;
+    char buf[4096];
+    va_start(ap, format);
+    vsprintf(buf, format, ap);
+    va_end(ap);
+
+    string now = getCurrentDateTime("now");
+    ofstream ofs(filePath.c_str(), std::ios_base::out | std::ios_base::app);
+    ofs << now << '\t' << buf << endl;
+
+#ifdef _DEBUG
+    printf("[%s]\t%s\t%s \n", now.c_str(), fname.c_str(), buf); fflush(stdout);
 #endif
 
     ofs.close();

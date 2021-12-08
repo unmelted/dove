@@ -27,7 +27,7 @@ Dove::Dove() {
 
 }
 
-Dove::Dove(bool has_mask, int* coord, string id) {
+Dove::Dove(int mode, bool has_mask, int* coord, string id) {
     Dove();
     if(has_mask == true) 
         Initialize(true, coord);
@@ -39,7 +39,6 @@ Dove::Dove(bool has_mask, int* coord, string id) {
 Dove::~Dove() {
     delete p;
     delete t;
-    delete dl;
 }
 
 int Dove::Process() {
@@ -62,16 +61,28 @@ void Dove::Initialize(bool has_mask, int* coord) {
     p->dst_width = 1920;
     p->dst_height = 1080;
 
+    smth.create(2 , 3 , CV_64F);        
+
 }
 
-int Dove::CalculateMove(Mat& src1, Mat& src2, Mat& smth) {
+int Dove::ImageProcess(Mat& src, Mat& dst){
+    Mat temp;
+    if(p->scale != 1)
+        resize(src, src, Size(int((float)src.cols/p->scale), int(float(src.rows)/p->scale)), 0,0,1);
+
+    cvtColor(src, temp, COLOR_BGR2GRAY);
+    GaussianBlur(temp, dst, {p->blur_size, p->blur_size}, p->blur_sigma, p->blur_sigma);
+
+}
+
+int Dove::CalculateMove(Mat& cur) {
     vector <Point2f> features1, features2;
     vector <Point2f> goodFeatures1, goodFeatures2;
     vector <uchar> status;
     vector <float> err;
 
-    goodFeaturesToTrack(src1, features1, 30, 0.01  , 30, mask, 11, false, 0.04);
-    calcOpticalFlowPyrLK(src1, src2, features1, features2, status, err );
+    goodFeaturesToTrack(cur, features1, 30, 0.01  , 30, mask, 11, false, 0.04);
+    calcOpticalFlowPyrLK(cur, ref, features1, features2, status, err );
 
     for(size_t i=0; i < status.size(); i++)
     {
@@ -84,8 +95,6 @@ int Dove::CalculateMove(Mat& src1, Mat& src2, Mat& smth) {
 
     if(goodFeatures1.size() < threshold || goodFeatures2.size() < threshold) {
             cout<< i << " no feature to track.. feature cnt : "<< goodFeatures1.size() << endl;
-            sprintf(filename, "%d_no_feature.png", i);
-            imwrite(filename, src1oc);
             pre_affine.copyTo(affine);
         }
         else {
@@ -107,7 +116,11 @@ int Dove::CalculateMove(Mat& src1, Mat& src2, Mat& smth) {
     smth.at<double>(1,2) = dy;
 }
 
-int Dove::ApplyImage(Mat& src, Mat& dst, Mat& smth) {
+int Dove::ApplyImage(Mat& src, bool scaled) {
+    if(scaled == true) {
+        smth.at<double>(0,2) = smth.at<double>(0,2) * p->scale;
+        smth.at<double>(1,2) = smth.at<double>(1,2) * p->scale;      
+    }
     warpAffine(src1, src1, smth, src1.size());    
 }
 
