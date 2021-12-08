@@ -23,7 +23,7 @@ file(GLOB PRJ_SRC   ${PRJ_PATH}/main.cpp
                     ${PRJ_PATH}/src/common/*.cpp)
 
 list(REMOVE_ITEM PRJ_SRC ${PRJ_PATH}/src/fast_win.cpp
-                            ${PRJ_PATH}/src/stab_2dof.cpp 
+                           # ${PRJ_PATH}/src/stab_2dof.cpp 
                             ${PRJ_PATH}/src/stab_6dof.cpp                                
 )
 

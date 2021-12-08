@@ -10,7 +10,7 @@
     Author(S)       : Me Eunkyung
     Created         : 07 dec 2021
 
-    Description     : Stabilization.cpp
+    Description     : main procee for Stabilization
     Notes           : Stabilization main class
 */
 
@@ -21,14 +21,19 @@ using namespace std;
 using namespace cv;
 
 Dove::Dove() {
-    p = new PARAM;
-    t = new TIMER;
-    dl = Dlog();        
-
+    p = new PARAM();
+    t = new TIMER();
+    dl = Dlog();
+    dl.SetLogFilename("TEST");
 }
 
 Dove::Dove(int mode, bool has_mask, int* coord, string id) {
-    Dove();
+    p = new PARAM();
+    t = new TIMER();
+    dl = Dlog();
+    dl.SetLogFilename("TEST");
+
+    dl.Logger("Start construct. %d %d  ", coord[0], coord[1]);
     if(has_mask == true) 
         Initialize(true, coord);
     else 
@@ -46,14 +51,13 @@ int Dove::Process() {
 
 
 void Dove::Initialize(bool has_mask, int* coord) {
-
     p->scale = 2;
     if(has_mask == true) {
         p->has_mask = true;
-        p->sx = coord[0];
-        p->sy = coord[1];
-        p->width = coord[2];
-        p->height = coord[3];    
+        p->sx = coord[0] / p->scale;
+        p->sy = coord[1] / p->scale;
+        p->width = coord[2] / p->scale;
+        p->height = coord[3] / p->scale;    
     }
 
     p->blur_size = 11;
@@ -62,7 +66,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
     p->dst_height = 1080;
 
     smth.create(2 , 3 , CV_64F);        
-
+    dl.Logger("Initialized compelete.");
 }
 
 int Dove::ImageProcess(Mat& src, Mat& dst){
@@ -73,9 +77,26 @@ int Dove::ImageProcess(Mat& src, Mat& dst){
     cvtColor(src, temp, COLOR_BGR2GRAY);
     GaussianBlur(temp, dst, {p->blur_size, p->blur_size}, p->blur_sigma, p->blur_sigma);
 
+    if(p->has_mask)
+        MakeMask();
+}
+int Dove::CalculateMove(Mat& cur) {
+    if(p->mode == OPTICALFLOW_LK_2DOF) {
+        CalculateMove_LK2D(cur);
+    } else if (p->mode == OPTICALFLOW_LK_6DOF) {
+        CalculateMove_LK6D(cur);
+    } else if (p->mode == INTEGRAL_IMAGE) {
+        CalculateMove_Integral(cur);
+    } else {
+        CalculateMove_Tracker(cur);
+    }
 }
 
-int Dove::CalculateMove(Mat& cur) {
+int Dove::CalculateMove_LK2D(Mat& cur) {
+    static int i = 1;
+    sprintf(filename, "saved/%d_cur.png", i);
+    imwrite(filename, cur);
+    i++;
     vector <Point2f> features1, features2;
     vector <Point2f> goodFeatures1, goodFeatures2;
     vector <uchar> status;
@@ -96,10 +117,15 @@ int Dove::CalculateMove(Mat& cur) {
     if(goodFeatures1.size() < threshold || goodFeatures2.size() < threshold) {
             cout<< i << " no feature to track.. feature cnt : "<< goodFeatures1.size() << endl;
             pre_affine.copyTo(affine);
-        }
-        else {
-        //affine = estimateAffine2D(goodFeatures1, goodFeatures2);
-        affine = estimateRigidTransform(goodFeatures1, goodFeatures2, false);                
+    }
+    else {
+        affine = estimateAffine2D(goodFeatures1, goodFeatures2);
+        //affine = estimateRigidTransform(goodFeatures1, goodFeatures2, false);                
+    }
+
+    if(affine.empty() == true) {
+        dl.Logger("there is no solution ..");
+        return -1;
     }
 
     double dx = affine.at<double>(0,2);
@@ -114,21 +140,41 @@ int Dove::CalculateMove(Mat& cur) {
     smth.at<double>(1,1) = 1; //ds_y * cos(da);
     smth.at<double>(0,2) = dx;
     smth.at<double>(1,2) = dy;
+
+    dl.Logger("calculate done dx %f dy %f", dx, dy);
+    return 1;
+}
+
+int Dove::CalculateMove_LK6D(Mat& cur) {
+
+}
+
+int Dove::CalculateMove_Integral(Mat& cur) {
+
+}
+
+int Dove::CalculateMove_Tracker(Mat& cur) {
+
 }
 
 int Dove::ApplyImage(Mat& src, bool scaled) {
+    if( smth.at<double>(0,2) == 0.0 && smth.at<double>(1,2) == 0.0) {
+        dl.Logger("no warp");
+        return 1;
+    }
+
     if(scaled == true) {
         smth.at<double>(0,2) = smth.at<double>(0,2) * p->scale;
         smth.at<double>(1,2) = smth.at<double>(1,2) * p->scale;      
     }
-    warpAffine(src1, src1, smth, src1.size());    
+
+    warpAffine(src, src, smth, src.size());
 }
 
-int Dove::MakeMask(Mat& mask, PARAM* p) {
-    cout<< "mask width , height : " << p->dst_width << " , "<< p->dst_height<<endl;
+int Dove::MakeMask() {
     mask = Mat::zeros(p->dst_height, p->dst_width, CV_8UC1);
     rectangle(mask, Point(p->sx, p->sy), Point(p->sx + p->width, p->sy + p->height), Scalar(255), -1);
-    imwrite("mask.png", mask);
+    imwrite("saved/mask.png", mask);
 
     return 1;
 }

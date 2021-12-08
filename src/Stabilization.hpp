@@ -51,7 +51,13 @@ public:
     void SetRef(Mat& _src) {ref = _src; };
     void Initialize(bool has_mask, int* coord);
     int CalculateMove(Mat& cur);
-    int MakeMask(Mat& mask, PARAM* p);
+
+    int CalculateMove_LK2D(Mat& cur);
+    int CalculateMove_LK6D(Mat& cur);
+    int CalculateMove_Integral(Mat& cur);
+    int CalculateMove_Tracker(Mat& cur);
+
+    int MakeMask();
     int ApplyImage(Mat& src, bool scaled = false);
 
     int stab_2dof(char* in, char* out, int coord[4]);

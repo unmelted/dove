@@ -147,9 +147,9 @@ void Logger(const char *format, ...)
 void Dlog::Logger(const char* format, ...) {
 
 #if defined _WIN_ || _WINDOWS
-    string filePath = "recalibration\\log\\log_" + fname +"_" + getCurrentDateTime("date") + ".txt";
+    string filePath = "log\\log_" + fname +"_" + getCurrentDateTime("date") + ".txt";
 #else
-    string filePath = "recalibration/log/logd_" + fname +"_" + getCurrentDateTime("date") + ".txt";
+    string filePath = "log/logd_" + fname +"_" + getCurrentDateTime("date") + ".txt";
 #endif    
     va_list ap;
     char buf[4096];
