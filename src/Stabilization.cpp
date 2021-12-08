@@ -149,7 +149,11 @@ int Dove::CalculateMove_LK6D(Mat& cur) {
 
 }
 
-int Dove::CalculateMove_LK6D(Mat& cur) {
+int Dove::CalculateMove_Integral(Mat& cur) {
+
+}
+
+int Dove::CalculateMove_Tracker(Mat& cur) {
 
 }
 

@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
     cout<<outfile<<endl;
     //VideoCapture stab(infile);
     //VideoWriter output;
-    //output.open(outfile, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));    
+    //output.open(outfile, VideoWriter::fourcc('m', 'p', 'e', 'g'), 30, Size(1920, 1080));    
 
     int coord[4] = {0, };
     for(int i = 0 ; i < 4 ; i ++)  {

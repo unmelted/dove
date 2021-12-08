@@ -25,25 +25,81 @@
 using namespace std;
 using namespace cv;
 
+
+class ImageSetForStabilization : public videostab::IFrameSource
+{
+public:
+	std::vector<Mat> imagesForGeneratingTransformationMatrix;	
+	std::vector<Mat> imagesForApplyingTransformationMatrix;
+	int readCount;
+	int readCount_test;	
+
+public:	
+	ImageSetForStabilization() {readCount = 0; readCount_test = 0;}
+	virtual void reset() {readCount = 0;readCount_test = 0;}
+
+	virtual Mat nextFrame() { return Mat(); }
+
+	void inputImageForGeneratingTransformationMatrix(Mat& image) 
+	{ imagesForGeneratingTransformationMatrix.push_back(image.clone()); }
+	void inputImageForApplyingTransformationMatrix(Mat& image)
+	{ imagesForApplyingTransformationMatrix.push_back(image.clone()); }
+
+	virtual Mat nextFrameForGeneratingTransformationMatrix() 
+	{ 			
+		Mat frame;		
+
+		imagesForGeneratingTransformationMatrix[readCount].copyTo(frame);				
+		if(!frame.empty())
+			readCount++;		
+
+		return frame; 		
+	}
+
+	virtual Mat nextFrameForApplyingTransformationMatrix() 
+	{ 			
+		Mat frame;		
+
+		imagesForApplyingTransformationMatrix[readCount_test].copyTo(frame);				
+		if(!frame.empty())
+			readCount_test++;		
+
+		return frame; 		
+	}
+
+	virtual Size size()		
+	{return imagesForApplyingTransformationMatrix[readCount_test].size();}
+
+	int width()		{return static_cast<int>(imagesForApplyingTransformationMatrix[readCount].cols);}
+	int height()	{return static_cast<int>(imagesForApplyingTransformationMatrix[readCount].rows);}
+	int count()		{return static_cast<int>(imagesForApplyingTransformationMatrix.size());}
+	double fps()	{return static_cast<int>(30.);}
+};
+
 class TwoPass {
-    
+
 public :
 
     TwoPass();    
-    ~TwoPasS();
+    ~TwoPass();
 
 	Ptr<videostab::IFrameSource>					_stabilizedFrames; 
-	Ptr<videostab::ImageSetForStabilization>		_imageSetForStabilization;		
+	Ptr<ImageSetForStabilization>		_imageSetForStabilization;		
 	Ptr<videostab::MotionEstimatorRansacL2>			_motionEstimation; 		
 	Ptr<videostab::KeypointBasedMotionEstimator>    _motionEstBuilder;
 	Ptr<videostab::IOutlierRejector>				_outlierRejector;	
 
 	videostab::RansacParams _ransac; 
-	videostab::TwoPassStabilizer *_tp;
+	videostab::TwoPassStabilizer *tp;
 
 	double _minInlierRatio;
+    double _dFrameRate;
 
 	int _width;
 	int _height;
 
-}
+    int ImageBuilder(char* in);
+    int StabilizerBuilder(char* out);
+    int MakeStabilizedImage(Ptr<videostab::IFrameSource> stabilizedFrames);
+};
+
