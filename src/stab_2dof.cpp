@@ -16,6 +16,7 @@
 
 #include "DefData.hpp"
 
+int MakeMask2(Mat& mask, PARAM* p);
 int stab_2dof(char* in, char* out, int coord[4]) { 
 
     VideoCapture stab(in);
@@ -109,6 +110,14 @@ int stab_2dof(char* in, char* out, int coord[4]) {
             affine = estimateRigidTransform(goodFeatures1, goodFeatures2, false);                
         }
 
+        if(affine.empty()) {
+            output << src1oc;
+            src1.copyTo(src2);     
+            affine.copyTo(pre_affine);   
+            i++;
+            continue;
+        }
+
         double dx = affine.at<double>(0,2);
         double dy = affine.at<double>(1,2);
         double da = atan2(affine.at<double>(1,0), affine.at<double>(0,0));
@@ -122,12 +131,15 @@ int stab_2dof(char* in, char* out, int coord[4]) {
         smth.at<double>(0,2) = dx;
         smth.at<double>(1,2) = dy;
 
-        printf("[%d] dx %f dy %f \n", i, dx, dy);
+        Logger("[%d] dx %f dy %f \n", i, dx, dy);
         warpAffine(src1, src1, smth, src1.size());        
         smth.at<double>(0,2) = dx * p->scale;
         smth.at<double>(1,2) = dy * p->scale;      
         warpAffine(src1oc, src1oc, smth, src1oc.size());
-                output << src1oc;
+        sprintf(filename, "saved/%d_.png", i);
+        imwrite(filename, src1oc);
+
+        output << src1oc;
         src1.copyTo(src2);     
         affine.copyTo(pre_affine);   
 
@@ -145,7 +157,7 @@ int stab_2dof(char* in, char* out, int coord[4]) {
 int MakeMask2(Mat& mask, PARAM* p) {
     cout<< "mask width , height : " << p->dst_width << " , "<< p->dst_height<<endl;
     mask = Mat::zeros(p->dst_height, p->dst_width, CV_8UC1);
-    rectangle(mask, Point(p->sx, p->sy), Point(p->sx + p->width, p->sy + p->height), Scalar(255), -1);
+    rectangle(mask, Point(p->sx/p->scale, p->sy/p->scale), Point(p->sx/p->scale + p->width/p->scale, p->sy/p->scale + p->height/p->scale), Scalar(255), -1);
     imwrite("mask.png", mask);
 
     return 1;

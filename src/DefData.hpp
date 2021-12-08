@@ -40,12 +40,20 @@ typedef enum _calmode {
     OPTICALFLOW_LK_2DOF = 1,
     OPTICALFLOW_LK_6DOF = 2,
     INTEGRAL_IMAGE      = 3,
+    TRACKER_2DOF        = 4,
+    TWOPASS             = 5,
 
 }CALMODE;
 
-typedef struct _param {
+typedef enum _masktype { 
+    RECT    = 1,
+    CIRCLE  = 2,
+}MASKTYPE;
+
+typedef struct _param {    
     bool has_mask;
     float scale;
+    int mode;
     int blur_size;
     float blur_sigma;
 
@@ -139,6 +147,6 @@ typedef struct _kalman {
     double R_transY = R1;
 } KALMAN;
 
-
+int stab_2dof(char* in, char* out, int coord[4]);
 
 //int test_search();
