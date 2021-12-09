@@ -83,7 +83,7 @@ public :
     TwoPass();    
     ~TwoPass();
 
-	Ptr<videostab::IFrameSource>					_stabilizedFrames; 
+	Ptr<ImageSetForStabilization>					_stabilizedFrames; 
 	Ptr<ImageSetForStabilization>		_imageSetForStabilization;		
 	Ptr<videostab::MotionEstimatorRansacL2>			_motionEstimation; 		
 	Ptr<videostab::KeypointBasedMotionEstimator>    _motionEstBuilder;
@@ -94,12 +94,23 @@ public :
 
 	double _minInlierRatio;
     double _dFrameRate;
+    int stStartFrame;
+    int stEndFrame;
 
 	int _width;
 	int _height;
+    double outfps;
+    char output[200] = {0, };
+
+
+
+   	vector<Mat> frontframe;
+	vector<Mat> rearframe;
+	vector<Mat> stabframe;
 
     int ImageBuilder(char* in);
-    int StabilizerBuilder(char* out);
-    int MakeStabilizedImage(Ptr<videostab::IFrameSource> stabilizedFrames);
+    int StabilizerBuilder();
+    int MakeStabilizedVideo(Ptr<ImageSetForStabilization> stabilizedFrames);
+    void TranslationAndWarpPerspective(Mat& srcFrame, Mat& dstFrame, Mat& motion, cv::Size size);
 };
 
