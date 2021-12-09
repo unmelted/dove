@@ -38,9 +38,12 @@ int main(int argc, char* argv[]) {
         coord[i] = atoi(argv[i+2]);
         Logger("coord [%d] %d  \n", i, coord[i]);
     }
-    int mode = OPTICALFLOW_LK_2DOF;
+    int mode = SIMPLE_KALMAN; //OPTICALFLOW_LK_2DOF;
 
-    if (mode == OPTICALFLOW_LK_6DOF) {
+    if(mode == SIMPLE_KALMAN) {
+        stab_live(infile);
+    }
+    else if (mode == OPTICALFLOW_LK_6DOF) {
         stab_2dof(infile, outfile, coord);
     }
     else if (mode == OPTICALFLOW_LK_2DOF) {
