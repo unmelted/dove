@@ -87,7 +87,7 @@ int stab_2dof(char* in, char* out, int coord[4]) {
         vector <uchar> status;
         vector <float> err;
 
-        goodFeaturesToTrack(src1, features1, 30, 0.01  , 30, mask, 11, false, 0.04);
+        goodFeaturesToTrack(src1, features1, 30, 0.01  , 30, noArray(), 11, false, 0.04);
         calcOpticalFlowPyrLK(src1, src2, features1, features2, status, err );
 
         for(size_t i=0; i < status.size(); i++)
