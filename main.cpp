@@ -32,57 +32,67 @@ int main(int argc, char* argv[]) {
 
     cout<<infile<<endl;
     cout<<outfile<<endl;
-    //VideoCapture stab(infile);
-    //VideoWriter output;
-    //output.open(outfile, VideoWriter::fourcc('m', 'p', 'e', 'g'), 30, Size(1920, 1080));    
 
     int coord[4] = {0, };
     for(int i = 0 ; i < 4 ; i ++)  {
         coord[i] = atoi(argv[i+2]);
-        printf("coord [%d] %d  \n", i, coord[i]);
+        Logger("coord [%d] %d  \n", i, coord[i]);
     }
-
-    stab_2dof(infile, outfile, coord);
-
-// Second step
-/*
     int mode = OPTICALFLOW_LK_2DOF;
-    bool has_mask =true;
-    int result = 0;
-    int i = 0;
-    if(has_mask == true) {
-        for(int i = 0 ; i < 4 ; i ++)  {
-            coord[i] = atoi(argv[i+2]);
-            printf("coord [%d] %d  \n", i, coord[i]);
-        }
+
+    if (mode == OPTICALFLOW_LK_6DOF) {
+        stab_2dof(infile, outfile, coord);
     }
-
-    Dove stblz = Dove(mode, has_mask, coord);
-    Mat src1oc; Mat src1o;
-
-    while(true) {
-        printf("loop [%d] \n", i);
-        stab >> src1oc;
-        if(src1oc.data == NULL)
-            break;
-        
-        stblz.ImageProcess(src1oc, src1o);
-
-        if ( i == 0)
-        {
-            stblz.SetRef(src1o);
-            i++;
-            continue;
+    else if (mode == OPTICALFLOW_LK_2DOF) {
+        VideoCapture stab(infile);
+        VideoWriter output;
+        output.open(outfile, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));
+        bool has_mask = false;
+        int result = 0;
+        int i = 0;
+        if(has_mask == true) {
+            for(int i = 0 ; i < 4 ; i ++)  {
+                coord[i] = atoi(argv[i+2]);
+                Logger("coord [%d] %d  ", i, coord[i]);
+            }
         }
-    
-        result = stblz.CalculateMove(src1o);
-        if(result > 0 ) {
+
+        Dove stblz = Dove(mode, has_mask, coord);
+        Mat src1oc; Mat src1o;
+
+        while(true) {
+            //Logger("loop [%d]", i);
+
+            stab >> src1oc;
+            if(src1oc.data == NULL)
+                break;
+            
+            stblz.ImageProcess(src1oc, src1o);
+
+            if ( i == 0)
+            {
+                stblz.SetRef(src1o);
+                i++;
+                continue;
+            }
+        
+            result = stblz.CalculateMove(src1o);
             stblz.ApplyImage(src1o);
             stblz.ApplyImage(src1oc, true);
+
+            output << src1oc;        
+            // char filename[40];
+            // sprintf(filename, "saved/%d_warp.png", i);
+            // imwrite(filename, src1oc);
+
+            stblz.SetRef(src1o);        
+            i++;
+            // if(i == 20)
+            //     break;
         }
-        stblz.SetRef(src1o);        
-        output << src1oc;    
-        i++;
+
     }
-*/
+    else if (mode == TWOPASS) {
+
+    }
 }

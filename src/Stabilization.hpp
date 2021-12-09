@@ -48,7 +48,7 @@ public:
 
     int Process();
     int ImageProcess(Mat& src, Mat& dst);
-    void SetRef(Mat& _src) {ref = _src; };
+    void SetRef(Mat& _src) {_src.copyTo(ref); };
     void Initialize(bool has_mask, int* coord);
     int CalculateMove(Mat& cur);
 
