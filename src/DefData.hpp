@@ -35,6 +35,12 @@
 using namespace std;
 using namespace cv;
 
+typedef enum _err {
+    ERR_NONE = 0,
+    
+    EXECUTE_CLIENT_EXCEPTION    = -30,
+} ERR;
+
 typedef enum _calmode {
 
     OPTICALFLOW_LK_2DOF = 1,

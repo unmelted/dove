@@ -36,6 +36,8 @@ TwoPass::~TwoPass() {
 
 int TwoPass::ImageBuilder(char* in) {
     VideoCapture stab(in);
+    int cnt = 0;
+
     while(true) {
         Mat src1oc;
         stab >> src1oc;
@@ -52,11 +54,33 @@ int TwoPass::ImageBuilder(char* in) {
 			src1oc.rows/3*1);
 
 		src1oc(rect).copyTo(roiImage);
-            
+
+		if(cnt > stEndFrame)
+		{
+			Mat tempImage = src1oc.clone();
+			rearframe.push_back(tempImage);
+		}
+		else if(cnt < stStartFrame)
+		{
+			Mat tempImage = src1oc.clone();
+			frontframe.push_back(tempImage);
+		}
+		else
+		{			
+			blur(roiImage, roiImage, cv::Size(41, 41));
+
+			_imageSetForStabilization->inputImageForGeneratingTransformationMatrix(roiImage);
+			_imageSetForStabilization->inputImageForApplyingTransformationMatrix(src1oc);
+
+		}
+
+		cnt++;            
     }
+
+    return true;
 }
 
-int TwoPass::StabilizerBuilder(char* out) {
+int TwoPass::StabilizerBuilder() {
 	//_imageSetForStabilization->inputImageForGeneratingTransformationMatrix(Mat());
 	//_imageSetForStabilization->inputImageForApplyingTransformationMatrix(Mat());
 
@@ -87,18 +111,121 @@ int TwoPass::StabilizerBuilder(char* out) {
 		tp->setCorrectionForInclusion(incl_constr); 
 		tp->setBorderMode(BORDER_REPLICATE);		
 
-		_stabilizedFrames.reset(dynamic_cast<videostab::IFrameSource*>(tp)); // 4-Processing the stabilized frames. The results are showed and saved. 
+		//_stabilizedFrames.reset(dynamic_cast<videostab::IFrameSource*>(tp)); // 4-Processing the stabilized frames. The results are showed and saved. 
 
-		MakeStabilizedImage(_stabilizedFrames); 
+		MakeStabilizedVideo(_stabilizedFrames); 
 	} 
-	catch (const exception &e) 
+	catch (const exception &e)
 	{ 
 		Logger("error: %s", e.what()); 
 		_stabilizedFrames.release(); 		
 	}
 
+    return ERR_NONE;
 }
 
-int TwoPass::MakeStabilizedImage(Ptr<videostab::IFrameSource> stabilizedFrames) {
+int TwoPass::MakeStabilizedVideo(Ptr<ImageSetForStabilization> stabilizedFrames) {
+	int nStartWarpFrame = 0;
+	int nMiddleWarpFrame = 0;
+	int nEndWarpFrame = 0;
 
+	int nStartEncodingFrame = 0;
+	int nMiddleEncodingFrame = 0;
+	int nEndEncodingFrame = 0;
+
+	VideoWriter writer; 
+	Mat stabilizedFrame; 				
+	cv::Size stabilizedSize;
+
+	vector<Mat> stabilizedFrame_; 	
+
+	while (!(stabilizedFrame = stabilizedFrames->nextFrameForGeneratingTransformationMatrix()).empty()) 	
+	{
+		stabilizedSize = stabilizedFrame.size();
+
+		//ResizeFrameToFHD(stabilizedFrame,stabilizedFrame);
+		stabilizedFrame_.push_back(stabilizedFrame);
+
+		nStartWarpFrame++;
+	}		
+
+	vector<Mat> testMotion =  tp->stabilizationMotions_;
+	for(int i = 0; i < frontframe.size(); i++)
+	{			
+		TranslationAndWarpPerspective(frontframe[i], frontframe[i], testMotion[0], stabilizedSize);
+		//ResizeFrameToFHD(frontframe[i],frontframe[i]);		
+
+		nMiddleWarpFrame++;
+	}
+
+	for(int i = 0; i < rearframe.size(); i++)
+	{				
+		TranslationAndWarpPerspective(rearframe[i], rearframe[i], testMotion[stEndFrame - stStartFrame - 1], stabilizedSize);
+		//ResizeFrameToFHD(rearframe[i],rearframe[i]);
+
+		nEndWarpFrame++;
+	}
+
+	for(int i = 0; i < frontframe.size(); i++)
+	{
+		if (!writer.isOpened())
+		{
+			bool bCheckFileOpen = writer.open(output, VideoWriter::fourcc('m','p','e','g'), outfps, cv::Size(_width, _height));
+			if(bCheckFileOpen)
+				Logger("Encoding Stabilization File Open Success(Start)");
+			else
+				Logger("Encoding Stabilization File Open Fail(Start)");
+		}
+		
+		writer << frontframe[i]; 
+		nStartEncodingFrame++;
+	}
+
+	for(int i = 0; i < stabilizedFrame_.size(); i++)	
+	{
+		if (!writer.isOpened()) 
+		{
+			bool bCheckFileOpen = writer.open(output, VideoWriter::fourcc('m','p','e','g'), outfps, cv::Size(_width, _height));
+			if(bCheckFileOpen)
+				Logger("Encoding Stabilization File Open Success(Middle)");
+			else
+				Logger("Encoding Stabilization File Open Fail(Middle)");
+		}
+		
+		writer << stabilizedFrame_[i];
+		nMiddleEncodingFrame++;
+	}
+
+	for(int i = 0; i < rearframe.size(); i++)	
+	{
+		if (!writer.isOpened()) 	
+		{
+			bool bCheckFileOpen = writer.open(output, VideoWriter::fourcc('m','p','e','g'), outfps, cv::Size(_width, _height));		
+			if(bCheckFileOpen)
+				Logger("Encoding Stabilization File Open Success(End)");
+			else
+				Logger("Encoding Stabilization File Open Fail(End)");
+		}
+
+		writer << rearframe[i]; 	
+		nEndEncodingFrame++;
+	}
+
+    return ERR_NONE;
+}
+
+
+void TwoPass::TranslationAndWarpPerspective(Mat& srcFrame, Mat& dstFrame, Mat& motion, cv::Size size)
+{
+	int deltaX = (_width - size.width)/2.;
+	int deltaY = (_height - size.height)/2.;
+
+	Rect2d rect = Rect2d(
+		deltaX,
+		deltaY,
+		_width - deltaX*2., 
+		_height - deltaY*2.);
+
+
+	warpAffine(srcFrame, dstFrame, motion(cv::Rect(0, 0, 3, 2)), cv::Size(_width,_height), cv::INTER_CUBIC, BORDER_REPLICATE);
 }
