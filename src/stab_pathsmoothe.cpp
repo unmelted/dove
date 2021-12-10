@@ -61,7 +61,7 @@ struct Trajectory
     double a; // angle
 };
 
-int tab_pathsmoothe(char* infile)
+int stab_pathsmoothe(char* infile)
 {
     // For further analysis
     ofstream out_transform("prev_to_cur_transformation.txt");

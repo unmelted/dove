@@ -11,6 +11,7 @@ email:chenjia2013@foxmail.com
 #include <cassert>
 #include <cmath>
 #include <fstream>
+#include "DefData.hpp"
 
 using namespace std;
 using namespace cv;
@@ -92,6 +93,7 @@ int stab_live(char* infile)
 	Mat prev, prev_grey;
 
 	cap >> prev;//get the first frame.ch
+	//resize(prev, prev, Size(1920,1080));
 	cvtColor(prev, prev_grey, COLOR_BGR2GRAY);
 	
 	// Step 1 - Get previous to current frame transformation (dx, dy, da) for all frames
@@ -124,21 +126,25 @@ int stab_live(char* infile)
 
 	int vert_border = HORIZONTAL_BORDER_CROP * prev.rows / prev.cols; // get the aspect ratio correct
 	VideoWriter outputVideo; 
-//	outputVideo.open("compare.avi" , VideoWriter::fourcc('X','V','I','D'), 24,Size(cur.rows, cur.cols*2+10), true);  
-	outputVideo.open("movei/compare.mp4" , VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(cur.rows, cur.cols), true);  
+	outputVideo.open("movie/compare.mp4" , VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 540));
+//	outputVideo.open("movie/compare.mp4" , VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));  
 	//
 	int k=1;
 	int max_frames = cap.get(CAP_PROP_FRAME_COUNT);
 	Mat last_T;
 	Mat prev_grey_,cur_grey_;
 	 
+	TIMER* all;
+    all = new TIMER();    
+    StartTimer(all);    
+		 
 	while(true) {
 
 		cap >> cur;
 		if(cur.data == NULL) {
 			break;
 		}
-
+		//resize(cur, cur, Size(1920, 1080));
 		cvtColor(cur, cur_grey, COLOR_BGR2GRAY);
 
 		// vector from prev to cur
@@ -187,10 +193,10 @@ int stab_live(char* infile)
 		//
 		z = Trajectory(x,y,a);
 		//
-		if(k==1){
+		if(k == 1){
 			// intial guesses
 			X = Trajectory(0,0,0); //Initial estimate,  set 0
-			P =Trajectory(1,1,1); //set error variance,set 1
+			P = Trajectory(1,1,1); //set error variance,set 1
 		}
 		else
 		{
@@ -243,10 +249,13 @@ int stab_live(char* infile)
 
 		// If too big to fit on the screen, then scale it down by 2, hopefully it'll fit :)
 		if(canvas.cols > 1920) {
-			resize(canvas, canvas, Size(canvas.cols/2, canvas.rows/2));
+			resize(canvas, canvas, Size(1920, 540));
 		}
+		// char filename[30];
+		// sprintf(filename, "saved/%d_cur.png", k);
+		// imwrite(filename, cur2);
 
-		outputVideo << cur2;
+		outputVideo << canvas;
 		//imshow("before and after", canvas);
 		//waitKey(10);
 		//
@@ -255,6 +264,7 @@ int stab_live(char* infile)
 
 		cout << "Frame: " << k << "/" << max_frames << " - good optical flow: " << prev_corner2.size() << endl;
 		k++;
+		Logger("[%d] %f ", k, LapTimer(all));		
 
 	}
 	return 0;

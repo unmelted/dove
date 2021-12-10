@@ -48,7 +48,7 @@ typedef enum _calmode {
     INTEGRAL_IMAGE      = 3,
     TRACKER_2DOF        = 4,
     TWOPASS             = 5,
-    SIMPLE_KALMAN       = 6,
+    SIMPLE_KALMAN_LIVE  = 6,
     PATH_SMOOTHE        = 7,
 }CALMODE;
 
@@ -156,4 +156,5 @@ typedef struct _kalman {
 
 int stab_2dof(char* in, char* out, int coord[4]);
 int stab_live(char* infile);
+int stab_pathsmoothe(char* infile);
 //int test_search();
