@@ -50,6 +50,7 @@ typedef enum _calmode {
     TWOPASS             = 5,
     SIMPLE_KALMAN_LIVE  = 6,
     PATH_SMOOTHE        = 7,
+
 }CALMODE;
 
 typedef enum _masktype { 
@@ -64,6 +65,9 @@ typedef struct _param {
     int blur_size;
     float blur_sigma;
 
+    bool run_kalman;
+    bool run_detection;
+    
     int sx;
     int sy;
     int width;

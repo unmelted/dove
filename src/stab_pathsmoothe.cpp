@@ -124,7 +124,7 @@ int stab_pathsmoothe(char* infile)
         // decompose T
         double dx = T.at<double>(0,2);
         double dy = T.at<double>(1,2);
-        double da = atan2(T.at<double>(1,0), T.at<double>(0,0));
+        double da = 0; //atan2(T.at<double>(1,0), T.at<double>(0,0));
 
         prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
 
@@ -217,7 +217,10 @@ int stab_pathsmoothe(char* infile)
 
     int vert_border = HORIZONTAL_BORDER_CROP * prev.rows / prev.cols; // get the aspect ratio correct
 
-    k=0;
+    k = 0;
+	VideoWriter outputVideo; 
+	outputVideo.open("movie/compare.mp4" , VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 540));
+
     while(k < max_frames-1) { // don't process the very last frame, no valid transform
         cap >> cur;
 
@@ -225,10 +228,10 @@ int stab_pathsmoothe(char* infile)
             break;
         }
 
-        T.at<double>(0,0) = cos(new_prev_to_cur_transform[k].da);
-        T.at<double>(0,1) = -sin(new_prev_to_cur_transform[k].da);
-        T.at<double>(1,0) = sin(new_prev_to_cur_transform[k].da);
-        T.at<double>(1,1) = cos(new_prev_to_cur_transform[k].da);
+        T.at<double>(0,0) = 1; //cos(new_prev_to_cur_transform[k].da);
+        T.at<double>(0,1) = 0; //-sin(new_prev_to_cur_transform[k].da);
+        T.at<double>(1,0) = 0; //sin(new_prev_to_cur_transform[k].da);
+        T.at<double>(1,1) = 1; //cos(new_prev_to_cur_transform[k].da);
 
         T.at<double>(0,2) = new_prev_to_cur_transform[k].dx;
         T.at<double>(1,2) = new_prev_to_cur_transform[k].dy;
@@ -250,16 +253,17 @@ int stab_pathsmoothe(char* infile)
 
         // If too big to fit on the screen, then scale it down by 2, hopefully it'll fit :)
         if(canvas.cols > 1920) {
-            resize(canvas, canvas, Size(canvas.cols/2, canvas.rows/2));
+            resize(canvas, canvas, Size(1920, 540));
         }
 
-        imshow("before and after", canvas);
+        outputVideo << canvas;
+        //imshow("before and after", canvas);
 
         //char str[256];
         //sprintf(str, "images/%08d.jpg", k);
         //imwrite(str, canvas);
 
-        waitKey(20);
+        //waitKey(20);
 
         k++;
     }

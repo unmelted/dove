@@ -113,8 +113,8 @@ int stab_live(char* infile)
 	Trajectory P_;// priori estimate error covariance
 	Trajectory K;//gain
 	Trajectory	z;//actual measurement
-	double pstd = 4e-3;//can be changed
-	double cstd = 0.25;//can be changed
+	double pstd = 4e-1;//can be changed
+	double cstd = 0.4;//can be changed
 	Trajectory Q(pstd,pstd,pstd);// process noise covariance
 	Trajectory R(cstd,cstd,cstd);// measurement noise covariance 
 	// Step 4 - Generate new set of previous to current transform, such that the trajectory ends up being the same as the smoothed trajectory

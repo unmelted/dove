@@ -16,6 +16,7 @@
 
 
 #include "DefData.hpp"
+#include "darknet/darknet.h"
 
 using namespace std;
 using namespace cv;
@@ -41,6 +42,7 @@ public:
     int i = 0;
     int threshold = 6;
 
+    network* ntw;
 
     Dove();
     Dove(int mode, bool has_mask, int* coord, string id = "TEST");
@@ -51,6 +53,8 @@ public:
     void SetRef(Mat& _src) {_src.copyTo(ref); };
     void Initialize(bool has_mask, int* coord);
     int CalculateMove(Mat& cur);
+
+    int Detection(Mat& cur);
 
     int CalculateMove_LK2D(Mat& cur);
     int CalculateMove_LK6D(Mat& cur);

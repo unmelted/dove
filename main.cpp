@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
         coord[i] = atoi(argv[i+2]);
         Logger("coord [%d] %d  \n", i, coord[i]);
     }
-    int mode = PATH_SMOOTHE;
+    int mode = SIMPLE_KALMAN_LIVE;
 
     if( mode == PATH_SMOOTHE) {
         stab_pathsmoothe(infile);
