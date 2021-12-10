@@ -66,6 +66,10 @@ void Dove::Initialize(bool has_mask, int* coord) {
     p->dst_width = 1920;
     p->dst_height = 1080;
 
+    if(p->run_detection == true) {
+        //ntw = load_network();
+    }
+
     smth.create(2 , 3 , CV_64F);        
     dl.Logger("Initialized compelete.");
 }
@@ -178,6 +182,10 @@ int Dove::ApplyImage(Mat& src, bool scaled) {
     }
 
     warpAffine(src, src, smth, src.size());
+}
+
+int Dove::Detection(Mat& cur) {
+
 }
 
 int Dove::MakeMask() {
