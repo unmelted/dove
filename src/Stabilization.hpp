@@ -16,7 +16,7 @@
 
 
 #include "DefData.hpp"
-#include "darknet/darknet.h"
+#include "Detection.hpp"
 
 using namespace std;
 using namespace cv;
@@ -27,6 +27,7 @@ public:
     PARAM* p;
     TIMER* t;
     Dlog dl;
+    Detection* dt;
 
     Mat src1;
     Mat mask;

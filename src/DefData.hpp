@@ -53,6 +53,11 @@ typedef enum _calmode {
 
 }CALMODE;
 
+typedef enum _detectortype {
+    DARKNET_YOLOV4     = 1,
+    DARKNET_RTGPU     = 2,
+}DT_TYPE;
+
 typedef enum _masktype { 
     RECT    = 1,
     CIRCLE  = 2,
@@ -67,7 +72,11 @@ typedef struct _param {
 
     bool run_kalman;
     bool run_detection;
-    
+    int detector_type;
+    string names_file;
+    string cfg_file;
+    string weights_file;
+
     int sx;
     int sy;
     int width;
