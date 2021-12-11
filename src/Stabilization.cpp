@@ -87,13 +87,12 @@ int Dove::Process() {
         ApplyImage(src1oc, true);
 
         out << src1oc;        
-        // char filename[40];
-        // sprintf(filename, "saved/%d_warp.png", i);
-        // imwrite(filename, src1oc);
+        sprintf(filename, "saved/%d_warp.png", i);
+        imwrite(filename, src1oc);
 
         SetRef(src1o);        
         i++;
-        // if(i == 20)
+        //if(i == 50)
         //     break;
     }
 
@@ -101,7 +100,9 @@ int Dove::Process() {
 };
 
 void Dove::Initialize(bool has_mask, int* coord) {
-    p->scale = 2;
+    p->scale = 1;
+    p->run_kalman = false;
+
     if(has_mask == true) {
         p->has_mask = true;
         p->sx = coord[0] / p->scale;
@@ -122,6 +123,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->weights_file = "darknet/yolov3.weights";
         dt.LoadModel(p);
     }
+
     if(p->run_kalman == true) {
         k = new KALMAN();
         k->Q.set(k->pstd, k->pstd, k->pstd);
@@ -142,6 +144,8 @@ int Dove::ImageProcess(Mat& src, Mat& dst) {
     Mat temp;
     if(p->scale != 1)
         resize(src, temp, Size(int((float)src.cols/p->scale), int(float(src.rows)/p->scale)), 0,0,1);
+    else 
+        src.copyTo(temp);
 
     cvtColor(temp, temp, COLOR_BGR2GRAY);
     GaussianBlur(temp, dst, {p->blur_size, p->blur_size}, p->blur_sigma, p->blur_sigma);
@@ -165,7 +169,7 @@ int Dove::CalculateMove(Mat& cur) {
 }
 
 int Dove::CalculateMove_LK(Mat& cur) {
-    //static int i = 1;
+    static int i = 1;
     // sprintf(filename, "saved/%d_cur.png", i);
     // imwrite(filename, cur);
     // sprintf(filename, "saved/%d_ref.png", i);
@@ -178,12 +182,12 @@ int Dove::CalculateMove_LK(Mat& cur) {
     vector <float> err;
 
     if(p->has_mask == true)
-        goodFeaturesToTrack(cur, features1, 30, 0.01  , 30, mask, 11, false, 0.04);
+        goodFeaturesToTrack(cur, features1, 100, 0.01  , 30, mask, 11, false, 0.04);
     else 
-        goodFeaturesToTrack(cur, features1, 30, 0.01  , 30, noArray(), 11, false, 0.04);    
+        goodFeaturesToTrack(cur, features1, 100, 0.01  , 30, noArray(), 11, false, 0.04);    
     calcOpticalFlowPyrLK(cur, ref, features1, features2, status, err );
 
-    for(size_t i=0; i < status.size(); i++)
+    for(size_t i = 0; i < status.size(); i++)
     {
         if(status[i])
         {
@@ -206,13 +210,13 @@ int Dove::CalculateMove_LK(Mat& cur) {
         pre_affine.copyTo(affine);
     }
 
-    affine.copyTo(pre_affine);
-
     double dx = affine.at<double>(0,2);
     double dy = affine.at<double>(1,2);
     double da = atan2(affine.at<double>(1,0), affine.at<double>(0,0));
     double ds_x = affine.at<double>(0,0)/cos(da);
     double ds_y = affine.at<double>(1,1)/cos(da);
+
+    dl.Logger("origin dx %f dy %f", dx ,dy);
 
     if(p->run_kalman) {
         k->out_transform << i << " " << dx << " " << dy << " " << da << endl;        
@@ -251,7 +255,7 @@ int Dove::CalculateMove_LK(Mat& cur) {
 		dx = dx + diff_x;
 		dy = dy + diff_y;
 		da = da + diff_a;
-
+        dl.Logger("from kalman %f %f ", dx, dy);
 		//new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
 		//
 		k->out_new << i << " " << dx << " " << dy << " " << da << endl;        
@@ -268,9 +272,9 @@ int Dove::CalculateMove_LK(Mat& cur) {
         smth.at<double>(1,0) = sin(da);
         smth.at<double>(1,1) = cos(da);
     }
-
     smth.at<double>(0,2) = dx;
     smth.at<double>(1,2) = dy;
+    i++;
 
     dl.Logger("calculate done dx %f dy %f", dx, dy);
     return ERR_NONE;
@@ -295,7 +299,15 @@ int Dove::ApplyImage(Mat& src, bool scaled) {
         smth.at<double>(1,2) = smth.at<double>(1,2) * p->scale;      
     }
 
+    dl.Logger("apply image %f %f ", smth.at<double>(0,2), smth.at<double>(1,2));
     warpAffine(src, src, smth, src.size());
+    if(scaled == true) {
+        static int i = 1;
+        sprintf(filename, "saved/%d_apply.png", i);
+        imwrite(filename, src);
+        i++;
+    }
+
     return ERR_NONE;
 }
 

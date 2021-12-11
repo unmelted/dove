@@ -199,8 +199,8 @@ typedef struct _kalman {
 	Trajectory P_;// priori estimate error covariance
 	Trajectory K;//gain
 	Trajectory	z;//actual measurement
-	double pstd = 4e-1;//can be changed
-	double cstd = 0.4;//can be changed
+	double pstd = 4e-3;//can be changed
+	double cstd = 0.25;//can be changed
 	Trajectory Q;// process noise covariance
 	Trajectory R;// measurement noise covariance 
 

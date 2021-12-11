@@ -34,16 +34,16 @@ int main(int argc, char* argv[]) {
     cout<<outfile<<endl;
 
     int coord[4] = {0, };
-    for(int i = 0 ; i < 4 ; i ++)  {
-        coord[i] = atoi(argv[i+2]);
-        Logger("coord [%d] %d  \n", i, coord[i]);
+    if(argc > 2) {
+        for(int i = 0 ; i < 4 ; i ++)  {
+            coord[i] = atoi(argv[i+2]);
+            Logger("coord [%d] %d  \n", i, coord[i]);
+        }
     }
-    
+
     bool has_mask = false;
     int mode = OPTICALFLOW_LK_2DOF;
-
-    has_mask = false;
-
+    //stab_live(infile);
     Dove stblz = Dove(mode, has_mask, coord, infile, outfile);
     stblz.Process();
         
