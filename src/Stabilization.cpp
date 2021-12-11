@@ -20,38 +20,85 @@
 using namespace std;
 using namespace cv;
 
-Dove::Dove() {
+Dove::Dove(string infile, string outfile) {
     p = new PARAM();
     t = new TIMER();
     dl = Dlog();
     dt = Detection();
+
     dl.SetLogFilename("TEST");
+    _in = infile;
+    _out = outfile;
+    Initialize(false, 0);    
+
 }
 
-Dove::Dove(int mode, bool has_mask, int* coord, string id) {
+Dove::Dove(int mode, bool has_mask, int* coord, string infile, string outfile, string id) {
     p = new PARAM();
     t = new TIMER();
     dl = Dlog();
-    dl.SetLogFilename("TEST");
+    dt = Detection();    
 
-    dl.Logger("Start construct. %d %d  ", coord[0], coord[1]);
+    dl.Logger("instance created.. ");
+    dl.SetLogFilename("TEST");
+    _in = infile;
+    _out = outfile;
+
+    dl.Logger("Start construct. %s %s  ", _in.c_str(), _out.c_str());
     p->mode = mode;
     if(has_mask == true) 
         Initialize(true, coord);
     else 
         Initialize(false, 0);    
-    dl.SetLogFilename(id);        
 }
 
 Dove::~Dove() {
     delete p;
     delete t;
+
+    if(k != NULL)
+        delete k;
 }
 
 int Dove::Process() {
+    dl.Logger("process start..");
+
+    VideoCapture in(_in);
+    Mat src1oc; Mat src1o;
+    int i = 0;
+    int result = 0;
+
+    while(true) {
+        in >> src1oc;
+        if(src1oc.data == NULL)
+            break;
+        
+        ImageProcess(src1oc, src1o);
+
+        if ( i == 0)
+        {
+            SetRef(src1o);
+            i++;
+            continue;
+        }
+    
+        result = CalculateMove(src1o);
+        ApplyImage(src1o);
+        ApplyImage(src1oc, true);
+
+        out << src1oc;        
+        // char filename[40];
+        // sprintf(filename, "saved/%d_warp.png", i);
+        // imwrite(filename, src1oc);
+
+        SetRef(src1o);        
+        i++;
+        // if(i == 20)
+        //     break;
+    }
+
     return ERR_NONE;
 };
-
 
 void Dove::Initialize(bool has_mask, int* coord) {
     p->scale = 2;
@@ -75,8 +122,19 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->weights_file = "darknet/yolov3.weights";
         dt.LoadModel(p);
     }
+    if(p->run_kalman == true) {
+        k = new KALMAN();
+        k->Q.set(k->pstd, k->pstd, k->pstd);
+        k->R.set(k->cstd, k->cstd, k->cstd);        
+        k->out_transform.open("prev_to_cur_transformation.txt");
+        k->out_trajectory.open("trajectory.txt");
+        k->out_smoothed.open("smoothed_trajectory.txt");
+        k->out_new.open("new_prev_to_cur_transformation.txt");
+    }
 
     smth.create(2 , 3 , CV_64F);        
+    out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(p->dst_width, p->dst_height));
+
     dl.Logger("Initialized compelete.");    
 }
 
@@ -96,10 +154,8 @@ int Dove::ImageProcess(Mat& src, Mat& dst) {
 
 int Dove::CalculateMove(Mat& cur) {
     int result = -1;
-    if(p->mode == OPTICALFLOW_LK_2DOF) {
-        result = CalculateMove_LK2D(cur);
-    } else if (p->mode == OPTICALFLOW_LK_6DOF) {
-        result = CalculateMove_LK6D(cur);
+    if(p->mode == OPTICALFLOW_LK_2DOF || p->mode == OPTICALFLOW_LK_6DOF) {
+        result = CalculateMove_LK(cur);
     } else if (p->mode == INTEGRAL_IMAGE) {
         result = CalculateMove_Integral(cur);
     } else {
@@ -108,14 +164,14 @@ int Dove::CalculateMove(Mat& cur) {
     return result;
 }
 
-int Dove::CalculateMove_LK2D(Mat& cur) {
-    //dl.Logger("calculation start..");
-    static int i = 1;
+int Dove::CalculateMove_LK(Mat& cur) {
+    //static int i = 1;
     // sprintf(filename, "saved/%d_cur.png", i);
     // imwrite(filename, cur);
     // sprintf(filename, "saved/%d_ref.png", i);
     // imwrite(filename, ref);
-    i++;
+    //i++;
+
     vector <Point2f> features1, features2;
     vector <Point2f> goodFeatures1, goodFeatures2;
     vector <uchar> status;
@@ -137,7 +193,7 @@ int Dove::CalculateMove_LK2D(Mat& cur) {
     }
 
     if(goodFeatures1.size() < threshold || goodFeatures2.size() < threshold) {
-            cout<< i << " no feature to track.. feature cnt : "<< goodFeatures1.size() << endl;
+            dl.Logger("[%d] no feature to track.. feature %d: ", i,  goodFeatures1.size());
             pre_affine.copyTo(affine);
     }
     else {
@@ -147,8 +203,10 @@ int Dove::CalculateMove_LK2D(Mat& cur) {
 
     if(affine.empty() == true) {
         dl.Logger("there is no solution ..");
-        return -1;
+        pre_affine.copyTo(affine);
     }
+
+    affine.copyTo(pre_affine);
 
     double dx = affine.at<double>(0,2);
     double dy = affine.at<double>(1,2);
@@ -156,18 +214,65 @@ int Dove::CalculateMove_LK2D(Mat& cur) {
     double ds_x = affine.at<double>(0,0)/cos(da);
     double ds_y = affine.at<double>(1,1)/cos(da);
 
-    smth.at<double>(0,0) = 1; //ds_x * cos(da);
-    smth.at<double>(0,1) = 0; //ds_x * -sin(da);
-    smth.at<double>(1,0) = 0; //ds_y * sin(da);
-    smth.at<double>(1,1) = 1; //ds_y * cos(da);
+    if(p->run_kalman) {
+        k->out_transform << i << " " << dx << " " << dy << " " << da << endl;        
+		k->x += dx;
+		k->y += dy;
+		k->a += da;
+		//trajectory.push_back(Trajectory(x,y,a));
+		//
+		k->out_trajectory << i << " " << k->x << " " << k->y << " " << k->a << endl;
+		//
+		k->z = Trajectory(k->x,k->y,k->a);
+		//
+		if(i == 1){
+			// intial guesses
+			k->X = Trajectory(0,0,0); //Initial estimate,  set 0
+			k->P = Trajectory(1,1,1); //set error variance,set 1
+		}
+		else
+		{
+			//time update（prediction）
+			k->X_ = k->X; //X_(k) = X(k-1);
+			k->P_ = k->P+k->Q; //P_(k) = P(k-1)+Q;
+			// measurement update（correction）
+			k->K = k->P_/ ( k->P_+ k->R ); //gain;K(k) = P_(k)/( P_(k)+R );
+			k->X = k->X_+ k->K * (k->z - k->X_); //z-X_ is residual,X(k) = X_(k)+K(k)*(z(k)-X_(k)); 
+			k->P = (Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
+		}
+		//smoothed_trajectory.push_back(X);
+		k->out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
+		//-
+		// target - current
+		double diff_x = k->X.x - k->x;//
+		double diff_y = k->X.y - k->y;
+		double diff_a = k->X.a - k->a;
+
+		dx = dx + diff_x;
+		dy = dy + diff_y;
+		da = da + diff_a;
+
+		//new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
+		//
+		k->out_new << i << " " << dx << " " << dy << " " << da << endl;        
+    }
+
+    if(p->mode == OPTICALFLOW_LK_2DOF){
+        smth.at<double>(0,0) = 1; 
+        smth.at<double>(0,1) = 0; 
+        smth.at<double>(1,0) = 0; 
+        smth.at<double>(1,1) = 1; 
+    } else if (p->mode == OPTICALFLOW_LK_6DOF) {
+        smth.at<double>(0,0) = cos(da);
+        smth.at<double>(0,1) = -sin(da);
+        smth.at<double>(1,0) = sin(da);
+        smth.at<double>(1,1) = cos(da);
+    }
+
     smth.at<double>(0,2) = dx;
     smth.at<double>(1,2) = dy;
 
     dl.Logger("calculate done dx %f dy %f", dx, dy);
-    return ERR_NONE;
-}
-
-int Dove::CalculateMove_LK6D(Mat& cur) {
     return ERR_NONE;
 }
 

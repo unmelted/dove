@@ -131,40 +131,84 @@ typedef struct _win_info {
 
 } WIN_INFO;
 
-typedef struct _kalman {
+typedef struct trans
+{
+    trans() {}
+    trans(double _dx, double _dy, double _da) {
+        dx = _dx;
+        dy = _dy;
+        da = _da;
+    }
 
-    #define Q1 0.004
-    #define R1 0.2
-    double sum_scaleX = 0;
-    double sum_scaleY = 0;
-    double sum_thetha = 0;
-    double sum_transX = 0;
-    double sum_transY = 0;
-    double scaleX = 0;
-    double scaleY = 0;
-    double thetha = 0;
-    double transX = 0;
-    double transY = 0;
-    double diff_scaleX = 0;
-    double diff_scaleY = 0;
-    double diff_transX = 0;
-    double diff_transY = 0;
-    double diff_thetha = 0;
-    double errscaleX = 1;
-    double errscaleY = 1;
-    double errthetha = 1;
-    double errtransX = 1;
-    double errtransY = 1;
-    double Q_scaleX = Q1;
-    double Q_scaleY = Q1;
-    double Q_thetha = Q1;
-    double Q_transX = Q1;
-    double Q_transY = Q1;
-    double R_scaleX = R1;
-    double R_scaleY = R1;
-    double R_thetha = R1;
-    double R_transX = R1;
-    double R_transY = R1;
+    double dx;
+    double dy;
+    double da; // angle
+
+} TransformParam;
+
+typedef struct traj
+{
+    traj() {}
+    traj(double _x, double _y, double _a) {
+        x = _x;
+        y = _y;
+        a = _a;
+    }
+
+	friend traj operator+(const traj &c1,const traj  &c2){
+		return traj(c1.x+c2.x,c1.y+c2.y,c1.a+c2.a);
+	}
+
+	friend traj operator-(const traj &c1,const traj  &c2){
+		return traj(c1.x-c2.x,c1.y-c2.y,c1.a-c2.a);
+	}
+
+	friend traj operator*(const traj &c1,const traj  &c2){
+		return traj(c1.x*c2.x,c1.y*c2.y,c1.a*c2.a);
+	}
+
+	friend traj operator/(const traj &c1,const traj  &c2){
+		return traj(c1.x/c2.x,c1.y/c2.y,c1.a/c2.a);
+	}
+    void set(double _x, double _y, double _a) {
+        x = _x;
+        y = _y;
+        a = _a;
+    }
+
+	traj operator =(const traj &rx){
+		x = rx.x;
+		y = rx.y;
+		a = rx.a;
+		return traj(x,y,a);
+	}
+
+    double x;
+    double y;
+    double a; // angle
+} Trajectory;
+
+typedef struct _kalman {
+    double a = 0;
+    double x = 0;
+    double y = 0;
+
+	Trajectory X;//posteriori state estimate
+	Trajectory	X_;//priori estimate
+	Trajectory P;// posteriori estimate error covariance
+	Trajectory P_;// priori estimate error covariance
+	Trajectory K;//gain
+	Trajectory	z;//actual measurement
+	double pstd = 4e-1;//can be changed
+	double cstd = 0.4;//can be changed
+	Trajectory Q;// process noise covariance
+	Trajectory R;// measurement noise covariance 
+
+    ofstream out_transform;
+    ofstream out_trajectory;
+    ofstream out_smoothed;
+    ofstream out_new;
+
 } KALMAN;
 
 int stab_2dof(char* in, char* out, int coord[4]);
