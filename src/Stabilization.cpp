@@ -24,6 +24,7 @@ Dove::Dove() {
     p = new PARAM();
     t = new TIMER();
     dl = Dlog();
+    dt = new class Detection();
     dl.SetLogFilename("TEST");
 }
 
@@ -67,7 +68,11 @@ void Dove::Initialize(bool has_mask, int* coord) {
     p->dst_height = 1080;
 
     if(p->run_detection == true) {
-        //ntw = load_network();
+        p->detector_type = DARKNET_YOLOV4;
+        p->names_file = "darknet/data/coco.names";
+        p->cfg_file = "darknet/cfg/yolov3.cfg";
+        p->weights_file = "darknet/yolov3.weights";
+        dt->LoadModel(p);
     }
 
     smth.create(2 , 3 , CV_64F);        
