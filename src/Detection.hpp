@@ -28,12 +28,14 @@ class Detection {
     Detection(int detector_type = 1);
     ~Detection();
 
-    void* detector;
+    Detector* dt;
+    vector<string> obj_names;
 
     int LoadModel(PARAM* p);
-    void DrawBoxes(Mat mat_img, vector<bbox_t> result_vec, vector<string> obj_names,
-        int current_det_fps = -1, int current_cap_fps = -1);
-    void ShowConsoleResult(vector<bbox_t> const result_vec, vector<string> const obj_names, int frame_id = -1);
+    int Detect(Mat& cur, vector<bbox_t>* ret);
+
+    void DrawBoxes(Mat mat_img, vector<bbox_t> result_vec);
+    void ShowResult(vector<bbox_t> const result_vec, int frame_id = -1);
     vector<string>ObjectsNamesfromFile(string const filename);
 };
 

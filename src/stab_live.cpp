@@ -27,57 +27,6 @@ const int HORIZONTAL_BORDER_CROP = 20; // In pixels. Crops the border to reduce 
 // 4. Generate new set of previous to current transform, such that the trajectory ends up being the same as the smoothed trajectory
 // 5. Apply the new transformation to the video
 
-struct TransformParam
-{
-    TransformParam() {}
-    TransformParam(double _dx, double _dy, double _da) {
-        dx = _dx;
-        dy = _dy;
-        da = _da;
-    }
-
-    double dx;
-    double dy;
-    double da; // angle
-};
-
-struct Trajectory
-{
-    Trajectory() {}
-    Trajectory(double _x, double _y, double _a) {
-        x = _x;
-        y = _y;
-        a = _a;
-    }
-	// "+"
-	friend Trajectory operator+(const Trajectory &c1,const Trajectory  &c2){
-		return Trajectory(c1.x+c2.x,c1.y+c2.y,c1.a+c2.a);
-	}
-	//"-"
-	friend Trajectory operator-(const Trajectory &c1,const Trajectory  &c2){
-		return Trajectory(c1.x-c2.x,c1.y-c2.y,c1.a-c2.a);
-	}
-	//"*"
-	friend Trajectory operator*(const Trajectory &c1,const Trajectory  &c2){
-		return Trajectory(c1.x*c2.x,c1.y*c2.y,c1.a*c2.a);
-	}
-	//"/"
-	friend Trajectory operator/(const Trajectory &c1,const Trajectory  &c2){
-		return Trajectory(c1.x/c2.x,c1.y/c2.y,c1.a/c2.a);
-	}
-	//"="
-	Trajectory operator =(const Trajectory &rx){
-		x = rx.x;
-		y = rx.y;
-		a = rx.a;
-		return Trajectory(x,y,a);
-	}
-
-    double x;
-    double y;
-    double a; // angle
-};
-//
 int stab_live(char* infile)
 {
 	// For further analysis

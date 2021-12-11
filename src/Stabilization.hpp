@@ -27,12 +27,17 @@ public:
     PARAM* p;
     TIMER* t;
     Dlog dl;
-    Detection* dt;
+    Detection dt;
 
-    Mat src1;
+    VideoWriter out;
+    string _in;
+    string _out;
+
     Mat mask;
+    Mat src1;
     Mat src2;
     Mat smth;
+    Mat last_smth;
     Mat ref;
 
     Mat pre_affine;
@@ -43,22 +48,21 @@ public:
     int i = 0;
     int threshold = 6;
 
-    network* ntw;
+    KALMAN* k;
 
-    Dove();
-    Dove(int mode, bool has_mask, int* coord, string id = "TEST");
+    Dove(string infile, string outfile);
+    Dove(int mode, bool has_mask, int* coord, string infile, string outfile, string id = "TEST");
     ~Dove();
-
     int Process();
+
     int ImageProcess(Mat& src, Mat& dst);
     void SetRef(Mat& _src) {_src.copyTo(ref); };
     void Initialize(bool has_mask, int* coord);
     int CalculateMove(Mat& cur);
 
-    int Detection(Mat& cur);
+    int Detect(Mat& cur);
 
-    int CalculateMove_LK2D(Mat& cur);
-    int CalculateMove_LK6D(Mat& cur);
+    int CalculateMove_LK(Mat& cur);
     int CalculateMove_Integral(Mat& cur);
     int CalculateMove_Tracker(Mat& cur);
 

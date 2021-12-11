@@ -38,8 +38,16 @@ int main(int argc, char* argv[]) {
         coord[i] = atoi(argv[i+2]);
         Logger("coord [%d] %d  \n", i, coord[i]);
     }
-    int mode = SIMPLE_KALMAN_LIVE;
+    
+    bool has_mask = false;
+    int mode = OPTICALFLOW_LK_2DOF;
 
+    has_mask = false;
+
+    Dove stblz = Dove(mode, has_mask, coord, infile, outfile);
+    stblz.Process();
+        
+    /*
     if( mode == PATH_SMOOTHE) {
         stab_pathsmoothe(infile);
     }
@@ -53,7 +61,6 @@ int main(int argc, char* argv[]) {
         VideoCapture stab(infile);
         VideoWriter output;
         output.open(outfile, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));
-        bool has_mask = false;
         int result = 0;
         int i = 0;
         if(has_mask == true) {
@@ -62,8 +69,8 @@ int main(int argc, char* argv[]) {
                 Logger("coord [%d] %d  ", i, coord[i]);
             }
         }
+    }
 
-        Dove stblz = Dove(mode, has_mask, coord);
         Mat src1oc; Mat src1o;
 
         while(true) {
@@ -100,5 +107,5 @@ int main(int argc, char* argv[]) {
     }
     else if (mode == TWOPASS) {
 
-    }
+    } */
 }
