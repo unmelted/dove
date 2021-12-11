@@ -16,6 +16,7 @@ set(CMAKE_CXX_FLAGS "-Wno-invalid-source-encoding -Wno-deprecated-register -Wno-
 #set(OPENCV_INCLUDE_DIRS "/usr/local/include/opencv4/opencv2/")
 add_definitions(-D_DEBUG)
 add_definitions(-D_IMGDEBUG)
+add_definitions(-DOPENCV)
 
 set(PRJ_PATH        ${CMAKE_CURRENT_SOURCE_DIR})
 set(DARKNET_PATH    ${PRJ_PATH}/darknet)

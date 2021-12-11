@@ -24,7 +24,7 @@ Dove::Dove() {
     p = new PARAM();
     t = new TIMER();
     dl = Dlog();
-    dt = new class Detection();
+    dt = Detection();
     dl.SetLogFilename("TEST");
 }
 
@@ -49,6 +49,7 @@ Dove::~Dove() {
 }
 
 int Dove::Process() {
+    return ERR_NONE;
 };
 
 
@@ -72,14 +73,14 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->names_file = "darknet/data/coco.names";
         p->cfg_file = "darknet/cfg/yolov3.cfg";
         p->weights_file = "darknet/yolov3.weights";
-        dt->LoadModel(p);
+        dt.LoadModel(p);
     }
 
     smth.create(2 , 3 , CV_64F);        
-    dl.Logger("Initialized compelete.");
+    dl.Logger("Initialized compelete.");    
 }
 
-int Dove::ImageProcess(Mat& src, Mat& dst){
+int Dove::ImageProcess(Mat& src, Mat& dst) {
     Mat temp;
     if(p->scale != 1)
         resize(src, temp, Size(int((float)src.cols/p->scale), int(float(src.rows)/p->scale)), 0,0,1);
@@ -89,7 +90,10 @@ int Dove::ImageProcess(Mat& src, Mat& dst){
 
     if(p->has_mask)
         MakeMask();
+
+    return ERR_NONE;
 }
+
 int Dove::CalculateMove(Mat& cur) {
     int result = -1;
     if(p->mode == OPTICALFLOW_LK_2DOF) {
@@ -187,10 +191,13 @@ int Dove::ApplyImage(Mat& src, bool scaled) {
     }
 
     warpAffine(src, src, smth, src.size());
+    return ERR_NONE;
 }
 
-int Dove::Detection(Mat& cur) {
-
+int Dove::Detect(Mat& cur) {
+    vector<bbox_t>box;
+    dt.Detect(cur, &box);
+    return ERR_NONE;
 }
 
 int Dove::MakeMask() {

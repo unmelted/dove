@@ -27,7 +27,7 @@ public:
     PARAM* p;
     TIMER* t;
     Dlog dl;
-    Detection* dt;
+    Detection dt;
 
     Mat src1;
     Mat mask;
@@ -55,7 +55,7 @@ public:
     void Initialize(bool has_mask, int* coord);
     int CalculateMove(Mat& cur);
 
-    int Detection(Mat& cur);
+    int Detect(Mat& cur);
 
     int CalculateMove_LK2D(Mat& cur);
     int CalculateMove_LK6D(Mat& cur);
