@@ -28,11 +28,14 @@ class Detection {
     Detection(int detector_type = 1);
     ~Detection();
 
+    Dlog dl;
     Detector* dt;
+    vector<int>id_filter;
     vector<string> obj_names;
 
+    void SetLogger(Dlog& log) { dl = log; };
     int LoadModel(PARAM* p);
-    int Detect(Mat& cur, vector<bbox_t>* ret);
+    int Detect(Mat cur, vector<bbox_t>* ret);
 
     void DrawBoxes(Mat mat_img, vector<bbox_t> result_vec);
     void ShowResult(vector<bbox_t> const result_vec, int frame_id = -1);

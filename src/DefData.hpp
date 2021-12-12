@@ -76,6 +76,7 @@ typedef struct _param {
     string names_file;
     string cfg_file;
     string weights_file;
+    vector<int>id_filter;
 
     int sx;
     int sy;
@@ -186,23 +187,23 @@ typedef struct traj
     double x;
     double y;
     double a; // angle
-} Trajectory1;
+} Trajectory;
 
 typedef struct _kalman {
     double a = 0;
     double x = 0;
     double y = 0;
+    double pstd = 4e-3;//can be changed
+    double cstd = 0.25;//can be changed
 
-	Trajectory1 X;//posteriori state estimate
-	Trajectory1	X_;//priori estimate
-	Trajectory1 P;// posteriori estimate error covariance
-	Trajectory1 P_;// priori estimate error covariance
-	Trajectory1 K;//gain
-	Trajectory1	z;//actual measurement
-	double pstd = 4e-3;//can be changed
-	double cstd = 0.25;//can be changed
-	Trajectory1 Q;// process noise covariance
-	Trajectory1 R;// measurement noise covariance 
+	Trajectory X;//posteriori state estimate
+	Trajectory	X_;//priori estimate
+	Trajectory P;// posteriori estimate error covariance
+	Trajectory P_;// priori estimate error covariance
+	Trajectory K;//gain
+	Trajectory	z;//actual measurement
+	Trajectory Q;// process noise covariance
+	Trajectory R;// measurement noise covariance 
 
     ofstream out_transform;
     ofstream out_trajectory;

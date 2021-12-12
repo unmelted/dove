@@ -16,6 +16,7 @@
 #endif
 #endif
 #endif
+
 #define C_SHARP_MAX_OBJECTS 1000
 
 struct bbox_t {
