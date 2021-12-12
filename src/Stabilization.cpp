@@ -55,15 +55,20 @@ Dove::Dove(int mode, bool has_mask, int* coord, string infile, string outfile, s
 Dove::~Dove() {
     delete p;
     delete t;
+    dl.Logger("delete p ,t ");
+    // if(k != NULL)
+    //     delete k;
 
-    if(k != NULL)
-        delete k;
+    dl.Logger("delete k ");        
 }
 
 int Dove::Process() {
     dl.Logger("process start..");
 
     VideoCapture in(_in);
+    VideoWriter out;    
+    out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920,1080));
+
     Mat src1oc; Mat src1o;
     int i = 0;
     int result = 0;
@@ -87,8 +92,8 @@ int Dove::Process() {
         ApplyImage(src1oc, true);
 
         out << src1oc;        
-        sprintf(filename, "saved/%d_warp.png", i);
-        imwrite(filename, src1oc);
+        // sprintf(filename, "saved/%d_warp.png", i);
+        // imwrite(filename, src1oc);
 
         SetRef(src1o);        
         i++;
@@ -101,7 +106,7 @@ int Dove::Process() {
 
 void Dove::Initialize(bool has_mask, int* coord) {
     p->scale = 1;
-    p->run_kalman = false;
+    p->run_kalman = true;
 
     if(has_mask == true) {
         p->has_mask = true;
@@ -125,17 +130,25 @@ void Dove::Initialize(bool has_mask, int* coord) {
     }
 
     if(p->run_kalman == true) {
-        k = new KALMAN();
-        k->Q.set(k->pstd, k->pstd, k->pstd);
-        k->R.set(k->cstd, k->cstd, k->cstd);        
-        k->out_transform.open("prev_to_cur_transformation.txt");
-        k->out_trajectory.open("trajectory.txt");
-        k->out_smoothed.open("smoothed_trajectory.txt");
-        k->out_new.open("new_prev_to_cur_transformation.txt");
+        // k = new KALMAN();
+        // k->Q.set(k->pstd, k->pstd, k->pstd);
+        // k->R.set(k->cstd, k->cstd, k->cstd);        
+        // k->out_transform.open("analysis/prev_to_cur_transformation.txt");
+        // k->out_trajectory.open("analysis/trajectory.txt");
+        // k->out_smoothed.open("analysis/smoothed_trajectory.txt");
+        // k->out_new.open("analysis/new_prev_to_cur_transformation.txt");
+        double pstd = 4e-3;//can be changed
+        double cstd = 0.25;//can be changed
+
+        Q.a = pstd;
+        Q.x = pstd;
+        Q.y = pstd;
+        R.a = cstd;
+        R.x = cstd;
+        R.y = cstd;
     }
 
     smth.create(2 , 3 , CV_64F);        
-    out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(p->dst_width, p->dst_height));
 
     dl.Logger("Initialized compelete.");    
 }
@@ -219,38 +232,38 @@ int Dove::CalculateMove_LK(Mat& cur) {
     dl.Logger("origin dx %f dy %f", dx ,dy);
 
     if(p->run_kalman) {
-        k->out_transform << i << " " << dx << " " << dy << " " << da << endl;        
-		k->x += dx;
-		k->y += dy;
-		k->a += da;
+        //out_transform << i << " " << dx << " " << dy << " " << da << endl;        
+		x += dx;
+		y += dy;
+		a += da;
 		//trajectory.push_back(Trajectory(x,y,a));
 		//
-		k->out_trajectory << i << " " << k->x << " " << k->y << " " << k->a << endl;
+		//out_trajectory << i << " " << x << " " << y << " " << a << endl;
 		//
-		k->z = Trajectory(k->x,k->y,k->a);
+		z = Trajectory(x,y,a);
 		//
 		if(i == 1){
 			// intial guesses
-			k->X = Trajectory(0,0,0); //Initial estimate,  set 0
-			k->P = Trajectory(1,1,1); //set error variance,set 1
+			X = Trajectory(0,0,0); //Initial estimate,  set 0
+			P = Trajectory(1,1,1); //set error variance,set 1
 		}
 		else
 		{
 			//time update（prediction）
-			k->X_ = k->X; //X_(k) = X(k-1);
-			k->P_ = k->P+k->Q; //P_(k) = P(k-1)+Q;
+			X_ = X; //X_(k) = X(k-1);
+			P_ = P+ Q; //P_(k) = P(k-1)+Q;
 			// measurement update（correction）
-			k->K = k->P_/ ( k->P_+ k->R ); //gain;K(k) = P_(k)/( P_(k)+R );
-			k->X = k->X_+ k->K * (k->z - k->X_); //z-X_ is residual,X(k) = X_(k)+K(k)*(z(k)-X_(k)); 
-			k->P = (Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
+			K = P_/ ( P_+ R ); //gain;K(k) = P_(k)/( P_(k)+R );
+			X = X_+ K * (z - X_); //z-X_ is residual,X(k) = X_(k)+K(k)*(z(k)-X_(k)); 
+			P = (Trajectory(1,1,1) + K) * P_; //P(k) = (1-K(k))*P_(k);
 		}
 		//smoothed_trajectory.push_back(X);
-		k->out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
+		//out_smoothed << i << " " << X.x << " " << X.y << " " << X.a << endl;
 		//-
 		// target - current
-		double diff_x = k->X.x - k->x;//
-		double diff_y = k->X.y - k->y;
-		double diff_a = k->X.a - k->a;
+		double diff_x = X.x - x;//
+		double diff_y = X.y - y;
+		double diff_a = X.a - a;
 
 		dx = dx + diff_x;
 		dy = dy + diff_y;
@@ -258,7 +271,7 @@ int Dove::CalculateMove_LK(Mat& cur) {
         dl.Logger("from kalman %f %f ", dx, dy);
 		//new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
 		//
-		k->out_new << i << " " << dx << " " << dy << " " << da << endl;        
+		//out_new << i << " " << dx << " " << dy << " " << da << endl;        
     }
 
     if(p->mode == OPTICALFLOW_LK_2DOF){
