@@ -36,13 +36,31 @@ int Detection::LoadModel(PARAM* p)
         bool const use_kalman_filter = false;   // true - for stationary camera
         dt = &dtt;
     }
-    return ERR_NONE;
+    if(p->id_filter.size() > 0) {
+        id_filter.resize(p->id_filter.size());
+        copy(p->id_filter.begin(), p->id_filter.end(), id_filter.begin());
+    }
+
+   return ERR_NONE;
 }
 
-int Detection::Detect(Mat& cur, vector<bbox_t>* ret) {
+int Detection::Detect(Mat cur, vector<bbox_t>* ret) {
+    dl.Logger("Detect call received ..%p ", ret);
+    vector<bbox_t>box;  
+    imwrite("test_mat.png", cur);
+    box = dt->detect(cur);
+    dl.Logger("Detect after .. 1 %d ", box.size());    
+    box = dt->tracking_id(box);
+    dl.Logger("Detect after .. 2 %d ", box.size());
+    for(auto it = box.begin() ; it != box.end(); ) {
+        if(it->obj_id != 1)
+            box.erase(it);
+        else 
+            ++it;
+    }
+    ret->resize(box.size());
+    copy(box.begin(), box.end(), ret->begin());
 
-    *ret = dt->detect(cur);
-    DrawBoxes(cur, *ret);
 }
 
 void Detection::DrawBoxes(Mat mat_img, vector<bbox_t> result_vec)

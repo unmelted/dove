@@ -15,70 +15,20 @@
 */
 
 #pragma once
+#include <unordered_map>
 #include "DefData.hpp"
 #include "Detection.hpp"
 
 using namespace std;
 using namespace cv;
 
-struct TransformParam
-{
-    TransformParam() {}
-    TransformParam(double _dx, double _dy, double _da) {
-        dx = _dx;
-        dy = _dy;
-        da = _da;
-    }
-
-    double dx;
-    double dy;
-    double da; // angle
-};
-
-struct Trajectory
-{
-    Trajectory() {}
-    Trajectory(double _x, double _y, double _a) {
-        x = _x;
-        y = _y;
-        a = _a;
-    }
-	// "+"
-	friend Trajectory operator+(const Trajectory &c1,const Trajectory  &c2){
-		return Trajectory(c1.x+c2.x,c1.y+c2.y,c1.a+c2.a);
-	}
-	//"-"
-	friend Trajectory operator-(const Trajectory &c1,const Trajectory  &c2){
-		return Trajectory(c1.x-c2.x,c1.y-c2.y,c1.a-c2.a);
-	}
-	//"*"
-	friend Trajectory operator*(const Trajectory &c1,const Trajectory  &c2){
-		return Trajectory(c1.x*c2.x,c1.y*c2.y,c1.a*c2.a);
-	}
-	//"/"
-	friend Trajectory operator/(const Trajectory &c1,const Trajectory  &c2){
-		return Trajectory(c1.x/c2.x,c1.y/c2.y,c1.a/c2.a);
-	}
-	//"="
-	Trajectory operator =(const Trajectory &rx){
-		x = rx.x;
-		y = rx.y;
-		a = rx.a;
-		return Trajectory(x,y,a);
-	}
-
-    double x;
-    double y;
-    double a; // angle
-};
-
 class Dove {
-
 public: 
     PARAM* p;
     TIMER* t;
     Dlog dl;
     Detection dt;
+    map<int, vector<bbox_t>>objects;
 
     string _in;
     string _out;
@@ -98,22 +48,7 @@ public:
     int i = 0;
     int threshold = 6;
 
-    //KALMAN* k;
-    double x = 0;
-    double y = 0;
-    double a = 0; // angle    
-    vector <TransformParam> prev_to_cur_transform; // previous to current 
-    vector <Trajectory> trajectory; // trajectory at all frames           
-	vector <Trajectory> smoothed_trajectory; // trajectory at all frames
-	Trajectory X;//posteriori state estimate
-	Trajectory	X_;//priori estimate
-	Trajectory P;// posteriori estimate error covariance
-	Trajectory P_;// priori estimate error covariance
-	Trajectory K;//gain
-	Trajectory	z;//actual measurement
-	Trajectory Q;
-	Trajectory R;
-	vector <TransformParam> new_prev_to_cur_transform;    
+    KALMAN* k;
 
     Dove(string infile, string outfile);
     Dove(int mode, bool has_mask, int* coord, string infile, string outfile, string id = "TEST");
@@ -125,7 +60,7 @@ public:
     void Initialize(bool has_mask, int* coord);
     int CalculateMove(Mat& cur);
 
-    int Detect(Mat& cur);
+    int Detect(Mat cur, int frame_id = -1);
 
     int CalculateMove_LK(Mat& cur);
     int CalculateMove_Integral(Mat& cur);
