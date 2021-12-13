@@ -15,7 +15,7 @@
 */
 
 #pragma once
-#include <unordered_map>
+#include <map>
 #include "DefData.hpp"
 #include "Detection.hpp"
 
@@ -28,7 +28,7 @@ public:
     TIMER* t;
     Dlog dl;
     Detection dt;
-    vector<DT_OBJECTS>objects;
+    map<int, DT_OBJECTS>objects;
     
     string _in;
     string _out;
