@@ -17,7 +17,7 @@
 #include "Detection.hpp"
 
 
-Detection::Detection(int detector_type) {
+Detection::Detection() {
 
 }
 
@@ -28,14 +28,13 @@ Detection::~Detection() {
 int Detection::LoadModel(PARAM* p)
 {
     if (p->detector_type == DARKNET_YOLOV4) {
-        Detector dtt(p->cfg_file, p->weights_file);
+        dt = new Detector(p->cfg_file, p->weights_file);
         obj_names = ObjectsNamesfromFile(p->names_file);
-        string out_videofile = "result.avi";
         bool const save_output_videofile = false;   // true - for history
         bool const send_network = false;        // true - for remote detection
-        bool const use_kalman_filter = false;   // true - for stationary camera
-        dt = &dtt;
+        bool const use_kalman_filter = false;   // true - for stationary camer
     }
+
     if(p->id_filter.size() > 0) {
         id_filter.resize(p->id_filter.size());
         copy(p->id_filter.begin(), p->id_filter.end(), id_filter.begin());
@@ -45,22 +44,24 @@ int Detection::LoadModel(PARAM* p)
 }
 
 int Detection::Detect(Mat cur, vector<bbox_t>* ret) {
-    dl.Logger("Detect call received ..%p ", ret);
-    vector<bbox_t>box;  
-    imwrite("test_mat.png", cur);
-    box = dt->detect(cur);
-    dl.Logger("Detect after .. 1 %d ", box.size());    
-    box = dt->tracking_id(box);
-    dl.Logger("Detect after .. 2 %d ", box.size());
-    for(auto it = box.begin() ; it != box.end(); ) {
-        if(it->obj_id != 1)
-            box.erase(it);
-        else 
-            ++it;
-    }
-    ret->resize(box.size());
-    copy(box.begin(), box.end(), ret->begin());
 
+    vector<bbox_t>box;  
+    box = dt->detect(cur);
+    //box = dt->tracking_id(box);
+    dl.Logger("Detection::Detect done %d ", box.size());
+    if(box.size() > 0 ){
+        for(int i = 0 ; i < box.size(); i ++) {
+            dl.Logger("detected id %d size %d %d ", box[i].obj_id, box[i].w, box[i].h);
+            if(box[i].obj_id == 0)
+                ret->push_back(box[i]);
+        }
+        // if(box.size() > 0 ){
+        //     ret->resize(box.size());
+        //     copy(box.begin(), box.end(), ret->begin());
+        // }
+    }
+    dl.Logger("Detection::Detect filtered %d ", ret->size());
+    return ERR_NONE;
 }
 
 void Detection::DrawBoxes(Mat mat_img, vector<bbox_t> result_vec)

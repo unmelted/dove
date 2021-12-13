@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "common/TimeUtil.hpp"
+#include "darknet/yolo_v2_class.hpp"
 
 using namespace std;
 using namespace cv;
@@ -57,6 +58,19 @@ typedef enum _detectortype {
     DARKNET_YOLOV4     = 1,
     DARKNET_RTGPU     = 2,
 }DT_TYPE;
+
+typedef struct _dtobjs {
+    int frame_id;
+    int obj_cnt;
+    vector<bbox_t>bbx;
+    _dtobjs(int id, int cnt, vector<bbox_t> b) {
+        frame_id = id;
+        obj_cnt = cnt;
+        bbx.resize(b.size());
+        copy(b.begin(), b.end(), bbx.begin());
+    }
+
+}DT_OBJECTS;
 
 typedef enum _masktype { 
     RECT    = 1,
@@ -145,7 +159,7 @@ typedef struct trans
     double dy;
     double da; // angle
 
-} TransformParam1;
+} TransformParam;
 
 typedef struct traj
 {

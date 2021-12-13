@@ -20,7 +20,8 @@ add_definitions(-DOPENCV)
 
 set(PRJ_PATH        ${CMAKE_CURRENT_SOURCE_DIR})
 set(DARKNET_PATH    ${PRJ_PATH}/darknet)
-set(DARKNET_LIB     ${DARKNET_PATH}/libdarknet.dylib)
+set(DARKNET_LIB      ${DARKNET_PATH}/libdarknet.dylib)
+message(${DARKNET_LIB})
 
 file(GLOB PRJ_SRC   ${PRJ_PATH}/main.cpp
                     ${PRJ_PATH}/src/*.cpp
@@ -29,7 +30,7 @@ file(GLOB PRJ_SRC   ${PRJ_PATH}/main.cpp
 list(REMOVE_ITEM PRJ_SRC ${PRJ_PATH}/src/fast_win.cpp
                            # ${PRJ_PATH}/src/stab_2dof.cpp 
                             ${PRJ_PATH}/src/stab_6dof.cpp                                
-                            ${PRJ_PATH}/src/stab_live.cpp                            
+                            #${PRJ_PATH}/src/stab_live.cpp                            
 )
 
 file(GLOB PRJ_INC      ${PRJ_PATH}/src/*.hpp

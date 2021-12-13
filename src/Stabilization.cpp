@@ -83,6 +83,7 @@ int Dove::Process() {
         if ( i == 0)
         {
             SetRef(src1o);
+            SetRefC(src1oc);            
             i++;
             continue;
         }
@@ -91,17 +92,22 @@ int Dove::Process() {
             Detect(src1oc, i);
 
         result = CalculateMove(src1o);
-        ApplyImage(src1o);
-        ApplyImage(src1oc, true);
+//        ApplyImage(src1o);
+//        ApplyImage(src1oc, true);
+        ApplyImageRef();
+        // if(p->run_detection == true) && objects.at(i).size() > 0 ) {
+        //     dt.DrawBoxes(src1oc, objects.at(i));
+        // }
 
-        out << src1oc;        
+        out << refcw;        
         // sprintf(filename, "saved/%d_warp.png", i);
         // imwrite(filename, src1oc);
 
-        SetRef(src1o);        
+        SetRef(src1o);
+        SetRefC(src1oc);
         i++;
-        if(i == 50)
-             break;
+        // if(i == 50)
+        //      break;
     }
 
     return ERR_NONE;
@@ -110,7 +116,7 @@ int Dove::Process() {
 void Dove::Initialize(bool has_mask, int* coord) {
     p->scale = 1;
     p->run_kalman = true;
-    p->run_detection = true;
+    p->run_detection = false;
 
     if(has_mask == true) {
         p->has_mask = true;
@@ -128,8 +134,8 @@ void Dove::Initialize(bool has_mask, int* coord) {
     if(p->run_detection == true) {
         p->detector_type = DARKNET_YOLOV4;
         p->names_file = "darknet/data/coco.names";
-        p->cfg_file = "darknet/cfg/yolov3.cfg";
-        p->weights_file = "darknet/weights/yolov4.weights";
+        p->cfg_file = "darknet/cfg/yolov4-tiny.cfg";
+        p->weights_file = "darknet/weights/yolov4-tiny.weights";
         p->id_filter.push_back(1); //id based on coco names
         dt.LoadModel(p);
     }
@@ -137,7 +143,8 @@ void Dove::Initialize(bool has_mask, int* coord) {
     if(p->run_kalman == true) {
         k = new KALMAN();
         k->Q.set(k->pstd, k->pstd, k->pstd);
-        k->R.set(k->cstd, k->cstd, k->cstd);        
+        k->R.set(k->cstd, k->cstd, k->cstd);      
+        dl.Logger("Q %f %f %f R %f %f %f", k->Q.x, k->Q.y, k->Q.a, k->R.x, k->R.y, k->R.a);
         k->out_transform.open("analysis/prev_to_cur_transformation.txt");
         k->out_trajectory.open("analysis/trajectory.txt");
         k->out_smoothed.open("analysis/smoothed_trajectory.txt");
@@ -191,10 +198,10 @@ int Dove::CalculateMove_LK(Mat& cur) {
     vector <float> err;
 
     if(p->has_mask == true)
-        goodFeaturesToTrack(cur, features1, 100, 0.01  , 30, mask, 11, false, 0.04);
+        goodFeaturesToTrack(ref, features1, 200, 0.01, 30, mask);
     else 
-        goodFeaturesToTrack(cur, features1, 100, 0.01  , 30, noArray(), 11, false, 0.04);    
-    calcOpticalFlowPyrLK(cur, ref, features1, features2, status, err );
+        goodFeaturesToTrack(ref, features1, 200, 0.01, 30);    
+    calcOpticalFlowPyrLK(ref, cur, features1, features2, status, err );
 
     for(size_t i = 0; i < status.size(); i++)
     {
@@ -210,8 +217,8 @@ int Dove::CalculateMove_LK(Mat& cur) {
             pre_affine.copyTo(affine);
     }
     else {
-        affine = estimateAffine2D(goodFeatures1, goodFeatures2);
-        //affine = estimateRigidTransform(goodFeatures1, goodFeatures2, false);                
+        //affine = estimateAffine2D(goodFeatures1, goodFeatures2);
+        affine = estimateRigidTransform(goodFeatures1, goodFeatures2, false);                
     }
 
     if(affine.empty() == true) {
@@ -249,7 +256,7 @@ int Dove::CalculateMove_LK(Mat& cur) {
 			// measurement update（correction）
 			k->K = k->P_/ ( k->P_+ k->R ); //gain;K(k) = P_(k)/( P_(k)+R );
 			k->X = k->X_+ k->K * (k->z - k->X_); //z-X_ is residual,X(k) = X_(k)+K(k)*(z(k)-X_(k)); 
-			k->P = (Trajectory(1,1,1) + k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
+			k->P = (Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
 		}
 		//smoothed_trajectory.push_back(X);
 		k->out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
@@ -283,7 +290,7 @@ int Dove::CalculateMove_LK(Mat& cur) {
     smth.at<double>(1,2) = dy;
     i++;
 
-    dl.Logger("calculate done dx %f dy %f", dx, dy);
+    //dl.Logger("calculate done dx %f dy %f", dx, dy);
     return ERR_NONE;
 }
 
@@ -309,23 +316,34 @@ int Dove::ApplyImage(Mat& src, bool scaled) {
     dl.Logger("apply image %f %f ", smth.at<double>(0,2), smth.at<double>(1,2));
     warpAffine(src, src, smth, src.size());
     // if(scaled == true) {
-    //     static int i = 1;
-    //     sprintf(filename, "saved/%d_apply.png", i);
-    //     imwrite(filename, src);
-    //     i++;
+    //      static int i = 1;
+    //      sprintf(filename, "saved/%d_apply.png", i);
+    //      imwrite(filename, src);
+    //      i++;
     // }
 
     return ERR_NONE;
 }
+int Dove::ApplyImageRef() {
+    warpAffine(refc, refcw, smth, refc.size());    
+}
 
 int Dove::Detect(Mat cur, int frame_id) {
+    int result = -1;
     vector<bbox_t>box;
-    dt.Detect(cur, &box);
-    dl.Logger("detect result cnt [%d] ", box.size());
+    Mat dtin;
+    cur.copyTo(dtin);
+    result = dt.Detect(dtin, &box);
+    dl.Logger("[%d] detect result result %d cnt [%d] ", frame_id, result, box.size());    
+    if(result < ERR_NONE)
+        return result;
+    
     if(box.size() > 0) {
         dt.ShowResult(box, frame_id);
-        objects.insert(make_pair(frame_id, box));
-    }    
+        DT_OBJECTS n(frame_id, box.size(), box);
+        objects.push_back(n);
+    }
+
     return ERR_NONE;
 }
 

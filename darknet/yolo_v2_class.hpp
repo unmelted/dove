@@ -118,7 +118,6 @@ public:
     std::shared_ptr<image_t> mat_to_image_resize(cv::Mat mat) const
     {
         if (mat.data == NULL) return std::shared_ptr<image_t>(NULL);
-
         cv::Size network_size = cv::Size(get_net_width(), get_net_height());
         cv::Mat det_mat;
         if (mat.size() != network_size)

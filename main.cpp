@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
     char infile[40];
     char outfile[40];
     sprintf(infile,"movie/%s.mp4", argv[1]);
-    sprintf(outfile, "movie/%s_out1.mp4", argv[1]);
+    sprintf(outfile, "movie/%s_out2.mp4", argv[1]);
 
     cout<<infile<<endl;
     cout<<outfile<<endl;
