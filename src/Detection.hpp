@@ -15,8 +15,7 @@
 
 
 #include "DefData.hpp"
-#include "darknet/yolo_v2_class.hpp"
-#include "darknet/darknet.h"
+//#include "darknet/darknet.h"
 
 using namespace std;
 using namespace cv;
@@ -25,7 +24,7 @@ using namespace cv;
 class Detection {
 
     public:
-    Detection(int detector_type = 1);
+    Detection();
     ~Detection();
 
     Dlog dl;

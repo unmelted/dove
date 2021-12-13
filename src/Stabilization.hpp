@@ -28,16 +28,16 @@ public:
     TIMER* t;
     Dlog dl;
     Detection dt;
-    map<int, vector<bbox_t>>objects;
-
+    vector<DT_OBJECTS>objects;
+    
     string _in;
     string _out;
 
     Mat mask;
-    Mat src1;
-    Mat src2;
     Mat smth;
     Mat last_smth;
+    Mat refc;
+    Mat refcw;
     Mat ref;
 
     Mat pre_affine;
@@ -57,6 +57,7 @@ public:
 
     int ImageProcess(Mat& src, Mat& dst);
     void SetRef(Mat& _src) {_src.copyTo(ref); };
+    void SetRefC(Mat& _src) {_src.copyTo(refc); };
     void Initialize(bool has_mask, int* coord);
     int CalculateMove(Mat& cur);
 
@@ -68,6 +69,7 @@ public:
 
     int MakeMask();
     int ApplyImage(Mat& src, bool scaled = false);
+    int ApplyImageRef();
 
     int stab_2dof(char* in, char* out, int coord[4]);
     int stab_fastwin(char* in, char* out, int coord[4]);
