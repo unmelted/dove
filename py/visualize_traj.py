@@ -3,14 +3,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 filelist = [
-# "/Users/4dreplay/work/dove/analysis/prev_to_cur_transformation.txt", #prev
-# "/Users/4dreplay/work/dove/analysis/trajectory.txt", #trajectory
-# "/Users/4dreplay/work/dove/analysis/smoothed_trajectory.txt" , #smoothe
-# "/Users/4dreplay/work/dove/analysis/new_prev_to_cur_transformation.txt" #new_tran
-"/Users/4dreplay/work/dove/prev_to_cur_transformation.txt", #prev
-"/Users/4dreplay/work/dove/trajectory.txt", #trajectory
-"/Users/4dreplay/work/dove/smoothed_trajectory.txt" , #smoothe
-"/Users/4dreplay/work/dove/new_prev_to_cur_transformation.txt" #new_tran
+ "/Users/4dreplay/work/dove/analysis/prev_to_cur_transformation.txt", #prev
+ "/Users/4dreplay/work/dove/analysis/trajectory.txt", #trajectory
+ "/Users/4dreplay/work/dove/analysis/smoothed_trajectory.txt" , #smoothe
+ "/Users/4dreplay/work/dove/analysis/new_prev_to_cur_transformation.txt" #new_tran
+# "/Users/4dreplay/work/dove/prev_to_cur_transformation.txt", #prev
+# "/Users/4dreplay/work/dove/trajectory.txt", #trajectory
+# "/Users/4dreplay/work/dove/smoothed_trajectory.txt" , #smoothe
+# "/Users/4dreplay/work/dove/new_prev_to_cur_transformation.txt" #new_tran
 
 ]
 frame_id_o = []
@@ -34,7 +34,7 @@ da_new = []
 for i in filelist :
     f = open(i, 'r')
     lines = f.readlines()
-    print(lines)
+    #print(lines)
     for line in lines :
         text = line.split()
         if i == filelist[0] :

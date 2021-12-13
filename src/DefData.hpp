@@ -207,8 +207,8 @@ typedef struct _kalman {
     double a = 0;
     double x = 0;
     double y = 0;
-    double pstd = 4e-3;//can be changed
-    double cstd = 0.25;//can be changed
+    double pstd = 4e-5;//can be changed
+    double cstd = 0.4;//can be changed
 
 	Trajectory X;//posteriori state estimate
 	Trajectory	X_;//priori estimate
