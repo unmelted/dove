@@ -51,15 +51,12 @@ int Detection::Detect(Mat cur, vector<bbox_t>* ret) {
     dl.Logger("Detection::Detect done %d ", box.size());
     if(box.size() > 0 ){
         for(int i = 0 ; i < box.size(); i ++) {
-            dl.Logger("detected id %d size %d %d ", box[i].obj_id, box[i].w, box[i].h);
-            if(box[i].obj_id == 0)
+            //dl.Logger("detected id %d size %d %d ", box[i].obj_id, box[i].w, box[i].h);
+            if(box[i].obj_id == 0 && box[i].prob > 0.5)
                 ret->push_back(box[i]);
         }
-        // if(box.size() > 0 ){
-        //     ret->resize(box.size());
-        //     copy(box.begin(), box.end(), ret->begin());
-        // }
     }
+    else ret->clear();
     dl.Logger("Detection::Detect filtered %d ", ret->size());
     return ERR_NONE;
 }

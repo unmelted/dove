@@ -33,6 +33,48 @@ Dove::Dove(string infile, string outfile) {
 
 }
 
+void Dove::Initialize(bool has_mask, int* coord) {
+    p->scale = 2;
+    p->run_kalman = true;
+    p->run_detection = true;
+
+    if(has_mask == true) {
+        p->has_mask = true;
+        p->sx = coord[0] / p->scale;
+        p->sy = coord[1] / p->scale;
+        p->width = coord[2] / p->scale;
+        p->height = coord[3] / p->scale;    
+    }
+
+    p->blur_size = 5;
+    p->blur_sigma = 0.7;
+    p->dst_width = 1920;
+    p->dst_height = 1080;
+
+    if(p->run_detection == true) {
+        p->detector_type = DARKNET_YOLOV4;
+        p->names_file = "darknet/data/coco.names";
+        p->cfg_file = "darknet/cfg/yolov4-tiny.cfg";
+        p->weights_file = "darknet/weights/yolov4-tiny.weights";
+        p->id_filter.push_back(0); //id based on coco names
+        dt.LoadModel(p);
+    }
+
+    if(p->run_kalman == true) {
+        k = new KALMAN();
+        k->Q.set(k->pstd, k->pstd, k->pstd);
+        k->R.set(k->cstd, k->cstd, k->cstd);      
+        k->out_transform.open("analysis/prev_to_cur_transformation.txt");
+        k->out_trajectory.open("analysis/trajectory.txt");
+        k->out_smoothed.open("analysis/smoothed_trajectory.txt");
+        k->out_new.open("analysis/new_prev_to_cur_transformation.txt");
+    }
+
+    smth.create(2 , 3 , CV_64F);        
+
+    dl.Logger("Initialized compelete.");    
+}
+
 Dove::Dove(int mode, bool has_mask, int* coord, string infile, string outfile, string id) {
     p = new PARAM();
     t = new TIMER();
@@ -67,7 +109,7 @@ int Dove::Process() {
 
     VideoCapture in(_in);
     VideoWriter out;    
-    out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));
+    out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(p->dst_width, p->dst_height));
 
     Mat src1oc; Mat src1o;
     int i = 0;
@@ -89,19 +131,21 @@ int Dove::Process() {
         }
     
         if(p->run_detection == true)
-            Detect(src1oc, i);
+            Detect(refc, i);
 
         result = CalculateMove(src1o);
 //        ApplyImage(src1o);
 //        ApplyImage(src1oc, true);
         ApplyImageRef();
-        // if(p->run_detection == true) && objects.at(i).size() > 0 ) {
-        //     dt.DrawBoxes(src1oc, objects.at(i));
-        // }
+        if(p->run_detection == true && objects[i].obj_cnt > 0 ) {
+             dt.DrawBoxes(refcw, objects[i].bbx);
+        }
+        if(refcw.cols > p->dst_width)
+            resize(refcw, refcw, Size(p->dst_width, p->dst_height));
 
         out << refcw;        
-        // sprintf(filename, "saved/%d_warp.png", i);
-        // imwrite(filename, src1oc);
+        sprintf(filename, "saved/%d_.png", i);
+        imwrite(filename, refcw);
 
         SetRef(src1o);
         SetRefC(src1oc);
@@ -112,49 +156,6 @@ int Dove::Process() {
 
     return ERR_NONE;
 };
-
-void Dove::Initialize(bool has_mask, int* coord) {
-    p->scale = 1;
-    p->run_kalman = true;
-    p->run_detection = false;
-
-    if(has_mask == true) {
-        p->has_mask = true;
-        p->sx = coord[0] / p->scale;
-        p->sy = coord[1] / p->scale;
-        p->width = coord[2] / p->scale;
-        p->height = coord[3] / p->scale;    
-    }
-
-    p->blur_size = 5;
-    p->blur_sigma = 0.7;
-    p->dst_width = 1920;
-    p->dst_height = 1080;
-
-    if(p->run_detection == true) {
-        p->detector_type = DARKNET_YOLOV4;
-        p->names_file = "darknet/data/coco.names";
-        p->cfg_file = "darknet/cfg/yolov4-tiny.cfg";
-        p->weights_file = "darknet/weights/yolov4-tiny.weights";
-        p->id_filter.push_back(1); //id based on coco names
-        dt.LoadModel(p);
-    }
-
-    if(p->run_kalman == true) {
-        k = new KALMAN();
-        k->Q.set(k->pstd, k->pstd, k->pstd);
-        k->R.set(k->cstd, k->cstd, k->cstd);      
-        dl.Logger("Q %f %f %f R %f %f %f", k->Q.x, k->Q.y, k->Q.a, k->R.x, k->R.y, k->R.a);
-        k->out_transform.open("analysis/prev_to_cur_transformation.txt");
-        k->out_trajectory.open("analysis/trajectory.txt");
-        k->out_smoothed.open("analysis/smoothed_trajectory.txt");
-        k->out_new.open("analysis/new_prev_to_cur_transformation.txt");
-    }
-
-    smth.create(2 , 3 , CV_64F);        
-
-    dl.Logger("Initialized compelete.");    
-}
 
 int Dove::ImageProcess(Mat& src, Mat& dst) {
     Mat temp;
@@ -184,6 +185,27 @@ int Dove::CalculateMove(Mat& cur) {
     return result;
 }
 
+int Dove::Detect(Mat cur, int frame_id) {
+    int result = -1;
+    vector<bbox_t>box;
+    Mat dtin;
+    cur.copyTo(dtin);
+    result = dt.Detect(dtin, &box);
+    dl.Logger("[%d] detect result %d cnt [%d] ", frame_id, result, box.size());    
+    if(result < ERR_NONE)
+        return result;
+    
+    if(box.size() > 0) {
+        dt.ShowResult(box, frame_id);
+        DT_OBJECTS n(frame_id, box.size(), box);
+        objects.insert({frame_id, n});
+    }
+    else {
+        DT_OBJECTS n(frame_id);
+        objects.insert({frame_id , n});
+    }
+    return ERR_NONE;
+}
 int Dove::CalculateMove_LK(Mat& cur) {
     static int i = 1;
     // sprintf(filename, "saved/%d_cur.png", i);
@@ -326,25 +348,6 @@ int Dove::ApplyImage(Mat& src, bool scaled) {
 }
 int Dove::ApplyImageRef() {
     warpAffine(refc, refcw, smth, refc.size());    
-}
-
-int Dove::Detect(Mat cur, int frame_id) {
-    int result = -1;
-    vector<bbox_t>box;
-    Mat dtin;
-    cur.copyTo(dtin);
-    result = dt.Detect(dtin, &box);
-    dl.Logger("[%d] detect result result %d cnt [%d] ", frame_id, result, box.size());    
-    if(result < ERR_NONE)
-        return result;
-    
-    if(box.size() > 0) {
-        dt.ShowResult(box, frame_id);
-        DT_OBJECTS n(frame_id, box.size(), box);
-        objects.push_back(n);
-    }
-
-    return ERR_NONE;
 }
 
 int Dove::MakeMask() {

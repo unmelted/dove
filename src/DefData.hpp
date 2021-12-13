@@ -63,11 +63,19 @@ typedef struct _dtobjs {
     int frame_id;
     int obj_cnt;
     vector<bbox_t>bbx;
+    _dtobjs() {
+        frame_id = -1;
+        obj_cnt = -1;
+    }
     _dtobjs(int id, int cnt, vector<bbox_t> b) {
         frame_id = id;
         obj_cnt = cnt;
         bbx.resize(b.size());
         copy(b.begin(), b.end(), bbx.begin());
+    }
+    _dtobjs(int id) {
+        frame_id = id;
+        obj_cnt = 0;
     }
 
 }DT_OBJECTS;
@@ -207,7 +215,7 @@ typedef struct _kalman {
     double a = 0;
     double x = 0;
     double y = 0;
-    double pstd = 4e-5;//can be changed
+    double pstd = 4e-3;//4e-5 - football many small person 4e-3 figure not severe jitter & object big move
     double cstd = 0.4;//can be changed
 
 	Trajectory X;//posteriori state estimate

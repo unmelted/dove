@@ -1,12 +1,16 @@
 import os
+import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
 
+prj_path = os.getcwd() +'/'
+print(prj_path)
+
 filelist = [
- "/Users/4dreplay/work/dove/analysis/prev_to_cur_transformation.txt", #prev
- "/Users/4dreplay/work/dove/analysis/trajectory.txt", #trajectory
- "/Users/4dreplay/work/dove/analysis/smoothed_trajectory.txt" , #smoothe
- "/Users/4dreplay/work/dove/analysis/new_prev_to_cur_transformation.txt" #new_tran
+ prj_path+"/analysis/prev_to_cur_transformation.txt", #prev
+ prj_path+"/analysis/trajectory.txt", #trajectory
+ prj_path+"/analysis/smoothed_trajectory.txt" , #smoothe
+ prj_path+"/analysis/new_prev_to_cur_transformation.txt" #new_tran
 # "/Users/4dreplay/work/dove/prev_to_cur_transformation.txt", #prev
 # "/Users/4dreplay/work/dove/trajectory.txt", #trajectory
 # "/Users/4dreplay/work/dove/smoothed_trajectory.txt" , #smoothe
