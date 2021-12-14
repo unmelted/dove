@@ -62,12 +62,12 @@ public:
     void SetRef(Mat& _src) {_src.copyTo(ref); };
     void SetRefC(Mat& _src) {_src.copyTo(refc); };
     void Initialize(bool has_mask, int* coord);
-    int CalculateMove(Mat& cur);
+    int CalculateMove(Mat& cur, int frame_id);
     int CalculateMove(int frame_id);
     int CompensateMovement(int frame_id);
     int Detect(Mat cur, int frame_id = -1);
 
-    int CalculateMove_LK(Mat& cur);
+    int CalculateMove_LK(Mat& cur, int frame_id);
     int CalculateMove_Integral(Mat& cur);
     int CalculateMove_Tracker(Mat& cur);
 

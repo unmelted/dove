@@ -15,7 +15,7 @@
 */
 
 
-#include <stdlib.h>
+
 #include <iostream>
 #include "src/DefData.hpp"
 #include "src/Stabilization.hpp"
