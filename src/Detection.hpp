@@ -27,15 +27,16 @@ class Detection {
     Detection();
     ~Detection();
 
+    PARAM* p;
     Dlog dl;
     Detector* dt;
     vector<int>id_filter;
     vector<string> obj_names;
 
     void SetLogger(Dlog& log) { dl = log; };
-    int LoadModel(PARAM* p);
+    int LoadModel(PARAM* _p);
     int Detect(Mat cur, vector<bbox_t>* ret);
-
+    bool IsObjInROI(bbox_t& b);
     void DrawBoxes(Mat mat_img, vector<bbox_t> result_vec);
     void ShowResult(vector<bbox_t> const result_vec, int frame_id = -1);
     vector<string>ObjectsNamesfromFile(string const filename);

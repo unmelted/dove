@@ -25,8 +25,9 @@ Detection::~Detection() {
 
 }
 
-int Detection::LoadModel(PARAM* p)
+int Detection::LoadModel(PARAM* _p)
 {
+    p = _p;
     if (p->detector_type == DARKNET_YOLOV4) {
         dt = new Detector(p->cfg_file, p->weights_file);
         obj_names = ObjectsNamesfromFile(p->names_file);
@@ -52,13 +53,26 @@ int Detection::Detect(Mat cur, vector<bbox_t>* ret) {
     if(box.size() > 0 ){
         for(int i = 0 ; i < box.size(); i ++) {
             //dl.Logger("detected id %d size %d %d ", box[i].obj_id, box[i].w, box[i].h);
-            if(box[i].obj_id == 0 && box[i].prob > 0.5)
+            if(box[i].obj_id == 0 && box[i].prob > p->detect_threshold &&
+                IsObjInROI(box[i]) == true)
                 ret->push_back(box[i]);
         }
     }
     else ret->clear();
     dl.Logger("Detection::Detect filtered %d ", ret->size());
     return ERR_NONE;
+}
+
+bool Detection::IsObjInROI(bbox_t& b) {
+//    dl.Logger("in %d %d %d %d mask %d %d %d %d ", b.x, b.y, b.w, b.h,
+//        p->sx, p->sy, p->width, p->height);
+    if(b.x /p->scale< p->sx || b.y /p->scale< p->sy )
+        return false;
+    if(b.x /p->scale+ b.w/p->scale > (p->sx + p->width) ||
+        b.y/p->scale + b.h/p->scale > (p->sy + p->height))
+        return false;
+
+    return true;
 }
 
 void Detection::DrawBoxes(Mat mat_img, vector<bbox_t> result_vec)

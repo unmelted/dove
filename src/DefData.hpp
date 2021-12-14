@@ -62,6 +62,9 @@ typedef enum _detectortype {
 typedef struct _dtobjs {
     int frame_id;
     int obj_cnt;
+    vector<int>cx;
+    vector<int>cy;
+
     vector<bbox_t>bbx;
     _dtobjs() {
         frame_id = -1;
@@ -77,8 +80,18 @@ typedef struct _dtobjs {
         frame_id = id;
         obj_cnt = 0;
     }
-
+    void calCenter() {
+        for(int i = 0; i < obj_cnt; i ++){ 
+            cx.push_back((bbx[i].x + bbx[i].w) / 2);
+            cy.push_back((bbx[i].y + bbx[i].h) / 2);
+        }
+    }    
 }DT_OBJECTS;
+
+typedef struct _dtxy {
+    double dx;
+    double dy;
+}DT_XY;
 
 typedef enum _masktype { 
     RECT    = 1,
@@ -99,6 +112,10 @@ typedef struct _param {
     string cfg_file;
     string weights_file;
     vector<int>id_filter;
+    float detect_threshold;
+
+    int swipe_start;
+    int swipe_end;    
 
     int sx;
     int sy;
