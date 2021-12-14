@@ -89,8 +89,8 @@ typedef struct _dtobjs {
 }DT_OBJECTS;
 
 typedef struct _dtxy {
-    double dx;
-    double dy;
+    int dx;
+    int dy;
 }DT_XY;
 
 typedef enum _masktype { 
@@ -232,7 +232,7 @@ typedef struct _kalman {
     double a = 0;
     double x = 0;
     double y = 0;
-    double pstd = 4e-3;//4e-5 - football many small person 4e-3 figure not severe jitter & object big move
+    double pstd = 4e-5;//4e-5 - football many small person 4e-3 figure not severe jitter & object big move
     double cstd = 0.4;//can be changed
 
 	Trajectory X;//posteriori state estimate

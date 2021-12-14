@@ -54,6 +54,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
     p->dst_height = 1080;
 
     if(p->run_detection == true) {
+        p->detect_threshold = 0.5;
         p->detector_type = DARKNET_YOLOV4;
         p->names_file = "darknet/data/coco.names";
         p->cfg_file = "darknet/cfg/yolov4-tiny.cfg";
@@ -137,18 +138,17 @@ int Dove::Process() {
         if(p->run_detection == true)
             Detect(src1oc, i);
 
-        if(i >= p->swipe_start && i <= p->swipe_end) {
-        //    result = CompensateMovement(i);
-            result = CalculateMove(i);        
-            dl.Logger("swipe region");
-        } else {
-            result = CalculateMove(src1o);
-        }
+        // if(i >= p->swipe_start && i <= p->swipe_end) {
+        //      result = CalculateMove(i);        
+        //      dl.Logger("swipe region");
+        // } else {
+            result = CalculateMove(src1o, i);
+        //}
 
-        ApplyImageRef();
         if(p->run_detection == true && objects[i].obj_cnt > 0 ) {
              dt.DrawBoxes(refcw, objects[i - 1].bbx);
         }
+        ApplyImageRef();        
         if(refcw.cols > p->dst_width)
             resize(refcw, refcw, Size(p->dst_width, p->dst_height));
 
@@ -188,16 +188,16 @@ int Dove::CalculateMove(int frame_id) {
     smth.at<double>(0,1) = 0; 
     smth.at<double>(1,0) = 0; 
     smth.at<double>(1,1) = 1; 
-    smth.at<double>(0,2) = -dt_comp[frame_id].dx;
-    smth.at<double>(1,2) = -dt_comp[frame_id].dy;
+    smth.at<double>(0,2) = -dt_comp[frame_id -1].dx;
+    smth.at<double>(1,2) = -dt_comp[frame_id -1].dy;
 
     return ERR_NONE;
 }
 
-int Dove::CalculateMove(Mat& cur) {
+int Dove::CalculateMove(Mat& cur, int frame_id) {
     int result = -1;
     if(p->mode == OPTICALFLOW_LK_2DOF || p->mode == OPTICALFLOW_LK_6DOF) {
-        result = CalculateMove_LK(cur);
+        result = CalculateMove_LK(cur, frame_id);
     } else if (p->mode == INTEGRAL_IMAGE) {
         result = CalculateMove_Integral(cur);
     } else {
@@ -226,14 +226,23 @@ int Dove::Detect(Mat cur, int frame_id) {
             obj_trajectory << frame_id << " " << n.bbx[i].x << " " << n.bbx[i].y << " " << n.bbx[i].w << " " << n.bbx[i].h << endl;
             obj_c_trajectory << frame_id << " " << n.cx[i] << " " << n.cy[i] << endl;
         }
+        dl.Logger("objects size %d -- cx %d ", objects.size(), objects[frame_id].cx[0]);
+        if( frame_id >= 2 && objects[frame_id -1].obj_cnt > 0) {
+            DT_XY m;
+            dl.Logger("Insert 1 cx %d cx-1 %d cy %d cy-1 %d ", objects[frame_id].cx[0], objects[frame_id -1].cx[0],
+                    objects[frame_id].cy[0], objects[frame_id -1].cy[0]);   
 
-        DT_XY m;
-        dl.Logger("Insert 1 cx %d cx-1 %d cy %d cy-1 %d ", n.cx[frame_id], n.cx[frame_id -1],
-                n.cy[frame_id], n.cy[frame_id -1]);   
-        m.dx = n.cx[frame_id] - n.cx[frame_id -1];
-        m.dy = n.cy[frame_id] - n.cy[frame_id -1];    
-        dl.Logger("Insert DT_XY %f %f", m.dx, m.dy);
-        dt_comp.insert({frame_id, m});
+            m.dx = objects[frame_id].cx[0] - objects[frame_id -1].cx[0];
+            m.dy = objects[frame_id].cy[0] - objects[frame_id -1].cy[0];
+            dl.Logger("Insert DT_XY %d %d", m.dx, m.dy);
+            dt_comp.insert({frame_id, m});
+        }
+        else {
+            DT_XY m;
+            m.dx = 0;
+            m.dy = 0;    
+            dt_comp.insert({frame_id, m});
+        }
     }
     else {
         DT_OBJECTS n(frame_id);
@@ -249,7 +258,7 @@ int Dove::Detect(Mat cur, int frame_id) {
     
     return ERR_NONE;
 }
-int Dove::CalculateMove_LK(Mat& cur) {
+int Dove::CalculateMove_LK(Mat& cur, int frame_id) {
     static int i = 1;
     // sprintf(filename, "saved/%d_cur.png", i);
     // imwrite(filename, cur);
@@ -293,6 +302,14 @@ int Dove::CalculateMove_LK(Mat& cur) {
 
     double dx = affine.at<double>(0,2);
     double dy = affine.at<double>(1,2);
+    if( p->run_detection == true &&
+        abs(dt_comp[frame_id - 1].dx) > 0 && abs(dt_comp[frame_id - 1].dx) < 20 &&
+        abs(dt_comp[frame_id - 1].dy) > 0 && abs(dt_comp[frame_id - 1].dy) < 20)    
+    {
+        dx +=  dt_comp[frame_id - 1].dx;
+        dy +=  dt_comp[frame_id - 1].dy;
+    }
+
     double da = atan2(affine.at<double>(1,0), affine.at<double>(0,0));
     double ds_x = affine.at<double>(0,0)/cos(da);
     double ds_y = affine.at<double>(1,1)/cos(da);
@@ -399,7 +416,8 @@ int Dove::ApplyImageRef() {
 
 int Dove::MakeMask() {
     mask = Mat::zeros(p->dst_height, p->dst_width, CV_8UC1);
-    rectangle(mask, Point(p->sx, p->sy), Point(p->sx + p->width, p->sy + p->height), Scalar(255), -1);
+    mask.setTo(Scalar(255));
+    rectangle(mask, Point(p->sx, p->sy), Point(p->sx + p->width, p->sy + p->height), Scalar(0), -1);
     imwrite("saved/mask.png", mask);
 
     return ERR_NONE;

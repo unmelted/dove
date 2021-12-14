@@ -53,10 +53,13 @@ int Detection::Detect(Mat cur, vector<bbox_t>* ret) {
     if(box.size() > 0 ){
         for(int i = 0 ; i < box.size(); i ++) {
             //dl.Logger("detected id %d size %d %d ", box[i].obj_id, box[i].w, box[i].h);
-            if(box[i].obj_id == 0 && box[i].prob > p->detect_threshold &&
-                IsObjInROI(box[i]) == true)
-                ret->push_back(box[i]);
-        }
+            if(box[i].obj_id == 0 && box[i].prob > p->detect_threshold) {
+                if (p->has_mask == false)
+                    ret->push_back(box[i]);
+                else if(p->has_mask == true && IsObjInROI(box[i]) == true)
+                    ret->push_back(box[i]);
+            }
+        }   
     }
     else ret->clear();
     dl.Logger("Detection::Detect filtered %d ", ret->size());
