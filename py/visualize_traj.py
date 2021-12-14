@@ -10,15 +10,15 @@ filelist = [
  prj_path+"/analysis/prev_to_cur_transformation.txt", #prev
  prj_path+"/analysis/trajectory.txt", #trajectory
  prj_path+"/analysis/smoothed_trajectory.txt" , #smoothe
- prj_path+"/analysis/new_prev_to_cur_transformation.txt" #new_tran
+ prj_path+"/analysis/new_prev_to_cur_transformation.txt", #new_tran
 # "/Users/4dreplay/work/dove/prev_to_cur_transformation.txt", #prev
 # "/Users/4dreplay/work/dove/trajectory.txt", #trajectory
 # "/Users/4dreplay/work/dove/smoothed_trajectory.txt" , #smoothe
 # "/Users/4dreplay/work/dove/new_prev_to_cur_transformation.txt" #new_tran
-prj_path+ "/analysis/detected_obj.txt"
-prj_path+ "/analysis/detected_obj_center.txt"
-
+prj_path+"/analysis/detected_obj.txt",
+prj_path+"/analysis/detected_obj_center.txt"
 ]
+
 frame_id_o = []
 dx_o = []
 dy_o = []
@@ -74,8 +74,8 @@ for i in filelist :
             frame_id_dt.append( int(text[0]))
             ox.append( float(text[1]))
             oy.append( float(text[2]))
-            ow.append( float(text[3]))
-            oh.append( float(text[4]))
+            #ow.append( float(text[3]))
+            #oh.append( float(text[4]))
         elif i == filelist[5] :            
             frame_id_dt_c.append( int(text[0]))            
             cx.append( float(text[1]))

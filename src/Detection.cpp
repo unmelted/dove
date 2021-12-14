@@ -64,7 +64,15 @@ int Detection::Detect(Mat cur, vector<bbox_t>* ret) {
 }
 
 bool Detection::IsObjInROI(bbox_t& b) {
+//    dl.Logger("in %d %d %d %d mask %d %d %d %d ", b.x, b.y, b.w, b.h,
+//        p->sx, p->sy, p->width, p->height);
+    if(b.x /p->scale< p->sx || b.y /p->scale< p->sy )
+        return false;
+    if(b.x /p->scale+ b.w/p->scale > (p->sx + p->width) ||
+        b.y/p->scale + b.h/p->scale > (p->sy + p->height))
+        return false;
 
+    return true;
 }
 
 void Detection::DrawBoxes(Mat mat_img, vector<bbox_t> result_vec)
