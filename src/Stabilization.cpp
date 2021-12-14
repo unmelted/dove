@@ -135,10 +135,11 @@ int Dove::Process() {
         }
 
         if(p->run_detection == true)
-            Detect(refc, i);
+            Detect(src1oc, i);
 
         if(i >= p->swipe_start && i <= p->swipe_end) {
         //    result = CompensateMovement(i);
+            result = CalculateMove(i);        
             dl.Logger("swipe region");
         } else {
             result = CalculateMove(src1o);
@@ -181,6 +182,18 @@ int Dove::ImageProcess(Mat& src, Mat& dst) {
     return ERR_NONE;
 }
 
+int Dove::CalculateMove(int frame_id) {
+
+    smth.at<double>(0,0) = 1; 
+    smth.at<double>(0,1) = 0; 
+    smth.at<double>(1,0) = 0; 
+    smth.at<double>(1,1) = 1; 
+    smth.at<double>(0,2) = -dt_comp[frame_id].dx;
+    smth.at<double>(1,2) = -dt_comp[frame_id].dy;
+
+    return ERR_NONE;
+}
+
 int Dove::CalculateMove(Mat& cur) {
     int result = -1;
     if(p->mode == OPTICALFLOW_LK_2DOF || p->mode == OPTICALFLOW_LK_6DOF) {
@@ -214,13 +227,26 @@ int Dove::Detect(Mat cur, int frame_id) {
             obj_c_trajectory << frame_id << " " << n.cx[i] << " " << n.cy[i] << endl;
         }
 
+        DT_XY m;
+        dl.Logger("Insert 1 cx %d cx-1 %d cy %d cy-1 %d ", n.cx[frame_id], n.cx[frame_id -1],
+                n.cy[frame_id], n.cy[frame_id -1]);   
+        m.dx = n.cx[frame_id] - n.cx[frame_id -1];
+        m.dy = n.cy[frame_id] - n.cy[frame_id -1];    
+        dl.Logger("Insert DT_XY %f %f", m.dx, m.dy);
+        dt_comp.insert({frame_id, m});
     }
     else {
         DT_OBJECTS n(frame_id);
         objects.insert({frame_id , n});
         obj_trajectory << frame_id << " 0 0 "<< endl;                    
         obj_c_trajectory << frame_id << " 0 0 " << endl;        
+        DT_XY m;
+        m.dx = 0;
+        m.dy = 0;    
+        dt_comp.insert({frame_id, m});
     }
+    
+    
     return ERR_NONE;
 }
 int Dove::CalculateMove_LK(Mat& cur) {

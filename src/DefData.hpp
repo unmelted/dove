@@ -88,6 +88,11 @@ typedef struct _dtobjs {
     }    
 }DT_OBJECTS;
 
+typedef struct _dtxy {
+    double dx;
+    double dy;
+}DT_XY;
+
 typedef enum _masktype { 
     RECT    = 1,
     CIRCLE  = 2,
