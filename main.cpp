@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
     bool has_mask = false;
     int mode = OPTICALFLOW_LK_2DOF;
     //stab_live(infile);
-    Dove stblz = Dove(mode, has_mask, coord, infile, outfile);
+    Dove stblz(mode, has_mask, coord, infile, outfile);
     stblz.Process();
         
     /*

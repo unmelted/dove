@@ -37,6 +37,8 @@ void Dove::Initialize(bool has_mask, int* coord) {
     p->scale = 2;
     p->run_kalman = true;
     p->run_detection = true;
+    p->swipe_start = 80;
+    p->swipe_end = 198;
 
     if(has_mask == true) {
         p->has_mask = true;
@@ -58,6 +60,8 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->weights_file = "darknet/weights/yolov4-tiny.weights";
         p->id_filter.push_back(0); //id based on coco names
         dt.LoadModel(p);
+        obj_trajectory.open("analysis/detected_obj.txt");
+        obj_c_trajectory.open("analysis/detected_obj_center.txt");        
     }
 
     if(p->run_kalman == true) {
@@ -129,16 +133,20 @@ int Dove::Process() {
             i++;
             continue;
         }
-    
+
         if(p->run_detection == true)
             Detect(refc, i);
 
-        result = CalculateMove(src1o);
-//        ApplyImage(src1o);
-//        ApplyImage(src1oc, true);
+        if(i >= p->swipe_start && i <= p->swipe_end) {
+        //    result = CompensateMovement(i);
+            dl.Logger("swipe region");
+        } else {
+            result = CalculateMove(src1o);
+        }
+
         ApplyImageRef();
         if(p->run_detection == true && objects[i].obj_cnt > 0 ) {
-             dt.DrawBoxes(refcw, objects[i].bbx);
+             dt.DrawBoxes(refcw, objects[i - 1].bbx);
         }
         if(refcw.cols > p->dst_width)
             resize(refcw, refcw, Size(p->dst_width, p->dst_height));
@@ -198,11 +206,20 @@ int Dove::Detect(Mat cur, int frame_id) {
     if(box.size() > 0) {
         dt.ShowResult(box, frame_id);
         DT_OBJECTS n(frame_id, box.size(), box);
+        n.calCenter();
         objects.insert({frame_id, n});
+        for(int i = 0; i < n.obj_cnt; i ++) {
+            dl.Logger("[%d] %d %d %d %d  - cx %d cy %d", frame_id, n.bbx[i].x , n.bbx[i].y,  n.bbx[i].w ,n.bbx[i].h, n.cx[i], n.cy[i]);
+            obj_trajectory << frame_id << " " << n.bbx[i].x << " " << n.bbx[i].y << " " << n.bbx[i].w << " " << n.bbx[i].h << endl;
+            obj_c_trajectory << frame_id << " " << n.cx[i] << " " << n.cy[i] << endl;
+        }
+
     }
     else {
         DT_OBJECTS n(frame_id);
         objects.insert({frame_id , n});
+        obj_trajectory << frame_id << " 0 0 "<< endl;                    
+        obj_c_trajectory << frame_id << " 0 0 " << endl;        
     }
     return ERR_NONE;
 }
@@ -314,6 +331,10 @@ int Dove::CalculateMove_LK(Mat& cur) {
 
     //dl.Logger("calculate done dx %f dy %f", dx, dy);
     return ERR_NONE;
+}
+
+int Dove::CompensateMovement(int frame_id) {
+
 }
 
 int Dove::CalculateMove_Integral(Mat& cur) {

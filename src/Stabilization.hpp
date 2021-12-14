@@ -29,7 +29,9 @@ public:
     Dlog dl;
     Detection dt;
     map<int, DT_OBJECTS>objects;
-    
+    ofstream obj_trajectory;
+    ofstream obj_c_trajectory;    
+
     string _in;
     string _out;
 
@@ -60,7 +62,7 @@ public:
     void SetRefC(Mat& _src) {_src.copyTo(refc); };
     void Initialize(bool has_mask, int* coord);
     int CalculateMove(Mat& cur);
-
+    int CompensateMovement(int frame_id);
     int Detect(Mat cur, int frame_id = -1);
 
     int CalculateMove_LK(Mat& cur);
