@@ -36,7 +36,7 @@ Dove::Dove(string infile, string outfile) {
 void Dove::Initialize(bool has_mask, int* coord) {
     p->scale = 2;
     p->run_kalman = true;
-    p->run_detection = true;
+    p->run_detection = false;
     p->swipe_start = 80;
     p->swipe_end = 198;
 

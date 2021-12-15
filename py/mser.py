@@ -54,7 +54,7 @@ def getiou(rect1, index, rectlist) :
     print("maxiou", max_iou)
     return max_iou
 
-cap = cv2.VideoCapture(datapath+'movie/4dmaker_598.mp4')
+cap = cv2.VideoCapture(datapath+'movie/4dmaker_626.mp4')
 index = 0
 while(cap.isOpened()):
 #for i in imglist :
@@ -68,17 +68,14 @@ while(cap.isOpened()):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     gray = cv2.GaussianBlur(gray,(3, 3),0)
 
-    mser = cv2.MSER_create(14, 100, 100000, 0.1)
+    mser = cv2.MSER_create(14, 100, 100000, 0.9)
     regions, bboxes = mser.detectRegions(gray)
-    addlist = []
     rectlist_u = []
     for b in (bboxes) :
         start = (b[0], b[1])
         end = ((b[0] + b[2]), (b[1] + b[3]))
         #print(" b " , b)
         if b[0] >= lx and b[1] >= ly and b[0]+b[2] < bx and (b[1] + b[3]) < by :
-            addlist.append(start)
-            addlist.append(end)
             rectlist_u.append(b)
 
     rectlist = sorted(rectlist_u, key=lambda rectlist_u : rectlist_u[2] * rectlist_u[3])
@@ -95,8 +92,8 @@ while(cap.isOpened()):
         if iou < 0.3 and b_in == False:
             confirm.append(i)
 
-    if len(confirm) == 0 :
-        cv2.imwrite("{}.png".format(index), img)
+    # if len(confirm) == 0 :
+    #     cv2.imwrite("{}.png".format(index), img)
 
     for c in confirm :
         print(" {} Finally rect list draw {}".format(index, c))
