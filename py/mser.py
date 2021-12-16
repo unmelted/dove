@@ -1,6 +1,7 @@
 import cv2
 import os
 import numpy as np
+import timeit
 
 datapath = ""
 #datapath = "py/sample"
@@ -13,8 +14,14 @@ bx = 630
 by = 470
 roi_sx = 0
 roi_sy = 0
-roi_w = 133
-roi_h = 100
+roi_w = 400
+roi_h = 300
+scale = 6
+
+proi_sx = 0
+proi_sy = 0
+proi_w = 0
+proi_h = 0
 
 def checkin(rect, index, rectlist) :
     for jj, j in enumerate(rectlist) :
@@ -59,8 +66,8 @@ def getiou(rect1, index, rectlist) :
     return max_iou
 
 def makeroi(track_cenx, track_ceny, w, h) :
-    min_w = 133
-    min_h = 100
+    min_w = 400
+    min_h = 300
     sx = 0
     sy = 0
     real_w = max(min_w, w)
@@ -80,40 +87,61 @@ def makeroi(track_cenx, track_ceny, w, h) :
     else :
         roi_sy = ly
 
-    print("roi    ", roi_sx, roi_sy, real_w, real_h)
-    return roi_sx, roi_sy, real_w, real_h
+    print("roi    ", int(roi_sx), int(roi_sy), int(real_w), int(real_h))
+    return int(roi_sx), int(roi_sy), int(real_w), int(real_h)
 
 
 class dt() :
-    threshold = 0.0
-    prev_summ = 0.0
+    threshold = 15
+    first_summ = 0
+    prev_summ = 0
+    prev_diff = 0
     summ = 0
+    peak_summ = 0
+    isSwipe = False
+    normal = 0;
+    bgc = None
+    bgcg = None
+
     def detectsequence(self, bg, cur, index) :
         #cv2.imwrite("{}_cur.png".format(index), cur)    
         cur = cv2.resize(cur, (640, 480))
         cur = cv2.GaussianBlur(cur, (3, 3), 0)
-        diff = cv2.subtract(bg_gray, cur)
-        # cv2.imwrite("{}_bg.png".format(index), bg_gray)    
-        # cv2.imwrite("{}_cur.png".format(index), cur)
-        cv2.imwrite("{}_diff.png".format(index), diff)
-        self.summ = cv2.sumElems(diff)[0] / (640* 480)
-        #print("-- noise summ : " ,self.summ)
-        return diff, self.summ
-        '''
-        if index == 1 :
-            self.prev_summ = self.summ
-            self.threshold = self.summ * 10
-            return False
-        else :
-            if self.summ - self.prev_summ > self.threshold :
-                return True
-            else :
-                return False
-        '''
+        diff = None
+        if self.isSwipe == True :
+            diff = cv2.subtract(self.bgcg, cur)
+        else : 
+            diff = cv2.subtract(bg, cur)        
 
-cap = cv2.VideoCapture(datapath+'movie/4dmaker_598.mp4')
+        self.summ = cv2.sumElems(diff)[0] / (640* 480)
+        
+        if index == 1 :
+            self.first_summ = self.summ
+        else :
+            if self.isSwipe == False :
+                if self.summ - self.prev_summ > self.first_summ * self.threshold :
+                    self.isSwipe = True
+                    self.bgcg = cur.copy()
+                else :
+                    self.isSwipe = False
+
+            elif self.isSwipe == True :
+                if self.summ <= self.first_summ : 
+                    self.isSwipe = False
+                else :
+                    self.isSwipe = True
+                self.bgcg = cur.copy()
+
+        self.prev_diff = self.summ - self.prev_summ
+        self.prev_summ = self.summ
+        return diff, self.summ, self.isSwipe
+
+cap = cv2.VideoCapture(datapath+'movie/4dmaker_600.mp4')
 index = 1
 ret, bg = cap.read()
+prevc = bg.copy()
+prevc = cv2.resize(prevc, (1920, 1080))
+prev =cv2.cvtColor(prevc, cv2.COLOR_BGR2GRAY)
 bg = cv2.resize(bg, (640, 480))
 bg_gray = cv2.cvtColor(bg, cv2.COLOR_BGR2GRAY)
 bg_gray = cv2.GaussianBlur(bg_gray,(3, 3),0)
@@ -125,28 +153,41 @@ track_id = 0
 track_obj = 0
 track_cenx = 0
 track_ceny = 0
+ptrack_cenx = 0
+ptrack_ceny = 0
+mask = 0
+curc = None
+ismove = False
 
 while(cap.isOpened()):
-#for i in imglist :
-    #if i == ".DS_Store" :
-    #    continue
     print(" -- ", index)
+    start_time = timeit.default_timer()    
     ret, img = cap.read()
-    #print(i)
-    #img = cv2.imread(datapath+"/"+i) 
+    if ret == False :
+        break
+
     img = cv2.resize(img, (1920, 1080))
+    curc = img
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     #cv2.imwrite("{}_cur.png".format(index), gray)            
     cur = gray.copy()
     #cv2.imwrite("{}_cur.png".format(index), cur)        
-    diff, noise = ddd.detectsequence(bg, cur, index)
-    #if move == True :
-    #     print(":::::::: ------------ swipe ------------- :::::::::::")
+    diff, noise, ismove = ddd.detectsequence(bg_gray, cur, index)
+    if ismove == True :
+        print(":::::::: ------------ swipe ------------- :::::::::::", noise)
+    else : 
+        print("------------ no -------------", noise)
 
-    #gray = cv2.GaussianBlur(gray,(3, 3),0)
-
+    dst = diff
     mser = cv2.MSER_create(5, 170, 16000, 0.5)
-    regions, bboxes = mser.detectRegions(diff)
+     #gray = cv2.GaussianBlur(gray,(3, 3),0)
+    if found == True : 
+        mask = np.zeros((480, 640), dtype=np.uint8)        
+        cv2.rectangle(mask, (roi_sx, roi_sy), (roi_sx + roi_w, roi_sy + roi_h), (255), -1)
+        dst = cv2.bitwise_and(diff, mask)
+        #cv2.imwrite("{}_bitwise.png".format(index), dst)
+
+    regions, bboxes = mser.detectRegions(dst)
     rectlist_u = []
     for b in (bboxes) :
         start = (b[0], b[1])
@@ -155,17 +196,8 @@ while(cap.isOpened()):
         if b[0] >= lx and b[1] >= ly and b[0]+b[2] < bx and (b[1] + b[3]) < by :
             rectlist_u.append(b)
 
-    #rectlist = []
     rectlist = sorted(rectlist_u, key=lambda rectlist_u : rectlist_u[2] * rectlist_u[3])
-    # for i in rectlist2 :
-    #     if i[2] * i[3] > 200 :
-    #         rectlist.append(i)
-
-    #print("rect list " ,rectlist)
-    clone = diff.copy()
-    # if len(addlist) > 0 :
-    #     hulls = cv2.convexHull(np.array(addlist))
-    #     print("hulls ", hulls)
+    clone = diff.copy()    
     confirm = []
     confirm2 = []
 
@@ -179,6 +211,7 @@ while(cap.isOpened()):
         iou = getiou(i, ii, confirm2)
         if iou < 0.3 :
             confirm.append(i)
+
     #print("before confirm.. ")
     print(confirm)
     len_con = len(confirm)
@@ -211,18 +244,80 @@ while(cap.isOpened()):
             #break
 
     if found == True :
-        roi_sx, roi_sy, real_w, real_h  = makeroi(track_cenx ,track_ceny, track_obj[2], track_obj[3])
+        roi_sx, roi_sy, roi_w, roi_h  = makeroi(track_cenx ,track_ceny, track_obj[2], track_obj[3])
 
     di = 0
     for c in confirm :
         print(" {} Finally rect list draw {}".format(index, c))
-        cv2.rectangle(clone, (c[0], c[1]), (c[0]+c[2],c[1]+c[3]), (255, 0, 255), 2)
-        if di == track_id :
+        if di == track_id and found == True :
+            cv2.rectangle(clone, (c[0], c[1]), (c[0]+c[2],c[1]+c[3]), (255, 0, 255), 2)            
             cv2.putText(clone, "FOCUS!", (c[0], c[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4,  (255, 255, 40), 1)
-            cv2.rectangle(clone, (roi_sx, roi_sy), (roi_sx + real_w, roi_sy + real_h), (255), 2)
+            cv2.rectangle(clone, (roi_sx, roi_sy), (roi_sx + roi_w, roi_sy + roi_h), (255), 2)
         di += 1
 
-    #cv2.drawContours(clone, hulls, -1, (255, 0, 0))
+    if found == True :
+        if ismove == True:
+            cv2.imwrite("{}_prev.png".format(index), prev)
+            cur_crop = cur[roi_sy * 3 : (roi_sy + roi_h) * 3, roi_sx * 3 : (roi_sx + roi_w) * 3]
+            prev_crop = prev[roi_sy * 3 : (roi_sy + roi_h) * 3, roi_sx * 3 : (roi_sx + roi_w) * 3]
+            cv2.imwrite("{}_curcrop.png".format(index), cur_crop)
+            cv2.imwrite("{}_prevcrop.png".format(index), prev_crop)        
+            pt1 = cv2.goodFeaturesToTrack(prev_crop, 100, 0.02, 2)
+            pt2, status, err = cv2.calcOpticalFlowPyrLK(prev_crop, cur_crop, pt1, None)
+            gdpt1 = []
+            gdpt2 = []
+            for i in range(0, len(pt2)) :
+                gdpt1.append(pt1[i])
+                gdpt2.append(pt2[i])
+            
+            warp_m, _ = cv2.estimateAffine2D(np.array(gdpt1).astype(np.float32), np.array(gdpt2).astype(np.float32))
+            warp_m[0][0] = 1
+            warp_m[0][1] = 0
+            warp_m[1][0] = 0        
+            warp_m[1][1] = 1  
+            warp_m[0][2] = warp_m[0][2]
+            warp_m[1][2] = warp_m[1][2]
+            print("warp matrix  ", warp_m[0][2], warp_m[1][2])
+            warp_dst = cv2.warpAffine(prevc, warp_m, (1920,1080))
+        else : 
+            cv2.imwrite("{}_prev.png".format(index), prev)            
+            cur_crop = cur[roi_sy * 3 : (roi_sy + roi_h) * 3, roi_sx * 3 : (roi_sx + roi_w) * 3]
+            prev_crop = prev[roi_sy * 3 : (roi_sy + roi_h) * 3, roi_sx * 3 : (roi_sx + roi_w) * 3]
+            cv2.imwrite("{}_curcrop.png".format(index), cur_crop)
+            cv2.imwrite("{}_prevcrop.png".format(index), prev_crop)        
+            pt1 = cv2.goodFeaturesToTrack(prev_crop, 100, 0.02, 2)
+            pt2, status, err = cv2.calcOpticalFlowPyrLK(prev_crop, cur_crop, pt1, None)
+            gdpt1 = []
+            gdpt2 = []
+            for i in range(0, len(pt2)) :
+                gdpt1.append(pt1[i])
+                gdpt2.append(pt2[i])
+            
+            warp_m, _ = cv2.estimateAffine2D(np.array(gdpt1).astype(np.float32), np.array(gdpt2).astype(np.float32))
+            warp_m[0][0] = 1
+            warp_m[0][1] = 0
+            warp_m[1][0] = 0        
+            warp_m[1][1] = 1  
+            warp_m[0][2] = warp_m[0][2]
+            warp_m[1][2] = warp_m[1][2]
+            print("warp matrix  ", warp_m[0][2], warp_m[1][2])
+            warp_dst = cv2.warpAffine(prevc, warp_m, (1920,1080))
+    else :
+        warp_dst = prevc.copy() 
+
+    terminate_time = timeit.default_timer()
+    print("TIME : %f s" % (terminate_time - start_time))
+
+    cv2.imwrite("{}_warp.png".format(index), warp_dst)
+    prevc = curc.copy()
+    prev = cur.copy()
+    proi_sx = roi_sx
+    proi_sy = roi_sy
+    proi_w = roi_w
+    proi_h = roi_h
+    ptrack_cenx = track_cenx
+    ptrack_ceny = track_ceny
+
     cv2.imshow("TEST", clone)
     #cv2.waitKey()
     if cv2.waitKey(25) & 0xFF == ord('q') :
