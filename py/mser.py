@@ -11,6 +11,10 @@ lx = 5
 ly = 5
 bx = 630
 by = 470
+roi_sx = 0
+roi_sy = 0
+roi_w = 133
+roi_h = 100
 
 def checkin(rect, index, rectlist) :
     for jj, j in enumerate(rectlist) :
@@ -54,7 +58,31 @@ def getiou(rect1, index, rectlist) :
     #print("maxiou", max_iou)
     return max_iou
 
-#def makeroi() :
+def makeroi(track_cenx, track_ceny, w, h) :
+    min_w = 133
+    min_h = 100
+    sx = 0
+    sy = 0
+    real_w = max(min_w, w)
+    real_h = max(min_h, h)
+
+    if track_cenx + real_w /2 > bx :
+        real_w = real_w - ((track_cenx + real_w /2) - bx)
+    if track_ceny + real_h /2 > by :
+        real_h = real_h - ((track_ceny + real_h /2) - by)
+
+    if track_cenx - (real_w /2) > lx :
+        roi_sx = track_cenx - (real_w /2)
+    else :
+        roi_sx = lx
+    if track_ceny - (real_h /2 ) > ly :
+        roi_sy = track_ceny - (real_h /2 )
+    else :
+        roi_sy = ly
+
+    print("roi    ", roi_sx, roi_sy, real_w, real_h)
+    return roi_sx, roi_sy, real_w, real_h
+
 
 class dt() :
     threshold = 0.0
@@ -182,7 +210,8 @@ while(cap.isOpened()):
             found = False
             #break
 
-
+    if found == True :
+        roi_sx, roi_sy, real_w, real_h  = makeroi(track_cenx ,track_ceny, track_obj[2], track_obj[3])
 
     di = 0
     for c in confirm :
@@ -190,7 +219,7 @@ while(cap.isOpened()):
         cv2.rectangle(clone, (c[0], c[1]), (c[0]+c[2],c[1]+c[3]), (255, 0, 255), 2)
         if di == track_id :
             cv2.putText(clone, "FOCUS!", (c[0], c[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4,  (255, 255, 40), 1)
-
+            cv2.rectangle(clone, (roi_sx, roi_sy), (roi_sx + real_w, roi_sy + real_h), (255), 2)
         di += 1
 
     #cv2.drawContours(clone, hulls, -1, (255, 0, 0))
