@@ -164,7 +164,8 @@ int stab_live(char* infile)
 		}
 
 		// translation + rotation only
-		Mat T = estimateRigidTransform(prev_corner2, cur_corner2, false); // false = rigid transform, no scaling/shearing
+		//Mat T = estimateRigidTransform(prev_corner2, cur_corner2, false); // false = rigid transform, no scaling/shearing
+		Mat T = estimateAffine2D(prev_corner2, cur_corner2); // false = rigid transform, no scaling/shearing		
 
 		// in rare cases no transform is found. We'll just use the last known good transform.
 		if(T.data == NULL) {

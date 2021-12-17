@@ -27,6 +27,7 @@ Dove::Dove(string infile, string outfile) {
     dt = Detection();
 
     dl.SetLogFilename("TEST");
+    tck.SetParam(p);
     _in = infile;
     _out = outfile;
     Initialize(false, 0);    
@@ -36,7 +37,7 @@ Dove::Dove(string infile, string outfile) {
 void Dove::Initialize(bool has_mask, int* coord) {
     p->scale = 2;
     p->run_kalman = true;
-    p->run_detection = true;
+    p->run_detection = false;
     p->swipe_start = 80;
     p->swipe_end = 198;
 
@@ -54,15 +55,28 @@ void Dove::Initialize(bool has_mask, int* coord) {
     p->dst_height = 1080;
 
     if(p->run_detection == true) {
-        p->detect_threshold = 0.5;
-        p->detector_type = DARKNET_YOLOV4;
-        p->names_file = "darknet/data/coco.names";
-        p->cfg_file = "darknet/cfg/yolov4-tiny.cfg";
-        p->weights_file = "darknet/weights/yolov4-tiny.weights";
-        p->id_filter.push_back(0); //id based on coco names
-        dt.LoadModel(p);
-        obj_trajectory.open("analysis/detected_obj.txt");
-        obj_c_trajectory.open("analysis/detected_obj_center.txt");        
+        if(p->detector_type == DARKNET_YOLOV4) {
+            dt = Detection();
+            p->detect_threshold = 0.5;
+            p->detector_type = DARKNET_YOLOV4;
+            p->names_file = "darknet/data/coco.names";
+            p->cfg_file = "darknet/cfg/yolov4-tiny.cfg";
+            p->weights_file = "darknet/weights/yolov4-tiny.weights";
+            p->id_filter.push_back(0); //id based on coco names            
+            obj_trajectory.open("analysis/detected_obj.txt");
+            obj_c_trajectory.open("analysis/detected_obj_center.txt");        
+            dt.LoadModel(p);            
+        }
+        else if (p->detector_type == BLOB_MSER) {
+            tck = Tracking();
+            p->track_scale = 5;
+            p->limit_lx = 5;
+            p->limit_ly = 5;
+            p->limit_bx = 630;
+            p->limit_by = 470;
+            p->roi_w = 400;
+            p->roi_h = 300;
+        }
     }
 
     if(p->run_kalman == true) {
@@ -119,6 +133,7 @@ int Dove::Process() {
     Mat src1oc; Mat src1o;
     int i = 0;
     int result = 0;
+    int found = 0;
 
     while(true) {
         in >> src1oc;
@@ -131,23 +146,27 @@ int Dove::Process() {
         {
             SetRef(src1o);
             SetRefC(src1oc);            
+            tck.SetBg(src1oc);
             i++;
             continue;
         }
 
         if(p->run_detection == true)
             Detect(src1oc, i);
-
+        if(p->run_tracking == true)
+            found = tck.DetectAndTrack(src1oc, i);
+            
         // if(i >= p->swipe_start && i <= p->swipe_end) {
         //      result = CalculateMove(i);        
         //      dl.Logger("swipe region");
         // } else {
-            result = CalculateMove(src1o, i);
+        result = CalculateMove(src1o, i);
         //}
 
         if(p->run_detection == true && objects[i].obj_cnt > 0 ) {
              dt.DrawBoxes(refcw, objects[i - 1].bbx);
         }
+
         ApplyImageRef();        
         if(refcw.cols > p->dst_width)
             resize(refcw, refcw, Size(p->dst_width, p->dst_height));

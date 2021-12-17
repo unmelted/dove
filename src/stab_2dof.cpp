@@ -106,8 +106,8 @@ int stab_2dof(char* in, char* out, int coord[4]) {
              pre_affine.copyTo(affine);
          }
          else {
-            //affine = estimateAffine2D(goodFeatures1, goodFeatures2);
-            affine = estimateRigidTransform(goodFeatures1, goodFeatures2, false);                
+            affine = estimateAffine2D(goodFeatures1, goodFeatures2);
+            //affine = estimateRigidTransform(goodFeatures1, goodFeatures2, false);                
         }
 
         if(affine.empty()) {
