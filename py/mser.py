@@ -179,7 +179,7 @@ class KalmanFilter() :
 
 
 out = cv2.VideoWriter('test_out.avi', cv2.VideoWriter_fourcc(*"MJPG"), 30,(1920, 1080))
-cap = cv2.VideoCapture(datapath+'movie/4dmaker_626.mp4')
+cap = cv2.VideoCapture(datapath+'movie/4dmaker_598.mp4')
 index = 1
 ret, bg = cap.read()
 prevc = bg.copy()
@@ -206,12 +206,14 @@ warp_dst = None
 dt = 1.0/60
 F = np.array([[1, dt, 0], [0, 1, dt], [0, 0, 1]])
 H = np.array([1, 0, 0]).reshape(1, 3)
-Q = np.array([[0.0001, 0.0001, 0.0], [0.0001, 0.0001, 0.0], [0.0, 0.0, 0.0]])
-R = np.array([0.2]).reshape(1, 1)
+Q = np.array([[0.05, 0.05, 0.0], [0.05, 0.05, 0.0], [0.0, 0.0, 0.0]])
+R = np.array([0.4]).reshape(1, 1)
 kfx = KalmanFilter()
 kfx.init(F, H, Q, R)
 kfy = KalmanFilter()
 kfy.init(F, H, Q, R)
+
+logfile = open("test.log", "w")
 
 while(cap.isOpened()):
     print(" -- ", index)
@@ -227,8 +229,8 @@ while(cap.isOpened()):
     cur = gray.copy()
     #cv2.imwrite("{}_cur.png".format(index), cur)        
     diff, noise, ismove = ddd.detectsequence(bg_gray, cur, index)
-    # if ismove == True :
-    #     print(":::::::: ------------ swipe ------------- :::::::::::", noise)
+    if ismove == True :
+         print(":::::::: ------------ swipe ------------- :::::::::::", noise)
     # else : 
     #     print("------------ no -------------", noise)
 
@@ -310,36 +312,37 @@ while(cap.isOpened()):
             cv2.imwrite("black/{}_clone.png".format(index), clone)            
         di += 1
 
-    if ffound == True :
-        if ismove == 3:
+    if ffound == True :     
+        #if ismove == False :
             #cv2.imwrite("{}_prev.png".format(index), prev)
-            cur_crop = cur[roi_sy * 3 : (roi_sy + roi_h) * 3, roi_sx * 3 : (roi_sx + roi_w) * 3]
-            prev_crop = prev[roi_sy * 3 : (roi_sy + roi_h) * 3, roi_sx * 3 : (roi_sx + roi_w) * 3]
-            cv2.imwrite("{}_curcrop1.png".format(index), cur_crop)
-            cv2.imwrite("{}_prevcrop1.png".format(index), prev_crop)        
-            pt1 = cv2.goodFeaturesToTrack(prev_crop, 200, 0.01, 10)
-            pt2, status, err = cv2.calcOpticalFlowPyrLK(prev_crop, cur_crop, pt1, None)
-            gdpt1 = []
-            gdpt2 = []
-            for i in range(pt2.shape[0]) :
-                gdpt1.append(pt1[i])
-                gdpt2.append(pt2[i])
+            # cur_crop = cur[roi_sy * 3 : (roi_sy + roi_h) * 3, roi_sx * 3 : (roi_sx + roi_w) * 3]
+            # prev_crop = prev[roi_sy * 3 : (roi_sy + roi_h) * 3, roi_sx * 3 : (roi_sx + roi_w) * 3]
+            # cv2.imwrite("{}_curcrop1.png".format(index), cur_crop)
+            # cv2.imwrite("{}_prevcrop1.png".format(index), prev_crop)        
+            # pt1 = cv2.goodFeaturesToTrack(prev_crop, 200, 0.01, 10)
+            # pt2, status, err = cv2.calcOpticalFlowPyrLK(prev_crop, cur_crop, pt1, None)
+            # gdpt1 = []
+            # gdpt2 = []
+            # for i in range(pt2.shape[0]) :
+            #     gdpt1.append(pt1[i])
+            #     gdpt2.append(pt2[i])
             
-            warp_m, _ = cv2.estimateAffine2D(np.array(gdpt1).astype(np.float32), np.array(gdpt2).astype(np.float32))
-            warp_m[0][0] = 1
-            warp_m[0][1] = 0
-            warp_m[1][0] = 0        
-            warp_m[1][1] = 1  
-            warp_m[0][2] = warp_m[0][2]
-            warp_m[1][2] = warp_m[1][2]
-            print("warp matrix  1", warp_m[0][2], warp_m[1][2])
-            warp_dst = cv2.warpAffine(prevc, warp_m, (1920,1080))
-        else : 
+            # warp_m, _ = cv2.estimateAffine2D(np.array(gdpt1).astype(np.float32), np.array(gdpt2).astype(np.float32))
+            # warp_m[0][0] = 1
+            # warp_m[0][1] = 0
+            # warp_m[1][0] = 0        
+            # warp_m[1][1] = 1  
+            # warp_m[0][2] = warp_m[0][2]
+            # warp_m[1][2] = warp_m[1][2]
+            # print("warp matrix  1", warp_m[0][2], warp_m[1][2])
+            #warp_dst = prevc.copy() #cv2.warpAffine(prevc, warp_m, (1920,1080))
+        if ismove == True or ismove == False : 
             #cv2.imwrite("{}_prev.png".format(index), prev)            
             #cur_crop = cur[roi_sy * 3 : (roi_sy + roi_h) * 3, roi_sx * 3 : (roi_sx + roi_w) * 3]
             #prev_crop = prev[roi_sy * 3 : (roi_sy + roi_h) * 3, roi_sx * 3 : (roi_sx + roi_w) * 3]
             #cv2.imwrite("{}_curcrop2.png".format(index), cur_crop)
-            #cv2.imwrite("{}_prevcrop2.png".format(index), prev_crop)        
+            #cv2.imwrite("{}_prevcrop2.png".format(index), prev_crop)
+
             pt1 = cv2.goodFeaturesToTrack(prev, 200, 0.01, 10)
             pt2, status, err = cv2.calcOpticalFlowPyrLK(prev, cur, pt1, None)
             gdpt1 = []
@@ -349,47 +352,66 @@ while(cap.isOpened()):
                 gdpt2.append(pt2[i])
             
             warp_m, _ = cv2.estimateAffine2D(np.array(gdpt1).astype(np.float32), np.array(gdpt2).astype(np.float32))
-            kfx.update((track_cenx - ptrack_cenx) *3)
-            kfy.update((track_ceny - ptrack_ceny) *3)                 
-            px = (np.dot(H,  kfx.predict())[0])
-            py = (np.dot(H,  kfy.predict())[0])
-            warp_m[0][0] = 1
-            warp_m[0][1] = 0
-            warp_m[1][0] = 0        
-            warp_m[1][1] = 1  
-            warp_m[0][2] = px * 0.3 #track_cenx - ptrack_cenx#warp_m[0][2]
-            warp_m[1][2] = py * 0.3#track_ceny - ptrack_ceny#warp_m[1][2]
-            print("warp matrix 2 ", warp_m[0][2], warp_m[1][2])                        
-            cv2.imshow("TEST", warp_dst)
-
-            if track_cenx - ptrack_cenx == 0:
+            if abs(track_cenx - ptrack_cenx) > 10 or abs(track_ceny - ptrack_ceny) > 10 :
                 px = (np.dot(H,  kfx.predict())[0])
                 py = (np.dot(H,  kfy.predict())[0])
                 warp_m[0][0] = 1
                 warp_m[0][1] = 0
                 warp_m[1][0] = 0        
                 warp_m[1][1] = 1  
-                warp_m[0][2] = px * 0.3 #track_cenx - ptrack_cenx#warp_m[0][2]
-                warp_m[1][2] = py * 0.3#track_ceny - ptrack_ceny#warp_m[1][2]            
-            #kfx.update(warp_m[0][2])
-            #kfy.update(warp_m[1][2])
-            #curc_crop = curc[roi_sy * 3 : (roi_sy + roi_h) * 3, roi_sx * 3 : (roi_sx + roi_w) * 3]            
-            warp_dst = cv2.warpAffine(prevc, warp_m, (1920,1080))
-            #cur = cv2.warpAffine(cur, warp_m, (1920,1080))            
-            cv2.imshow("TEST", warp_dst)
-            
-            px = (np.dot(H,  kfx.predict())[0])
-            py = (np.dot(H,  kfy.predict())[0])
-            warp_m[0][0] = 1
-            warp_m[0][1] = 0
-            warp_m[1][0] = 0        
-            warp_m[1][1] = 1  
-            warp_m[0][2] = px * 0.3#track_cenx - ptrack_cenx#warp_m[0][2]
-            warp_m[1][2] = py * 0.3#track_ceny - ptrack_ceny#warp_m[1][2]            
-            #kfx.update(warp_m[0][2])
-            #kfy.update(warp_m[1][2])
-            #curc_crop = curc[roi_sy * 3 : (roi_sy + roi_h) * 3, roi_sx * 3 : (roi_sx + roi_w) * 3]            
-            warp_dst = cv2.warpAffine(prevc, warp_m, (1920,1080))            
+                warp_m[0][2] = px - ptrack_cenx #track_cenx - ptrack_cenx#warp_m[0][2]
+                warp_m[1][2] = py - ptrack_ceny#warp_m[1][2]
+                print("warp matrix 2 - 1", warp_m[0][2], warp_m[1][2])
+                kfx.update((track_cenx))
+                kfy.update((track_ceny))    
+                warp_dst = cv2.warpAffine(prevc, warp_m, (1920,1080))
+                out.write(warp_dst)  
+                cv2.imshow("TEST", warp_dst)      
+                cv2.imwrite("{}_warp18.png".format(index), warp_dst)                                        
+                px = (np.dot(H,  kfx.predict())[0])
+                py = (np.dot(H,  kfy.predict())[0])   
+                warp_m[0][2] = px - ptrack_cenx#warp_m[0][2]
+                warp_m[1][2] = py - ptrack_ceny#warp_m[1][2]
+                print("warp matrix 2 - 2", warp_m[0][2], warp_m[1][2])
+                kfx.update((track_cenx))
+                kfy.update((track_ceny))
+                warp_dst = cv2.warpAffine(warp_dst, warp_m, (1920,1080))
+                out.write(warp_dst)
+                cv2.imshow("TEST", warp_dst)       
+                cv2.imwrite("{}_warp19.png".format(index), warp_dst)                              
+                px = (np.dot(H,  kfx.predict())[0])
+                py = (np.dot(H,  kfy.predict())[0])    
+                warp_m[0][2] = px - ptrack_cenx#warp_m[0][2]
+                warp_m[1][2] = py - ptrack_ceny#warp_m[1][2]    
+                print("warp matrix 2 - 3", warp_m[0][2], warp_m[1][2])
+                kfx.update((track_cenx))
+                kfy.update((track_ceny))      
+                warp_dst = cv2.warpAffine(warp_dst, warp_m, (1920,1080))       
+            elif (track_cenx - ptrack_cenx) == 0 and abs(track_ceny - ptrack_ceny) == 0 :
+                print("zero - frame skip ", index)
+                index += 1          
+                prevc = curc.copy()
+                prev = cur.copy()
+                proi_sx = roi_sx
+                proi_sy = roi_sy
+                proi_w = roi_w
+                proi_h = roi_h
+                ptrack_cenx = track_cenx
+                ptrack_ceny = track_ceny                      
+                continue
+            else :
+                px = (np.dot(H,  kfx.predict())[0])
+                py = (np.dot(H,  kfy.predict())[0])
+                warp_m[0][0] = 1
+                warp_m[0][1] = 0
+                warp_m[1][0] = 0        
+                warp_m[1][1] = 1  
+                warp_m[0][2] = px - ptrack_cenx#warp_m[0][2]
+                warp_m[1][2] = py - ptrack_ceny#warp_m[1][2]
+                print("warp matrix 2 ", warp_m[0][2], warp_m[1][2])
+                kfx.update((track_cenx) * 3)
+                kfy.update((track_ceny) * 3)                 
+                warp_dst = cv2.warpAffine(prevc, warp_m, (1920,1080))
     else :
         warp_dst = prevc.copy() 
 
@@ -397,7 +419,7 @@ while(cap.isOpened()):
     print("TIME : %f s" % (terminate_time - start_time))
     out.write(warp_dst)
 
-    cv2.imwrite("{}_warp.png".format(index), warp_dst)
+    cv2.imwrite("{}_warp20.png".format(index), warp_dst)
     prevc = curc.copy()
     prev = cur.copy()
     proi_sx = roi_sx

@@ -30,6 +30,8 @@
 #include <ctime>
 #include <stdio.h>
 #include <string.h>
+#include <vector>
+#include <algorithm>
 #include "common/TimeUtil.hpp"
 #include "darknet/yolo_v2_class.hpp"
 
@@ -55,9 +57,43 @@ typedef enum _calmode {
 }CALMODE;
 
 typedef enum _detectortype {
-    DARKNET_YOLOV4     = 1,
-    DARKNET_RTGPU     = 2,
+    DARKNET_YOLOV4  = 1,
+    DARKNET_RTGPU   = 2,
+    BLOB_MSER       = 3,
 }DT_TYPE;
+
+typedef struct _trackobj {
+    int id{};
+    int sx{};
+    int sy{};
+    int w{};
+    int h{};    
+    float cx{};
+    float cy{};
+    int ex{};
+    int ey{};
+
+    _trackobj(int a, int b, int c, int d) {
+        sx = a;
+        sy = b;
+        w = c;
+        h = d;
+    }
+    void update(int a, int b, int c, int d) {
+        sx = a;
+        sy = b;
+        w = c;
+        h = d;
+    }
+    void update() {
+        cx = sx + w/2;
+        cy = sy + h/2;
+        ex = sx + w;
+        ey = sy + h;
+    }
+
+} TRACK_OBJ;
+
 
 typedef struct _dtobjs {
     int frame_id;
@@ -113,6 +149,15 @@ typedef struct _param {
     string weights_file;
     vector<int>id_filter;
     float detect_threshold;
+
+    bool run_tracking;
+    int track_scale;
+    int limit_lx;
+    int limit_ly;
+    int limit_bx;
+    int limit_by;
+    int roi_w;
+    int roi_h;
 
     int swipe_start;
     int swipe_end;    

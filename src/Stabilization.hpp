@@ -18,6 +18,7 @@
 #include <map>
 #include "DefData.hpp"
 #include "Detection.hpp"
+#include "Tracking.hpp"
 
 using namespace std;
 using namespace cv;
@@ -28,6 +29,8 @@ public:
     TIMER* t;
     Dlog dl;
     Detection dt;
+    Tracking tck;
+
     map<int, DT_OBJECTS>objects;
     ofstream obj_trajectory;
     ofstream obj_c_trajectory;    
