@@ -32,12 +32,12 @@ bool Compare(Rect a, Rect b) {
     return a.width * a.height <= b.width * b.height;
 }
 
-int Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
     int result = 0;
     Mat cur; Mat diff; Mat dst;
     ImageProcess(src, cur);
     subtract(bg, cur, diff);
-    int diff_val = sum(diff)[0];
+    float diff_val = sum(diff)[0]/(scale_w * scale_h);
 
     if( index == 1 ) 
         first_summ = diff_val;
@@ -109,15 +109,30 @@ int Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi
         MakeROI(obj, &troi);
     }
 
-    return ERR_NONE;
-}
-
-int Tracking::CheckMovieSequence() {
-
-    return ERR_NONE;
+    return diff_val;
 }
     
 void Tracking::MakeROI(TRACK_OBJ* obj, TRACK_OBJ* roi) {
+    int sx = 0;
+    int sy = 0;
+    int real_w = max(p->roi_w, obj->w);
+    int real_h = max(p->roi_h, obj->h);
+
+    if ((obj->cx + real_w /2) > p->limit_bx)
+        real_w = real_w - ((obj->cx + real_w/2) - p->limit_bx);
+    if ((obj->cy + real_h /2) > p->limit_by)
+        real_h = real_h - ((obj->cy + real_h / 2) - p->limit_by);
+
+    if ((obj->cx - real_w /2) > p->limit_lx)
+        roi->sx = obj->cx - (real_w /2);
+    else 
+        roi->sx = p->limit_lx;
+    if ((obj->cy - real_h /2) > p->limit_ly)
+        roi->sy = obj->cx - (real_h / 2);
+    else
+        roi->sy = p->limit_ly;
+
+    dl.Logger("MakeROI %d %d %d %d ", int(roi->sx), int(roi->sy), int(roi->w), int(roi->h));
 
 }
 
@@ -169,7 +184,9 @@ bool Tracking::CheckWithin(Rect& r, int index, vector<Rect>& rects) {
 void Tracking::ImageProcess(Mat& src, Mat& dst) {
 
     if(p->track_scale == 1 ) {
-        resize(src, src, Size(int(src.cols/p->track_scale), int(src.rows/p->track_scale)), 0, 0, 1);
+        scale_w = int(src.cols/p->track_scale);
+        scale_h = int(src.rows/p->track_scale);
+        resize(src, src, Size(scale_w, scale_h), 0, 0, 1);
     }
     cvtColor(src, src, COLOR_BGR2GRAY);
     GaussianBlur(src, dst, {3, 3}, 0.7, 0.7);

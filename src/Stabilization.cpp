@@ -319,8 +319,8 @@ int Dove::CalculateMove_LK(Mat& cur, int frame_id) {
             pre_affine.copyTo(affine);
     }
     else {
-        //affine = estimateAffine2D(goodFeatures1, goodFeatures2);
-        affine = estimateRigidTransform(goodFeatures1, goodFeatures2, false);                
+        affine = estimateAffine2D(goodFeatures1, goodFeatures2);
+        //affine = estimateRigidTransform(goodFeatures1, goodFeatures2, false);                
     }
 
     if(affine.empty() == true) {

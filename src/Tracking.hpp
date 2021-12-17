@@ -29,8 +29,7 @@ class Tracking {
     ~Tracking();
     void SetParam(PARAM* _p) { p = _p; };
     void SetLogger(Dlog& log) { dl = log; };    
-    int DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj = NULL, TRACK_OBJ* roi = NULL);
-    int CheckMovieSequence();
+    float DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj = NULL, TRACK_OBJ* roi = NULL);
     void SetBg(Mat& src);
 
     private :
@@ -38,6 +37,8 @@ class Tracking {
     Ptr<MSER>ms;
     bool isfound;
 
+    int scale_w;
+    int scale_h;
     int first_summ;
     int prev_summ;
     int prev_diff;
