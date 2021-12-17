@@ -1,3 +1,18 @@
+'''***************************************************************************
+*                                                                            *
+*                           Tracking.cpp     								 *
+*                                                                            *
+*   Copyright (C) 2021 By 4dreplay, Incoporated. All Rights Reserved.        *
+******************************************************************************
+
+    File Name       : Tracking.cpp
+    Author(S)       : Me Eunkyung
+    Created         : 17 dec 2021
+
+    Description     : Tracking.cpp
+    Notes           : Tracking
+'''
+
 import cv2
 import os
 import numpy as np

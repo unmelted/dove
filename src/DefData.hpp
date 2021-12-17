@@ -63,16 +63,17 @@ typedef enum _detectortype {
 }DT_TYPE;
 
 typedef struct _trackobj {
-    int id{};
-    int sx{};
-    int sy{};
-    int w{};
-    int h{};    
-    float cx{};
-    float cy{};
-    int ex{};
-    int ey{};
+    int id;
+    int sx;
+    int sy;
+    int w;
+    int h;    
+    float cx;
+    float cy;
+    int ex;
+    int ey;
 
+    _trackobj() {}
     _trackobj(int a, int b, int c, int d) {
         sx = a;
         sy = b;
@@ -90,6 +91,9 @@ typedef struct _trackobj {
         cy = sy + h/2;
         ex = sx + w;
         ey = sy + h;
+    }
+    int GetArea() {
+        return w * h;
     }
 
 } TRACK_OBJ;
@@ -158,6 +162,10 @@ typedef struct _param {
     int limit_by;
     int roi_w;
     int roi_h;
+    float area_threshold;
+    float iou_threshold;
+    float center_threshold;
+    bool keep_tracking;    
 
     int swipe_start;
     int swipe_end;    
