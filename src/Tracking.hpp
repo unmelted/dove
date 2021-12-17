@@ -23,25 +23,27 @@ class Tracking {
 
     public :
     PARAM* p;
-
+    Dlog dl;
+    
     Tracking();
     ~Tracking();
     void SetParam(PARAM* _p) { p = _p; };
-    int DetectAndTrack(Mat& src, int index, TRACK_OBJ* dobj = NULL);
+    void SetLogger(Dlog& log) { dl = log; };    
+    int DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj = NULL, TRACK_OBJ* roi = NULL);
     int CheckMovieSequence();
     void SetBg(Mat& src);
 
     private :
     Mat bg;
     Ptr<MSER>ms;
-    bool isFound;
+    bool isfound;
 
     int first_summ;
     int prev_summ;
     int prev_diff;
 
-    void MakeROI();    
-    float GetIOU();
+    void MakeROI(TRACK_OBJ* obj, TRACK_OBJ* roi);
+    float GetIOU(Rect& r, int index, vector<Rect>& rects);
     bool CheckWithin(Rect& r);
     bool CheckWithin(Rect& r, int index, vector<Rect>& rects);
     void ImageProcess(Mat& src, Mat& dst);

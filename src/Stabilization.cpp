@@ -20,14 +20,40 @@
 using namespace std;
 using namespace cv;
 
+Dove::Dove(int mode, bool has_mask, int* coord, string infile, string outfile, string id) {
+    p = new PARAM();
+    t = new TIMER();
+    dl = Dlog();
+    dt = Detection();
+    tck = Tracking();
+
+    dl.Logger("instance created.. ");
+    dl.SetLogFilename("TEST");
+    dt.SetLogger(dl);    
+    tck.SetParam(p);
+    tck.SetLogger(dl);    
+    _in = infile;
+    _out = outfile;
+
+    dl.Logger("Start construct. %s %s  ", _in.c_str(), _out.c_str());
+    p->mode = mode;
+    if(has_mask == true) 
+        Initialize(true, coord);
+    else 
+        Initialize(false, 0);    
+}
+
 Dove::Dove(string infile, string outfile) {
     p = new PARAM();
     t = new TIMER();
     dl = Dlog();
     dt = Detection();
+    tck = Tracking();    
 
     dl.SetLogFilename("TEST");
+    dt.SetLogger(dl);
     tck.SetParam(p);
+    tck.SetLogger(dl);    
     _in = infile;
     _out = outfile;
     Initialize(false, 0);    
@@ -76,6 +102,9 @@ void Dove::Initialize(bool has_mask, int* coord) {
             p->limit_by = 470;
             p->roi_w = 400;
             p->roi_h = 300;
+            p-> area_threshold = 200;
+            p->iou_threshold = 0.3;
+            p->center_threshold  = 30;
         }
     }
 
@@ -92,26 +121,6 @@ void Dove::Initialize(bool has_mask, int* coord) {
     smth.create(2 , 3 , CV_64F);        
 
     dl.Logger("Initialized compelete.");    
-}
-
-Dove::Dove(int mode, bool has_mask, int* coord, string infile, string outfile, string id) {
-    p = new PARAM();
-    t = new TIMER();
-    dl = Dlog();
-    dt = Detection();
-
-    dt.SetLogger(dl);
-    dl.Logger("instance created.. ");
-    dl.SetLogFilename("TEST");
-    _in = infile;
-    _out = outfile;
-
-    dl.Logger("Start construct. %s %s  ", _in.c_str(), _out.c_str());
-    p->mode = mode;
-    if(has_mask == true) 
-        Initialize(true, coord);
-    else 
-        Initialize(false, 0);    
 }
 
 Dove::~Dove() {
