@@ -35,10 +35,11 @@ public:
     ofstream obj_trajectory;
     ofstream obj_c_trajectory;    
     map<int, DT_XY>dt_comp;
+    bool swipe_on;
 
     TRACK_OBJ* obj;
     TRACK_OBJ* roi;
-    
+
     string _in;
     string _out;
 
@@ -63,6 +64,8 @@ public:
     Dove(int mode, bool has_mask, int* coord, string infile, string outfile, string id = "TEST");
     ~Dove();
     int Process();
+    int ProcessTK();
+    int ProcessLK();
 
     int ImageProcess(Mat& src, Mat& dst);
     void SetRef(Mat& _src) {_src.copyTo(ref); };
@@ -78,8 +81,8 @@ public:
     int CalculateMove_Tracker(Mat& cur);
 
     int MakeMask();
-    int ApplyImage(Mat& src, bool scaled = false);
-    int ApplyImageRef();
+    void ApplyImage(Mat& src, bool scaled = false);
+    void ApplyImageRef();
 
     int stab_2dof(char* in, char* out, int coord[4]);
     int stab_fastwin(char* in, char* out, int coord[4]);

@@ -58,6 +58,14 @@ typedef enum _calmode {
 
 }CALMODE;
 
+typedef enum _track_return {
+    KEEP_TRACKING       = 1,
+    SWIPE_START         = 2,
+    SWIPE_END           = 3,
+    MISSED_TRACKING     = 4,
+    PAUSE_PERIOD        = 5,
+}TRACK_RESULT;
+;
 typedef enum _detectortype {
     DARKNET_YOLOV4  = 1,
     DARKNET_RTGPU   = 2,
@@ -146,8 +154,10 @@ typedef struct _param {
     int mode;
     int blur_size;
     float blur_sigma;
+    int replay_style;
 
     bool run_kalman;
+    //detection
     bool run_detection;
     int detector_type;
     string names_file;
@@ -156,6 +166,7 @@ typedef struct _param {
     vector<int>id_filter;
     float detect_threshold;
 
+    //tracking
     bool run_tracking;
     int track_scale;
     int limit_lx;
@@ -168,7 +179,9 @@ typedef struct _param {
     float iou_threshold;
     float center_threshold;
     bool keep_tracking;    
+    float swipe_threshold;
 
+    //genearal
     int swipe_start;
     int swipe_end;    
 
@@ -291,7 +304,7 @@ typedef struct _kalman {
     double cstd = 0.4;//can be changed
 
 	Trajectory X;//posteriori state estimate
-	Trajectory	X_;//priori estimate
+	Trajectory X_;//priori estimate
 	Trajectory P;// posteriori estimate error covariance
 	Trajectory P_;// priori estimate error covariance
 	Trajectory K;//gain

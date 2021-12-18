@@ -39,6 +39,16 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
     subtract(bg, cur, diff);
     float diff_val = sum(diff)[0]/(scale_w * scale_h);
 
+    Mat same;
+    subtract(prev, cur, same);
+    float same_check = sum(same)[0];
+    if (same_check < 10) {
+        dl.Logger("Current image is same as previous.. ");
+        issame = true;
+    }
+
+    diff.copyTo(prev);
+
     if( index == 1 ) 
         first_summ = diff_val;
 
@@ -183,7 +193,7 @@ bool Tracking::CheckWithin(Rect& r, int index, vector<Rect>& rects) {
 
 void Tracking::ImageProcess(Mat& src, Mat& dst) {
 
-    if(p->track_scale == 1 ) {
+    if(p->track_scale != 1 ) {
         scale_w = int(src.cols/p->track_scale);
         scale_h = int(src.rows/p->track_scale);
         resize(src, src, Size(scale_w, scale_h), 0, 0, 1);
@@ -192,8 +202,29 @@ void Tracking::ImageProcess(Mat& src, Mat& dst) {
     GaussianBlur(src, dst, {3, 3}, 0.7, 0.7);
 }
 
-void Tracking::DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi) {
-    rectangle(src, Point(obj->sx, obj->sy), Point(obj->ex, obj->ey), (255), 2);
-    putText(src, "FOCUS", Point(obj->sx, obj->sy - 10), FONT_HERSHEY_SIMPLEX, 0.4, (255), 1);
-    rectangle(src, Point(roi->sx, roi->sy), Point(roi->ex, roi->ey), (255), 2);    
+void Tracking::DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin) {
+    if(borigin == false) {
+        rectangle(src, Point(obj->sx, obj->sy), Point(obj->ex, obj->ey), (255), 2);
+        putText(src, "FOCUS", Point(obj->sx, obj->sy - 10), FONT_HERSHEY_SIMPLEX, 0.4, (255), 1);
+        rectangle(src, Point(roi->sx, roi->sy), Point(roi->ex, roi->ey), (255), 2);    
+    } else if(borigin == true){
+        rectangle(src, Point(obj->sx * p->track_scale, obj->sy * p->track_scale), Point(obj->ex * p->track_scale, obj->ey * p->track_scale), (255), 2);
+        putText(src, "FOCUS", Point(obj->sx * p->track_scale, (obj->sy - 20) * p->track_scale), FONT_HERSHEY_SIMPLEX, 1, (255), 1);
+        rectangle(src, Point(roi->sx* p->track_scale, roi->sy * p->track_scale), Point(roi->ex * p->track_scale, roi->ey * p->track_scale), (255), 2);    
+    }
+    string contents;
+    switch(p->replay_style) {
+        case KEEP_TRACKING:
+            contents = "Keep tracking";
+        case SWIPE_START :
+            contents = "Swipe Start";
+        case SWIPE_END :
+            contents = "Swipe End";
+        case MISSED_TRACKING :
+            contents = "Missed object";        
+        case PAUSE_PERIOD :
+            contents = "Pause period ";                
+    }
+
+    putText(src, contents, Point( 20, 20), FONT_HERSHEY_SIMPLEX, 1, (255), 1);
 }
