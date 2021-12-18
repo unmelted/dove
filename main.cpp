@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
     }
 
     bool has_mask = false;
-    int mode = OPTICALFLOW_LK_2DOF;
+    int mode = BLOB_DETECT_TRACKING; 
     //stab_live(infile);
     Dove stblz(mode, has_mask, coord, infile, outfile);
     stblz.Process();
