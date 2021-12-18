@@ -24,22 +24,26 @@ class Tracking {
     public :
     PARAM* p;
     Dlog dl;
-    
+    int first_summ;
+    bool isfound;
+    bool issame;
+
+
     Tracking();
     ~Tracking();
     void SetParam(PARAM* _p) { p = _p; };
     void SetLogger(Dlog& log) { dl = log; };    
     float DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj = NULL, TRACK_OBJ* roi = NULL);
     void SetBg(Mat& src);
+    void DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin = false);
 
     private :
     Mat bg;
+    Mat prev;
     Ptr<MSER>ms;
-    bool isfound;
 
     int scale_w;
     int scale_h;
-    int first_summ;
     int prev_summ;
     int prev_diff;
 
@@ -48,5 +52,4 @@ class Tracking {
     bool CheckWithin(Rect& r);
     bool CheckWithin(Rect& r, int index, vector<Rect>& rects);
     void ImageProcess(Mat& src, Mat& dst);
-    void DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi);
 };

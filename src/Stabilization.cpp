@@ -146,7 +146,82 @@ Dove::~Dove() {
 }
 
 int Dove::Process() {
-    dl.Logger("process start..");
+    if(p->mode == OPTICALFLOW_LK_2DOF)
+        ProcessLK();
+    else if (p->mode == BLOB_DETECT_TRACKING)
+        ProcessTK();
+
+    return ERR_NONE;
+}   
+
+int Dove::ProcessTK() {
+    VideoCapture in(_in);
+    VideoWriter out;    
+    out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(p->dst_width, p->dst_height));
+
+    Mat src1oc; Mat src1o;
+    int i = 0;
+    int result = 0;
+    int found = 0;
+	
+    TIMER* all;
+    all = new TIMER();    
+    StartTimer(all);    
+
+    while(true) {
+        in >> src1oc;
+        if(src1oc.data == NULL)
+            break;
+        
+        ImageProcess(src1oc, src1o);
+
+        if ( i == 0)
+        {
+            SetRef(src1o);
+            SetRefC(src1oc);            
+            tck.SetBg(src1oc);
+            i++;
+            continue;
+        }
+            
+        result = CalculateMove(src1o, i);
+        if(result != MISSED_TRACKING) {
+            p->replay_style = result;
+            tck.DrawObjectTracking(src1oc, obj, roi, result);
+        }
+
+        imshow("FIRST PROCESS", src1oc);
+        SetRef(src1o);
+        SetRefC(src1oc);
+        i++;
+        // if(i == 50)
+        //      break;
+    }
+    Logger("Image Analysis  %f ", LapTimer(all));		
+    //post process
+    dl.Logger("PostPrcess start ... ");
+    while(true) {
+        in >> src1oc;
+        if(src1oc.data == NULL)
+            break;
+
+        //ApplyImage();        
+        if(refcw.cols > p->dst_width)
+            resize(refcw, refcw, Size(p->dst_width, p->dst_height));
+
+        sprintf(filename, "saved/%d_.png", i);
+        imwrite(filename, refcw);
+
+        out << refcw;        
+        dl.Logger(".. %f", LapTimer(all));
+    }
+
+    return ERR_NONE;
+
+}
+
+int Dove::ProcessLK() {
+    dl.Logger(" LK process start..");
 
     VideoCapture in(_in);
     VideoWriter out;    
@@ -166,9 +241,10 @@ int Dove::Process() {
 
         if ( i == 0)
         {
-            SetRef(src1o);
-            SetRefC(src1oc);            
-            tck.SetBg(src1oc);
+            if(p->mode == OPTICALFLOW_LK_2DOF || p->mode == OPTICALFLOW_LK_6DOF) {            
+                SetRef(src1o);
+                SetRefC(src1oc);            
+            }
             i++;
             continue;
         }
@@ -230,7 +306,20 @@ int Dove::CalculateMove(Mat& cur, int frame_id) {
 
     } else if (p->mode == BLOB_DETECT_TRACKING) {
         result = tck.DetectAndTrack(cur, frame_id, obj, roi);
-
+        if (tck.isfound == true && obj != NULL) {
+            if( result >= p->swipe_threshold * tck.first_summ && swipe_on == false) {
+                swipe_on = true;
+                result = SWIPE_START;            
+            } else if (tck.issame == true && swipe_on == true) {
+                result = SWIPE_END;
+                swipe_on = false;
+            } else if (tck.issame == true && swipe_on == false)
+                result = PAUSE_PERIOD;
+            else             
+                result = KEEP_TRACKING;
+        }    
+        else if (tck.isfound == false && obj == NULL)
+            result = MISSED_TRACKING;
     } else if( p->mode == DARKNET_DETECT_MOVE) {
         Detect(cur, frame_id);
         result = CalculateMove(frame_id);
@@ -410,10 +499,6 @@ int Dove::CalculateMove_LK(Mat& cur, int frame_id) {
     return ERR_NONE;
 }
 
-int Dove::CompensateMovement(int frame_id) {
-
-}
-
 int Dove::CalculateMove_Integral(Mat& cur) {
     return ERR_NONE;
 }
@@ -422,10 +507,10 @@ int Dove::CalculateMove_Tracker(Mat& cur) {
     return ERR_NONE;
 }
 
-int Dove::ApplyImage(Mat& src, bool scaled) {
+void Dove::ApplyImage(Mat& src, bool scaled) {
     if( smth.at<double>(0,2) == 0.0 && smth.at<double>(1,2) == 0.0) {
         dl.Logger("no warp");
-        return -1;
+        return;
     }
 
     if(scaled == true) {
@@ -441,11 +526,10 @@ int Dove::ApplyImage(Mat& src, bool scaled) {
     //      imwrite(filename, src);
     //      i++;
     // }
-
-    return ERR_NONE;
 }
-int Dove::ApplyImageRef() {
-    warpAffine(refc, refcw, smth, refc.size());    
+
+void Dove::ApplyImageRef() {
+    warpAffine(refc, refcw, smth, refc.size());
 }
 
 int Dove::MakeMask() {
