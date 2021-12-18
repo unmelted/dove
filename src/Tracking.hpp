@@ -48,5 +48,5 @@ class Tracking {
     bool CheckWithin(Rect& r);
     bool CheckWithin(Rect& r, int index, vector<Rect>& rects);
     void ImageProcess(Mat& src, Mat& dst);
-
+    void DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi);
 };
