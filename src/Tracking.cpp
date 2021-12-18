@@ -191,3 +191,9 @@ void Tracking::ImageProcess(Mat& src, Mat& dst) {
     cvtColor(src, src, COLOR_BGR2GRAY);
     GaussianBlur(src, dst, {3, 3}, 0.7, 0.7);
 }
+
+void Tracking::DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+    rectangle(src, Point(obj->sx, obj->sy), Point(obj->ex, obj->ey), (255), 2);
+    putText(src, "FOCUS", Point(obj->sx, obj->sy - 10), FONT_HERSHEY_SIMPLEX, 0.4, (255), 1);
+    rectangle(src, Point(roi->sx, roi->sy), Point(roi->ex, roi->ey), (255), 2);    
+}

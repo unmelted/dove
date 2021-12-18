@@ -36,6 +36,9 @@ public:
     ofstream obj_c_trajectory;    
     map<int, DT_XY>dt_comp;
 
+    TRACK_OBJ* obj;
+    TRACK_OBJ* roi;
+    
     string _in;
     string _out;
 

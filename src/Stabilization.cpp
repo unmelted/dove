@@ -61,11 +61,37 @@ Dove::Dove(string infile, string outfile) {
 }
 
 void Dove::Initialize(bool has_mask, int* coord) {
-    p->scale = 2;
-    p->run_kalman = true;
-    p->run_detection = false;
-    p->swipe_start = 80;
-    p->swipe_end = 198;
+    
+    if (p->mode == OPTICALFLOW_LK_2DOF) {
+        p->scale = 2;
+        p->run_kalman = true;
+        p->run_detection = false;
+        p->swipe_start = 80;
+        p->swipe_end = 198;
+
+    } else if (p->mode == DARKNET_DETECT_MOVE) {
+        p->scale = 2;
+        p->run_kalman = true;
+        p->run_detection = true;
+    } else if (p->mode == BLOB_DETECT_TRACKING) {
+        tck = Tracking();
+        p->scale = 2;
+        p->run_kalman = true;
+        p->run_tracking = true;
+        p->detector_type = BLOB_MSER;
+        p->track_scale = 5;
+        p->limit_lx = 5;
+        p->limit_ly = 5;
+        p->limit_bx = 630;
+        p->limit_by = 470;
+        p->roi_w = 400;
+        p->roi_h = 300;
+        p-> area_threshold = 200;
+        p->iou_threshold = 0.3;
+        p->center_threshold  = 30;
+        obj = NULL;
+        roi = NULL;        
+    }
 
     if(has_mask == true) {
         p->has_mask = true;
@@ -92,19 +118,6 @@ void Dove::Initialize(bool has_mask, int* coord) {
             obj_trajectory.open("analysis/detected_obj.txt");
             obj_c_trajectory.open("analysis/detected_obj_center.txt");        
             dt.LoadModel(p);            
-        }
-        else if (p->detector_type == BLOB_MSER) {
-            tck = Tracking();
-            p->track_scale = 5;
-            p->limit_lx = 5;
-            p->limit_ly = 5;
-            p->limit_bx = 630;
-            p->limit_by = 470;
-            p->roi_w = 400;
-            p->roi_h = 300;
-            p-> area_threshold = 200;
-            p->iou_threshold = 0.3;
-            p->center_threshold  = 30;
         }
     }
 
@@ -159,23 +172,8 @@ int Dove::Process() {
             i++;
             continue;
         }
-
-        if(p->run_detection == true)
-            Detect(src1oc, i);
-        if(p->run_tracking == true)
-            found = tck.DetectAndTrack(src1oc, i);
             
-        // if(i >= p->swipe_start && i <= p->swipe_end) {
-        //      result = CalculateMove(i);        
-        //      dl.Logger("swipe region");
-        // } else {
         result = CalculateMove(src1o, i);
-        //}
-
-        if(p->run_detection == true && objects[i].obj_cnt > 0 ) {
-             dt.DrawBoxes(refcw, objects[i - 1].bbx);
-        }
-
         ApplyImageRef();        
         if(refcw.cols > p->dst_width)
             resize(refcw, refcw, Size(p->dst_width, p->dst_height));
@@ -226,11 +224,20 @@ int Dove::CalculateMove(Mat& cur, int frame_id) {
     int result = -1;
     if(p->mode == OPTICALFLOW_LK_2DOF || p->mode == OPTICALFLOW_LK_6DOF) {
         result = CalculateMove_LK(cur, frame_id);
+        
     } else if (p->mode == INTEGRAL_IMAGE) {
         result = CalculateMove_Integral(cur);
-    } else {
-        result = CalculateMove_Tracker(cur);
-    }
+
+    } else if (p->mode == BLOB_DETECT_TRACKING) {
+        result = tck.DetectAndTrack(cur, frame_id, obj, roi);
+
+    } else if( p->mode == DARKNET_DETECT_MOVE) {
+        Detect(cur, frame_id);
+        result = CalculateMove(frame_id);
+        if(objects[i].obj_cnt > 0 ) {
+             dt.DrawBoxes(refcw, objects[i - 1].bbx);
+        }
+    } 
     return result;
 }
 
@@ -320,7 +327,6 @@ int Dove::CalculateMove_LK(Mat& cur, int frame_id) {
     }
     else {
         affine = estimateAffine2D(goodFeatures1, goodFeatures2);
-        //affine = estimateRigidTransform(goodFeatures1, goodFeatures2, false);                
     }
 
     if(affine.empty() == true) {

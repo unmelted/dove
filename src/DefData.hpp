@@ -46,13 +46,15 @@ typedef enum _err {
 
 typedef enum _calmode {
 
-    OPTICALFLOW_LK_2DOF = 1,
-    OPTICALFLOW_LK_6DOF = 2,
-    INTEGRAL_IMAGE      = 3,
-    TRACKER_2DOF        = 4,
-    TWOPASS             = 5,
-    SIMPLE_KALMAN_LIVE  = 6,
-    PATH_SMOOTHE        = 7,
+    OPTICALFLOW_LK_2DOF     = 1,
+    OPTICALFLOW_LK_6DOF     = 2,
+    INTEGRAL_IMAGE          = 3,
+    TRACKER_2DOF            = 4,
+    TWOPASS                 = 5,
+    SIMPLE_KALMAN_LIVE      = 6,
+    PATH_SMOOTHE            = 7,
+    DARKNET_DETECT_MOVE     = 8,
+    BLOB_DETECT_TRACKING    = 9,
 
 }CALMODE;
 
