@@ -18,22 +18,27 @@
 using namespace std;
 using namespace cv;
 
+struct {
+    bool operator()(Rect a, Rect b) {
+        return a.width * a.height <= b.width * b.height;
+    };
+}Compare2;
 
 class Tracking {
 
     public :
     PARAM* p;
     Dlog dl;
-    int first_summ;
+    float first_summ;
     bool isfound;
     bool issame;
 
 
     Tracking();
     ~Tracking();
-    void SetParam(PARAM* _p) { p = _p; };
-    void SetLogger(Dlog& log) { dl = log; };    
-    float DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj = NULL, TRACK_OBJ* roi = NULL);
+    void SetParam(PARAM* _p) { memcpy(p, _p, sizeof(PARAM));};
+    void SetLogFilename(string name) {dl.SetLogFilename(name); };    
+    float DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
     void SetBg(Mat& src);
     void DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin = false);
 

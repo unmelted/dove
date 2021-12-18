@@ -30,8 +30,7 @@ Dove::Dove(int mode, bool has_mask, int* coord, string infile, string outfile, s
     dl.Logger("instance created.. ");
     dl.SetLogFilename("TEST");
     dt.SetLogger(dl);    
-    tck.SetParam(p);
-    tck.SetLogger(dl);    
+    tck.SetLogFilename("TEST");    
     _in = infile;
     _out = outfile;
 
@@ -41,6 +40,7 @@ Dove::Dove(int mode, bool has_mask, int* coord, string infile, string outfile, s
         Initialize(true, coord);
     else 
         Initialize(false, 0);    
+    tck.SetParam(p);        
 }
 
 Dove::Dove(string infile, string outfile) {
@@ -52,12 +52,11 @@ Dove::Dove(string infile, string outfile) {
 
     dl.SetLogFilename("TEST");
     dt.SetLogger(dl);
-    tck.SetParam(p);
-    tck.SetLogger(dl);    
+    tck.SetLogFilename("TEST");
     _in = infile;
     _out = outfile;
     Initialize(false, 0);    
-
+    tck.SetParam(p);        
 }
 
 void Dove::Initialize(bool has_mask, int* coord) {
@@ -75,22 +74,23 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->run_detection = true;
     } else if (p->mode == BLOB_DETECT_TRACKING) {
         tck = Tracking();
+        obj = new TRACK_OBJ();
+        roi = new TRACK_OBJ();
         p->scale = 2;
         p->run_kalman = true;
         p->run_tracking = true;
+        p->run_detection = false;        
         p->detector_type = BLOB_MSER;
-        p->track_scale = 5;
+        p->track_scale = 3;
         p->limit_lx = 5;
         p->limit_ly = 5;
         p->limit_bx = 630;
-        p->limit_by = 470;
-        p->roi_w = 400;
-        p->roi_h = 300;
+        p->limit_by = 350;
+        p->roi_w = 500;
+        p->roi_h = 280;
         p-> area_threshold = 200;
         p->iou_threshold = 0.3;
-        p->center_threshold  = 30;
-        obj = NULL;
-        roi = NULL;        
+        p->center_threshold  = 50;
     }
 
     if(has_mask == true) {
@@ -158,7 +158,7 @@ int Dove::ProcessTK() {
     VideoCapture in(_in);
     VideoWriter out;    
     out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(p->dst_width, p->dst_height));
-
+    dl.Logger("Process TK started ");
     Mat src1oc; Mat src1o;
     int i = 0;
     int result = 0;
@@ -172,32 +172,37 @@ int Dove::ProcessTK() {
         in >> src1oc;
         if(src1oc.data == NULL)
             break;
-        
         ImageProcess(src1oc, src1o);
 
         if ( i == 0)
         {
             SetRef(src1o);
             SetRefC(src1oc);            
-            tck.SetBg(src1oc);
+            tck.SetBg(src1o);
             i++;
             continue;
         }
             
         result = CalculateMove(src1o, i);
         if(result != MISSED_TRACKING) {
-            p->replay_style = result;
-            tck.DrawObjectTracking(src1oc, obj, roi, result);
+            p->replay_style = result;        
+            tck.DrawObjectTracking(src1o, obj, roi, result);
         }
+        // sprintf(filename, "saved/%d_.png", i);
+        // imwrite(filename, src1o);
 
-        imshow("FIRST PROCESS", src1oc);
+        imshow("FIRST PROCESS", src1o);
+        waitKey(0);
+
         SetRef(src1o);
         SetRefC(src1oc);
         i++;
         // if(i == 50)
         //      break;
+        dl.Logger("[%d] Image Analysis  %f ", i, LapTimer(all));        
     }
-    Logger("Image Analysis  %f ", LapTimer(all));		
+
+    return ERR_NONE;	
     //post process
     dl.Logger("PostPrcess start ... ");
     while(true) {
@@ -305,21 +310,32 @@ int Dove::CalculateMove(Mat& cur, int frame_id) {
         result = CalculateMove_Integral(cur);
 
     } else if (p->mode == BLOB_DETECT_TRACKING) {
-        result = tck.DetectAndTrack(cur, frame_id, obj, roi);
-        if (tck.isfound == true && obj != NULL) {
-            if( result >= p->swipe_threshold * tck.first_summ && swipe_on == false) {
+        float fret = 0.0;
+        fret = tck.DetectAndTrack(cur, frame_id, obj, roi);
+        dl.Logger("[%d] result %f isFound %d issmae %d ", frame_id, fret, tck.isfound, tck.issame);
+
+        if (tck.isfound == true) {
+            if( fret >= p->swipe_threshold * tck.first_summ && swipe_on == false) {
                 swipe_on = true;
                 result = SWIPE_START;            
+                dl.Logger("[%d] SWIPE START ", frame_id);
             } else if (tck.issame == true && swipe_on == true) {
                 result = SWIPE_END;
                 swipe_on = false;
-            } else if (tck.issame == true && swipe_on == false)
+                dl.Logger("[%d] SWIPE END ", frame_id);
+            } else if (tck.issame == true && swipe_on == false) {
                 result = PAUSE_PERIOD;
-            else             
+                dl.Logger("[%d] PAUSE PERIOD ", frame_id);      
+            }
+            else {
                 result = KEEP_TRACKING;
+                dl.Logger("[%d] KEEP TRACKING", frame_id); 
+            }
         }    
-        else if (tck.isfound == false && obj == NULL)
+        else if (tck.isfound == false){ 
             result = MISSED_TRACKING;
+            dl.Logger("[%d] MISSED OBJ", frame_id);             
+        }
     } else if( p->mode == DARKNET_DETECT_MOVE) {
         Detect(cur, frame_id);
         result = CalculateMove(frame_id);
