@@ -15,8 +15,8 @@ filelist = [
 # "/Users/4dreplay/work/dove/trajectory.txt", #trajectory
 # "/Users/4dreplay/work/dove/smoothed_trajectory.txt" , #smoothe
 # "/Users/4dreplay/work/dove/new_prev_to_cur_transformation.txt" #new_tran
-prj_path+"/analysis/detected_obj.txt",
-prj_path+"/analysis/detected_obj_center.txt"
+#prj_path+"/analysis/detected_obj.txt",
+#prj_path+"/analysis/detected_obj_center.txt"
 ]
 
 frame_id_o = []

@@ -61,12 +61,13 @@ Dove::Dove(string infile, string outfile) {
 
 void Dove::Initialize(bool has_mask, int* coord) {
     
+    p->swipe_start = 80;
+    p->swipe_end = 198;
+
     if (p->mode == OPTICALFLOW_LK_2DOF) {
         p->scale = 2;
         p->run_kalman = true;
         p->run_detection = false;
-        p->swipe_start = 80;
-        p->swipe_end = 198;
 
     } else if (p->mode == DARKNET_DETECT_MOVE) {
         p->scale = 2;
@@ -87,10 +88,11 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->limit_bx = 630;
         p->limit_by = 350;
         p->roi_w = 400;
-        p->roi_h = 290;
+        p->roi_h = 300;
+        p->swipe_threshold = 15;
         p-> area_threshold = 200;
         p->iou_threshold = 0.3;
-        p->center_threshold  = 50;
+        p->center_threshold  = 65;
     }
 
     if(has_mask == true) {
@@ -123,6 +125,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
 
     if(p->run_kalman == true) {
         k = new KALMAN();
+        p->smoothing_radius = 20;        
         k->Q.set(k->pstd, k->pstd, k->pstd);
         k->R.set(k->cstd, k->cstd, k->cstd);      
         k->out_transform.open("analysis/prev_to_cur_transformation.txt");
@@ -157,13 +160,15 @@ int Dove::Process() {
 int Dove::ProcessTK() {
     VideoCapture in(_in);
     VideoWriter out;    
-    out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(p->dst_width, p->dst_height));
+    out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1930, 540));
     dl.Logger("Process TK started ");
     Mat src1oc; Mat src1o;
     int i = 0;
     int result = 0;
     int found = 0;
-	
+    vector <TransformParam> prev_to_cur_transform;
+    TRACK_OBJ* pre_obj = new TRACK_OBJ();;
+
     TIMER* all;
     all = new TIMER();    
     StartTimer(all);    
@@ -182,44 +187,148 @@ int Dove::ProcessTK() {
             i++;
             continue;
         }
-            
         result = CalculateMove(src1o, i);
-        p->replay_style = result;        
-        tck.DrawObjectTracking(src1o, obj, roi, false);
+        replay_style = result;        
+        //tck.DrawObjectTracking(src1o, obj, roi, false, replay_style);
 
-        // sprintf(filename, "saved/%d_.png", i);
-        // imwrite(filename, src1o);
+        if (i >= p->swipe_start && i <= p->swipe_end) {
+            double dx = 0;
+            double dy = 0;
+            double da = 0;
+            if(!tck.issame) {
+                dx = (pre_obj->cx - obj->cx) * p->track_scale;
+                dy = (pre_obj->cy - obj->cy) * p->track_scale;
+            }
+            k->out_transform << (i - p->swipe_start - 1) << " "<< dx << " "<< dy << " " << da << endl;            
+            prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));
+        }
 
-        // imshow("FIRST PROCESS", src1o);
-        // waitKey(0);
+        if (tck.isfound) {
+            obj->copy(pre_obj);
+        }
 
         SetRef(src1o);
         SetRefC(src1oc);
         i++;
         // if(i == 50)
         //      break;
+
         dl.Logger("[%d] Image Analysis  %f ", i, LapTimer(all));        
     }
 
-    return ERR_NONE;	
-    //post process
+    //return ERR_NONE;	
     dl.Logger("PostPrcess start ... ");
+    double a = 0;
+    double x = 0;
+    double y = 0;
+    vector <Trajectory> trajectory; // trajectory at all frames
+
+    for(size_t i = 0; i < prev_to_cur_transform.size(); i++) {
+        x += prev_to_cur_transform[i].dx;
+        y += prev_to_cur_transform[i].dy;
+        a += prev_to_cur_transform[i].da;
+
+        trajectory.push_back(Trajectory(x,y,a));
+        k->out_trajectory << (i+1) << " " << x << " " << y << " " << a << endl;
+    }
+
+    // Step 3 - Smooth out the trajectory using an averaging window
+    vector <Trajectory> smoothed_trajectory; // trajectory at all frames
+    for(size_t i = 0; i < trajectory.size(); i++) {
+        double sum_x = 0;
+        double sum_y = 0;
+        double sum_a = 0;
+        int count = 0;
+
+        for(int j = -p->smoothing_radius; j <= p->smoothing_radius; j++) {
+            if(i+j >= 0 && i+j < trajectory.size()) {
+                sum_x += trajectory[i+j].x;
+                sum_y += trajectory[i+j].y;
+                sum_a += trajectory[i+j].a;
+
+                count++;
+            }
+        }
+
+        double avg_a = sum_a / count;
+        double avg_x = sum_x / count;
+        double avg_y = sum_y / count;
+
+        smoothed_trajectory.push_back(Trajectory(avg_x, avg_y, avg_a));
+        k->out_smoothed << (i+1) << " " << avg_x << " " << avg_y << " " << avg_a << endl;
+    }
+
+    // Step 4 - Generate new set of previous to current transform, such that the trajectory ends up being the same as the smoothed trajectory
+    vector <TransformParam> new_prev_to_cur_transform;
+    // Accumulated frame to frame transform
+    a = 0;
+    x = 0;
+    y = 0;
+
+    for(size_t i = 0; i < prev_to_cur_transform.size(); i++) {
+        x += prev_to_cur_transform[i].dx;
+        y += prev_to_cur_transform[i].dy;
+        a += prev_to_cur_transform[i].da;
+
+        // target - current
+        double diff_x = smoothed_trajectory[i].x - x;
+        double diff_y = smoothed_trajectory[i].y - y;
+        double diff_a = smoothed_trajectory[i].a - a;
+
+        double dx = prev_to_cur_transform[i].dx + diff_x;
+        double dy = prev_to_cur_transform[i].dy + diff_y;
+        double da = prev_to_cur_transform[i].da + diff_a;
+
+        new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
+        k->out_new << (i+1) << " " << dx << " " << dy << " " << da << endl;
+    }
+
+    int k = 0;
+    i = 0;
+    VideoCapture in2(_in);    
     while(true) {
-        in >> src1oc;
+        in2 >> src1oc;
+        printf(" ?? ");
         if(src1oc.data == NULL)
             break;
 
-        //ApplyImage();        
-        if(refcw.cols > p->dst_width)
-            resize(refcw, refcw, Size(p->dst_width, p->dst_height));
+        if(src1oc.cols > p->dst_width)
+            resize(src1oc, src1oc, Size(p->dst_width, p->dst_height));
 
-        sprintf(filename, "saved/%d_.png", i);
-        imwrite(filename, refcw);
+        if ( i == 0)
+        {
+            SetRefC(src1oc);
+            i++;
+            continue;
+        }
+        //sprintf(filename, "saved/%d_apply.png", i);
+        Mat canvas = Mat::zeros(540, 1930, CV_8UC3);
+        if (i >= p->swipe_start && i <= p->swipe_end) {
+            smth.at<double>(0,0) = 1; 
+            smth.at<double>(0,1) = 0; 
+            smth.at<double>(1,0) = 0; 
+            smth.at<double>(1,1) = 1; 
+            smth.at<double>(0,2) = -new_prev_to_cur_transform[k].dx;
+            smth.at<double>(1,2) = -new_prev_to_cur_transform[k].dy;        
+            k++;
+            dl.Logger("will Apply %f %f ", smth.at<double>(0,2), smth.at<double>(1,2));
+            ApplyImageRef();
+            // imwrite(filename, refcw);
+        }
+        else {
+            refc.copyTo(refcw);
+        }
+        resize(refc, refc, Size(960, 540));        
+        resize(refcw, refcw, Size(960, 540));
+        refc.copyTo(canvas(Range::all(), Range(0, 960)));
+        refcw.copyTo(canvas(Range::all(), Range(970, 1930)));
 
-        out << refcw;        
-        dl.Logger(".. %f", LapTimer(all));
+        out << canvas;
+        SetRefC(src1oc);
+        i++;
     }
 
+    dl.Logger(".. %f", LapTimer(all));
     return ERR_NONE;
 
 }
@@ -316,24 +425,25 @@ int Dove::CalculateMove(Mat& cur, int frame_id) {
         if (tck.isfound == true) {
             if( fret >= p->swipe_threshold * tck.first_summ && swipe_on == false) {
                 swipe_on = true;
-                result = SWIPE_START;            
+                result = SWIPE_ON;            
                 dl.Logger("[%d] SWIPE START ", frame_id);
-            } else if (tck.issame == true && swipe_on == true) {
-                result = SWIPE_END;
-                swipe_on = false;
-                dl.Logger("[%d] SWIPE END ", frame_id);
-            } else if (tck.issame == true && swipe_on == false) {
-                result = PAUSE_PERIOD;
-                dl.Logger("[%d] PAUSE PERIOD ", frame_id);      
+            }
+            else if (swipe_on == true) {
+                result = KEEP_TRACKING_SWIPE;
+                dl.Logger("[%d] KEEP TRACKING SWIPE", frame_id); 
             }
             else {
                 result = KEEP_TRACKING;
                 dl.Logger("[%d] KEEP TRACKING", frame_id); 
             }
+            if (tck.issame == true) {
+                dl.Logger("[%d] SAME ", frame_id);      
+            }
+
         }    
         else if (tck.isfound == false){ 
-            result = MISSED_TRACKING;
-            dl.Logger("[%d] MISSED OBJ", frame_id);             
+            result = TRACK_NONE;
+            dl.Logger("[%d] NONE", frame_id);             
         }
     } else if( p->mode == DARKNET_DETECT_MOVE) {
         Detect(cur, frame_id);

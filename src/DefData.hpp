@@ -59,11 +59,12 @@ typedef enum _calmode {
 }CALMODE;
 
 typedef enum _track_return {
+    TRACK_NONE          = 0,
     KEEP_TRACKING       = 1,
-    SWIPE_START         = 2,
-    SWIPE_END           = 3,
-    MISSED_TRACKING     = 4,
-    PAUSE_PERIOD        = 5,
+    SWIPE_ON            = 2,
+    KEEP_TRACKING_SWIPE = 3,            
+    SWIPE_END           = 4,
+    MISSED_TRACKING     = 5,
 }TRACK_RESULT;
 ;
 typedef enum _detectortype {
@@ -104,6 +105,16 @@ typedef struct _trackobj {
     }
     int GetArea() {
         return w * h;
+    }
+    void copy(_trackobj* b) {
+        b->sx = sx;
+        b->sy = sy;
+        b->w = w;
+        b->h = h;
+        b->cx = cx;
+        b->cy = cy;
+        b->ex = ex;
+        b->ey = ey;
     }
 
 } TRACK_OBJ;
@@ -154,9 +165,9 @@ typedef struct _param {
     int mode;
     int blur_size;
     float blur_sigma;
-    int replay_style;
 
     bool run_kalman;
+    int smoothing_radius;
     //detection
     bool run_detection;
     int detector_type;
