@@ -61,8 +61,25 @@ Dove::Dove(string infile, string outfile) {
 
 void Dove::Initialize(bool has_mask, int* coord) {
     
-    p->swipe_start = 80;
-    p->swipe_end = 198;
+    if(_in == "movie/4dmaker_600.mp4") {
+        printf(" ------------ 600 !\n");        
+        p->swipe_start = 80; //600 OK        
+        p->swipe_end = 198;
+    } else if (_in == "movie/4dmaker_603.mp4") {
+        printf(" ------------ 603 !\n");
+        p->swipe_start = 79;
+        p->swipe_end = 181; //603 -- should conquer - couple gracking
+    } else if (_in == "movie/4dmaker_626.mp4") {
+        printf(" ------------ 626 !\n");        
+        p->swipe_start = 79;
+        p->swipe_end = 183; //626 OK emerald onepiece single
+    } 
+    // p->swipe_start = 79;
+    // p->swipe_end = 165; //598 -- frame drop severe
+    // p->swipe_start = 78;
+    // p->swipe_end = 130; //639 white shirts single
+
+
 
     if (p->mode == OPTICALFLOW_LK_2DOF) {
         p->scale = 2;
@@ -190,6 +207,8 @@ int Dove::ProcessTK() {
         result = CalculateMove(src1o, i);
         replay_style = result;        
         //tck.DrawObjectTracking(src1o, obj, roi, false, replay_style);
+        // sprintf(filename, "saved/%d_real.png", i);
+        // imwrite(filename, src1o);
 
         if (i >= p->swipe_start && i <= p->swipe_end) {
             double dx = 0;
@@ -389,8 +408,12 @@ int Dove::ImageProcess(Mat& src, Mat& dst) {
         src.copyTo(temp);
 
     cvtColor(temp, temp, COLOR_BGR2GRAY);
-    GaussianBlur(temp, dst, {p->blur_size, p->blur_size}, p->blur_sigma, p->blur_sigma);
-
+    //if tk on? 
+    if(!p->run_tracking)
+        GaussianBlur(temp, dst, {p->blur_size, p->blur_size}, p->blur_sigma, p->blur_sigma);
+    else
+        temp.copyTo(dst);
+    
     if(p->has_mask)
         MakeMask();
 

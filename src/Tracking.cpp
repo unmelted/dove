@@ -18,7 +18,7 @@
 #include <functional>
 
 Tracking::Tracking() {
-    ms = MSER::create(5, 170, 16000, 0.6);
+    ms = MSER::create(5, 170, 16000, 0.5);
     p = new PARAM();    
     dl = Dlog();
     isfound = false;
