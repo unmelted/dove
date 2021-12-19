@@ -83,8 +83,8 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
 
 
     if(isfound == true) {
-        Mat mask = Mat(Size(scale_w, scale_h), CV_8UC1);
-        rectangle(mask, Point(obj->sx, obj->sy), Point(obj->ex, obj->ey), Scalar(255), -1);
+        Mat mask = Mat::zeros(scale_h, scale_w, CV_8UC1);
+        rectangle(mask, Point(roi->sx, roi->sy), Point(roi->ex, roi->ey), Scalar(255), -1);
         bitwise_and(mask, diff, dst);
     }
     else 
@@ -136,9 +136,9 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
         obj->update(res_rect[last].x, res_rect[last].y, res_rect[last].width, res_rect[last].height);
         obj->id = last;
         obj->update();
-        dl.Logger("Object found. obj s %d %d w %d %d c %f %f e %d %d ", obj->sx, obj->sy, obj->w, obj->h, obj->cx, obj->cy, obj->ex, obj->ey);
+        dl.Logger("[%d] Object found. obj s %d %d w %d %d c %f %f e %d %d ", index, obj->sx, obj->sy, obj->w, obj->h, obj->cx, obj->cy, obj->ex, obj->ey);
     }
-    else if (res_rect.size() > 0 && isfound == true && obj != NULL) {
+    else if (res_rect.size() > 0 && isfound == true) {
         bool newfound = false;
         for(int i = 0 ; i < res_rect.size(); i ++){
             float tcen_x = res_rect[i].x + res_rect[i].width/2;
@@ -154,19 +154,20 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
         if(newfound == true){
             isfound = true;
             p->keep_tracking = true;
-            dl.Logger("[OBJ] s %d %d w %d %d c %f %f e %d %d", obj->sx, obj->sy, obj->w, obj->h, obj->cx, obj->cy,
+            dl.Logger("[%d] [OBJ] s %d %d w %d %d c %f %f e %d %d", index, obj->sx, obj->sy, obj->w, obj->h, obj->cx, obj->cy,
                 obj->ex, obj->ey);
         } else {
             isfound = false;
             p->keep_tracking = false;
-            dl.Logger("missed !!");
+            dl.Logger("[%d] ------------------missed !!", index);            
+            dl.Logger("[%d] Mssing obj s %d %d w %d %d ", index, obj->sx, obj->sy, obj->w, obj->h);            
         }
     }
 
-    if (isfound == true) {        
-        MakeROI(obj, roi);
-    }
-    dl.Logger("isfound %d issmae %d diff_val %f ", isfound, issame, diff_val);
+    //if (isfound == true) {        
+    MakeROI(obj, roi);
+
+    dl.Logger("[%d] isfound %d issmae %d diff_val %f ", index, isfound, issame, diff_val);
     q.clear();
     t.clear();
     return diff_val;
@@ -263,7 +264,7 @@ void Tracking::ImageProcess(Mat& src, Mat& dst) {
         resize(temp, temp, Size(scale_w, scale_h));
         imwrite("check2.png", temp);        
     }
-    GaussianBlur(temp, dst, {3, 3}, 0.7, 0.7);
+    GaussianBlur(temp, dst, {3, 3}, 0.3, 0.3);
 }
 
 void Tracking::DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin, int replay_style) {

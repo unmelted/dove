@@ -73,12 +73,13 @@ void Dove::Initialize(bool has_mask, int* coord) {
         printf(" ------------ 626 !\n");        
         p->swipe_start = 79;
         p->swipe_end = 183; //626 OK emerald onepiece single
-    } 
-    // p->swipe_start = 79;
-    // p->swipe_end = 165; //598 -- frame drop severe
-    // p->swipe_start = 78;
-    // p->swipe_end = 130; //639 white shirts single
-
+    } else if (_in == "movie/4dmaker_639.mp4") {
+        p->swipe_start = 78;
+        p->swipe_end = 130; //639 white shirts single
+    } else if (_in == "movie/4dmaker_598.mp4") {
+        p->swipe_start = 79;
+        p->swipe_end = 165; //598 -- frame drop severe
+    }
 
 
     if (p->mode == OPTICALFLOW_LK_2DOF) {
@@ -209,8 +210,8 @@ int Dove::ProcessTK() {
         //tck.DrawObjectTracking(src1o, obj, roi, false, replay_style);
         // sprintf(filename, "saved/%d_real.png", i);
         // imwrite(filename, src1o);
-        if ( i == p->swipe_start + 1)
-            tck.SetBg(src1o);
+        // if ( i == p->swipe_start + 1)
+        //      tck.SetBg(src1o);
 
         if (i >= p->swipe_start && i <= p->swipe_end) {
             double dx = 0;
@@ -309,7 +310,6 @@ int Dove::ProcessTK() {
     VideoCapture in2(_in);    
     while(true) {
         in2 >> src1oc;
-        printf(" ?? ");
         if(src1oc.data == NULL)
             break;
 
