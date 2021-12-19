@@ -36,6 +36,7 @@ public:
     ofstream obj_c_trajectory;    
     map<int, DT_XY>dt_comp;
     bool swipe_on;
+    int replay_style;
 
     TRACK_OBJ* obj;
     TRACK_OBJ* roi;

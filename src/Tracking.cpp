@@ -18,7 +18,7 @@
 #include <functional>
 
 Tracking::Tracking() {
-    ms = MSER::create(5, 170, 16000, 0.8);
+    ms = MSER::create(5, 170, 16000, 0.5);
     p = new PARAM();    
     dl = Dlog();
     isfound = false;
@@ -56,32 +56,35 @@ bool Tracking::CheckWithin(Rect& r, int index, vector<Rect>& rects) {
 
 float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
     int result = 0;
-    Mat cur; Mat diff; Mat dst;
+    Mat cur; Mat dst;
     ImageProcess(src, cur);
     subtract(bg, cur, diff);
     float diff_val = sum(diff)[0]/(scale_w * scale_h);
-    imwrite("bg.png", bg);
-    imwrite("cur.png", cur);
-    imwrite("diff.png", diff);
 
     if(index > 1) {
         Mat same;        
         subtract(prev, cur, same);
-        float same_check = sum(same)[0];
+        // sprintf(filename, "saved/%d_samecheck.png", index);
+        // imwrite(filename, same);
+        float same_check = sum(same)[0]/(scale_w * scale_h);
         dl.Logger("same check %f ", same_check);
-        if (same_check < 10) {
+        if (same_check < 0.2) {
             dl.Logger("Current image is same as previous.. ");
             issame = true;
         }
+        else
+            issame = false;    
+    }
+    else if( index == 1 ) {
+        first_summ = diff_val;    
+        dl.Logger("First summ save %f ", first_summ);
     }
     cur.copyTo(prev);
 
-    if( index == 1 ) 
-        first_summ = diff_val;
 
     if(isfound == true) {
-        Mat mask = Mat(Size(scale_w, scale_h), CV_8UC1);
-        rectangle(mask, Point(obj->sx, obj->sy), Point(obj->ex, obj->ey), Scalar(255), -1);
+        Mat mask = Mat::zeros(scale_h, scale_w, CV_8UC1);
+        rectangle(mask, Point(roi->sx, roi->sy), Point(roi->ex, roi->ey), Scalar(255), -1);
         bitwise_and(mask, diff, dst);
     }
     else 
@@ -102,13 +105,12 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
     }
     dl.Logger("check within 1st step. t size %d", t.size());
     //sort(t.begin(), t.end(), Compare2);
-    // printf(" OK --- ? \n ");
     // for(int i = 0 ; i < t.size(); i++) 
     //     printf("rect t[i] %d %d %d %d\n", t[i].x, t[i].y, t[i].width, t[i].height);
 
-    // std::sort(t.begin(), t.end(), [](Rect a, Rect b) {
-    //          return a.width * a.height <= b.width * b.height;;
-    // });
+    std::sort(t.begin(), t.end(), [](Rect a, Rect b) {
+              return a.width * a.height < b.width * b.height;;
+    });
     for(int i = 0 ; i < t.size(); i++){
         if(CheckWithin(t[i], i, t) == false)
             q.push_back(t[i]);
@@ -121,7 +123,8 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
         }
     }
     dl.Logger("Filtered rect count %d", res_rect.size());    
-
+    //DrawObjectTracking(obj, roi, res_rect);
+    
     int last = res_rect.size() - 1;
     if(res_rect.size() == 0) {
         isfound = false;
@@ -133,9 +136,9 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
         obj->update(res_rect[last].x, res_rect[last].y, res_rect[last].width, res_rect[last].height);
         obj->id = last;
         obj->update();
-        dl.Logger("Object found. obj %d %d %d %d", obj->sx, obj->sy, obj->w, obj->h);
+        dl.Logger("[%d] Object found. obj s %d %d w %d %d c %f %f e %d %d ", index, obj->sx, obj->sy, obj->w, obj->h, obj->cx, obj->cy, obj->ex, obj->ey);
     }
-    else if (res_rect.size() > 0 && isfound == true && obj != NULL) {
+    else if (res_rect.size() > 0 && isfound == true) {
         bool newfound = false;
         for(int i = 0 ; i < res_rect.size(); i ++){
             float tcen_x = res_rect[i].x + res_rect[i].width/2;
@@ -143,6 +146,7 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
             if (abs(tcen_x - obj->cx) < p->center_threshold && abs(tcen_y - obj->cy) < p->center_threshold) {
                 obj->id = i;
                 obj->update(res_rect[i].x, res_rect[i].y, res_rect[i].width, res_rect[i].height);
+                obj->update();
                 newfound = true;
                 break;
             }
@@ -150,18 +154,20 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
         if(newfound == true){
             isfound = true;
             p->keep_tracking = true;
-            dl.Logger("keep tracking.. %d %d %d %d", obj->sx, obj->sy, obj->w, obj->h);
+            dl.Logger("[%d] [OBJ] s %d %d w %d %d c %f %f e %d %d", index, obj->sx, obj->sy, obj->w, obj->h, obj->cx, obj->cy,
+                obj->ex, obj->ey);
         } else {
             isfound = false;
             p->keep_tracking = false;
-            dl.Logger("missed !!");
+            dl.Logger("[%d] ------------------missed !!", index);            
+            dl.Logger("[%d] Mssing obj s %d %d w %d %d ", index, obj->sx, obj->sy, obj->w, obj->h);            
         }
     }
 
-    if (isfound == true) {        
-        MakeROI(obj, roi);
-    }
-    dl.Logger("isfound %d issmae %d diff_val %f ", isfound, issame, diff_val);
+    //if (isfound == true) {        
+    MakeROI(obj, roi);
+
+    dl.Logger("[%d] isfound %d issmae %d diff_val %f ", index, isfound, issame, diff_val);
     q.clear();
     t.clear();
     return diff_val;
@@ -170,27 +176,55 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
 void Tracking::MakeROI(TRACK_OBJ* obj, TRACK_OBJ* roi) {
     int sx = 0;
     int sy = 0;
-    int real_w = max(p->roi_w, obj->w);
-    int real_h = max(p->roi_h, obj->h);
+    float real_w = max(p->roi_w, obj->w);
+    float real_h = max(p->roi_h, obj->h);
 
-    if ((obj->cx + real_w /2) > p->limit_bx)
-        real_w = p->limit_bx - obj->sx;
-    if ((obj->cy + real_h /2) > p->limit_by)
-        real_h = p->limit_by - obj->sy;
+    if ((obj->cx + real_w /2) > p->limit_bx) {
+        real_w = real_w - ((obj->cx + real_w /2) - p->limit_bx);
+        printf("1 real_w %f\n", real_w);
+    }
+    if ((obj->cx - real_w /2) < p->limit_lx) {
+        real_w = real_w - (p->limit_lx - (obj->cx - real_w /2));
+        printf("2 real_w %f \n", real_w);        
+    }
+    if ((obj->cy + real_h /2) > p->limit_by) {
+        real_h = real_h - ((obj->cy + real_h /2) - p->limit_by);
+        printf("3 real_h %f \n", real_h);
+    }
+    if ((obj->cy - real_h/ 2) < p->limit_ly) {
+        real_h = real_h - (p->limit_ly - (obj->cy - real_h /2));
+        printf("4 real_h %f \n", real_h);        
+    }
 
-    if ((obj->cx - real_w /2) > p->limit_lx)
-        roi->sx = obj->cx - (real_w /2);
+    dl.Logger("modifed ROI w %f h %f", real_w, real_h);
+
+    if ((obj->cx - real_w /2) > p->limit_lx) {
+        roi->sx = int(obj->cx - (real_w /2));
+        printf("roi->sx %d \n", roi->sx);        
+    }
     else 
         roi->sx = p->limit_lx;
-    if ((obj->cy - real_h /2) > p->limit_ly)
-        roi->sy = obj->cx - (real_h / 2);
+
+    if ((obj->cy - real_h /2) > p->limit_ly) {
+        roi->sy = int(obj->cy - (real_h / 2));
+        printf("roi->sy %d \n", roi->sy);
+    }
     else
         roi->sy = p->limit_ly;
-    roi->w = real_w;
-    roi->h = real_h;;
-    roi->update();
 
-    dl.Logger("MakeROI %d %d %d %d ", int(roi->sx), int(roi->sy), int(roi->w), int(roi->h));
+    if ((obj->cx + real_w /2) > p->limit_bx) 
+        roi->ex = p->limit_bx;
+    else 
+        roi->ex = int(obj->cx + real_w /2);
+    
+    if ((obj->cy + real_h /2) > p->limit_by)
+        roi->ey = p->limit_by;
+    else 
+        roi->ey = int(obj->cy + real_h /2);
+    
+
+    dl.Logger("[ROI] s %d %d w %f %f e %d %d", int(roi->sx), int(roi->sy), int(roi->w), int(roi->h),
+         int(roi->ex), int(roi->ey));
 
 }
 
@@ -230,32 +264,60 @@ void Tracking::ImageProcess(Mat& src, Mat& dst) {
         resize(temp, temp, Size(scale_w, scale_h));
         imwrite("check2.png", temp);        
     }
-    GaussianBlur(temp, dst, {3, 3}, 0.7, 0.7);
+    GaussianBlur(temp, dst, {3, 3}, 0.3, 0.3);
 }
 
-void Tracking::DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin) {
-    if(borigin == false) {
-        rectangle(src, Point(obj->sx, obj->sy), Point(obj->ex, obj->ey), (0), 2);
-        putText(src, "FOCUS", Point(obj->sx, obj->sy - 10), FONT_HERSHEY_SIMPLEX, 0.4, (0), 1);
-        rectangle(src, Point(roi->sx, roi->sy), Point(roi->ex, roi->ey), (0), 2);    
-    } else if(borigin == true){
-        rectangle(src, Point(obj->sx * p->track_scale, obj->sy * p->track_scale), Point(obj->ex * p->track_scale, obj->ey * p->track_scale), (0), 2);
-        putText(src, "FOCUS", Point(obj->sx * p->track_scale, (obj->sy - 20) * p->track_scale), FONT_HERSHEY_SIMPLEX, 0.7, (255), 1);
-        rectangle(src, Point(roi->sx* p->track_scale, roi->sy * p->track_scale), Point(roi->ex * p->track_scale, roi->ey * p->track_scale), (0), 2);    
-    }
-    string contents;
-    switch(p->replay_style) {
-        case KEEP_TRACKING:
-            contents = "Keep tracking";
-        case SWIPE_START :
-            contents = "Swipe Start";
+void Tracking::DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin, int replay_style) {
+    Mat canvas;
+    if(borigin == true) 
+        src.copyTo(canvas);
+    else
+        diff.copyTo(canvas);
+
+    string contents = "";
+    switch(replay_style) {
+        case KEEP_TRACKING_SWIPE:
+            contents = "Keep tracking on swipe";
+        case SWIPE_ON :
+            contents = "Swipe on";
         case SWIPE_END :
-            contents = "Swipe End";
+            contents = "Swipe off";
         case MISSED_TRACKING :
-            contents = "Missed object";        
-        case PAUSE_PERIOD :
-            contents = "Pause period ";                
+            contents = "Missed object";
+        case TRACK_NONE :
+            contents = "None ";
+    }    
+    if(issame)
+        contents += " SAME";
+        
+    if(isfound == true){ 
+        if(borigin == false) {
+            rectangle(canvas, Point(obj->sx, obj->sy), Point(obj->ex, obj->ey), (255), 2);
+            putText(canvas, "FOCUS", Point(obj->sx, obj->sy - 10), FONT_HERSHEY_SIMPLEX, 0.4, (255), 1);
+            rectangle(canvas, Point(roi->sx, roi->sy), Point(roi->ex, roi->ey), (255), 2);
+            putText(canvas, contents, Point(10, 10), FONT_HERSHEY_SIMPLEX, 0.4, (255), 1);            
+        } else if(borigin == true){
+            rectangle(canvas, Point(obj->sx * p->track_scale, obj->sy * p->track_scale), Point(obj->ex * p->track_scale, obj->ey * p->track_scale), (0), 2);
+            putText(canvas, "FOCUS", Point(obj->sx * p->track_scale, (obj->sy - 20) * p->track_scale), FONT_HERSHEY_SIMPLEX, 0.6, (0), 1);
+            rectangle(canvas, Point(roi->sx* p->track_scale, roi->sy * p->track_scale), Point(roi->ex * p->track_scale, roi->ey * p->track_scale), (0), 2);                
+            putText(canvas, contents, Point(10, 10), FONT_HERSHEY_SIMPLEX, 0.4, (0), 1);
+        }
+    }
+    imshow("FIRST PROCESS", canvas);
+    waitKey(0);    
+}
+
+void Tracking::DrawObjectTracking(TRACK_OBJ* obj, TRACK_OBJ* roi, vector<Rect> rects) {
+    Mat canvas;
+    diff.copyTo(canvas);
+
+    for(int i = 0 ; i < rects.size(); i ++) {
+        rectangle(canvas, Point(rects[i].x, rects[i].y), Point(rects[i].x + rects[i].width, rects[i].y + rects[i].height), (255), 2);
     }
 
-    putText(src, contents, Point( 20, 20), FONT_HERSHEY_SIMPLEX, 1, (0), 1);
+    putText(canvas, "FOCUS", Point(obj->sx, obj->sy - 10), FONT_HERSHEY_SIMPLEX, 0.4, (255), 1);
+    rectangle(canvas, Point(roi->sx, roi->sy), Point(roi->ex, roi->ey), (255), 2);
+
+    imshow("FIRST PROCESS", canvas);
+    waitKey(0);    
 }

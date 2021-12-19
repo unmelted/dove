@@ -194,7 +194,7 @@ class KalmanFilter() :
 
 
 out = cv2.VideoWriter('test_out.avi', cv2.VideoWriter_fourcc(*"MJPG"), 30,(1920, 1080))
-cap = cv2.VideoCapture(datapath+'movie/4dmaker_598.mp4')
+cap = cv2.VideoCapture(datapath+'movie/4dmaker_603.mp4')
 index = 1
 ret, bg = cap.read()
 prevc = bg.copy()
@@ -325,6 +325,8 @@ while(cap.isOpened()):
             cv2.putText(clone, "FOCUS!", (c[0], c[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4,  (255, 255, 40), 1)
             cv2.rectangle(clone, (roi_sx, roi_sy), (roi_sx + roi_w, roi_sy + roi_h), (255), 2)
             cv2.imwrite("black/{}_clone.png".format(index), clone)            
+        else :
+            cv2.rectangle(clone, (c[0], c[1]), (c[0]+c[2],c[1]+c[3]), (255, 0, 255), 2)
         di += 1
 
     if ffound == True :     
@@ -444,7 +446,7 @@ while(cap.isOpened()):
     ptrack_cenx = track_cenx
     ptrack_ceny = track_ceny
 
-    cv2.imshow("TEST", warp_dst)
+    cv2.imshow("TEST", clone)
     #cv2.waitKey()
     if cv2.waitKey(25) & 0xFF == ord('q') :
         break

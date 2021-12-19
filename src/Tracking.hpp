@@ -18,12 +18,6 @@
 using namespace std;
 using namespace cv;
 
-struct {
-    bool operator()(Rect a, Rect b) {
-        return a.width * a.height <= b.width * b.height;
-    };
-}Compare2;
-
 class Tracking {
 
     public :
@@ -40,11 +34,14 @@ class Tracking {
     void SetLogFilename(string name) {dl.SetLogFilename(name); };    
     float DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
     void SetBg(Mat& src);
-    void DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin = false);
+    void DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin = false, int replay_stype = 0);
+    void DrawObjectTracking(TRACK_OBJ* obj, TRACK_OBJ* roi, vector<Rect> rects);
 
     private :
+    char filename[50];
     Mat bg;
     Mat prev;
+    Mat diff;
     Ptr<MSER>ms;
 
     int scale_w;
