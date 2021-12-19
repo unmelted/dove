@@ -18,12 +18,6 @@
 using namespace std;
 using namespace cv;
 
-struct {
-    bool operator()(Rect a, Rect b) {
-        return a.width * a.height <= b.width * b.height;
-    };
-}Compare2;
-
 class Tracking {
 
     public :
@@ -43,8 +37,10 @@ class Tracking {
     void DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin = false);
 
     private :
+    char filename[50];
     Mat bg;
     Mat prev;
+    Mat diff;
     Ptr<MSER>ms;
 
     int scale_w;

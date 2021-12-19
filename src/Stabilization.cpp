@@ -86,8 +86,8 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->limit_ly = 5;
         p->limit_bx = 630;
         p->limit_by = 350;
-        p->roi_w = 500;
-        p->roi_h = 280;
+        p->roi_w = 400;
+        p->roi_h = 290;
         p-> area_threshold = 200;
         p->iou_threshold = 0.3;
         p->center_threshold  = 50;
@@ -184,15 +184,14 @@ int Dove::ProcessTK() {
         }
             
         result = CalculateMove(src1o, i);
-        if(result != MISSED_TRACKING) {
-            p->replay_style = result;        
-            tck.DrawObjectTracking(src1o, obj, roi, result);
-        }
+        p->replay_style = result;        
+        tck.DrawObjectTracking(src1o, obj, roi, false);
+
         // sprintf(filename, "saved/%d_.png", i);
         // imwrite(filename, src1o);
 
-        imshow("FIRST PROCESS", src1o);
-        waitKey(0);
+        // imshow("FIRST PROCESS", src1o);
+        // waitKey(0);
 
         SetRef(src1o);
         SetRefC(src1oc);

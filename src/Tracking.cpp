@@ -18,7 +18,7 @@
 #include <functional>
 
 Tracking::Tracking() {
-    ms = MSER::create(5, 170, 16000, 0.8);
+    ms = MSER::create(5, 170, 16000, 0.6);
     p = new PARAM();    
     dl = Dlog();
     isfound = false;
@@ -56,23 +56,24 @@ bool Tracking::CheckWithin(Rect& r, int index, vector<Rect>& rects) {
 
 float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
     int result = 0;
-    Mat cur; Mat diff; Mat dst;
+    Mat cur; Mat dst;
     ImageProcess(src, cur);
     subtract(bg, cur, diff);
     float diff_val = sum(diff)[0]/(scale_w * scale_h);
-    imwrite("bg.png", bg);
-    imwrite("cur.png", cur);
-    imwrite("diff.png", diff);
 
     if(index > 1) {
         Mat same;        
         subtract(prev, cur, same);
-        float same_check = sum(same)[0];
+        sprintf(filename, "saved/%d_samecheck.png", index);
+        imwrite(filename, same);
+        float same_check = sum(same)[0]/(scale_w * scale_h);
         dl.Logger("same check %f ", same_check);
-        if (same_check < 10) {
+        if (same_check < 0.1) {
             dl.Logger("Current image is same as previous.. ");
             issame = true;
         }
+        else
+            issame = false;    
     }
     cur.copyTo(prev);
 
@@ -102,7 +103,6 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
     }
     dl.Logger("check within 1st step. t size %d", t.size());
     //sort(t.begin(), t.end(), Compare2);
-    // printf(" OK --- ? \n ");
     // for(int i = 0 ; i < t.size(); i++) 
     //     printf("rect t[i] %d %d %d %d\n", t[i].x, t[i].y, t[i].width, t[i].height);
 
@@ -143,6 +143,7 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
             if (abs(tcen_x - obj->cx) < p->center_threshold && abs(tcen_y - obj->cy) < p->center_threshold) {
                 obj->id = i;
                 obj->update(res_rect[i].x, res_rect[i].y, res_rect[i].width, res_rect[i].height);
+                obj->update();
                 newfound = true;
                 break;
             }
@@ -150,7 +151,7 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
         if(newfound == true){
             isfound = true;
             p->keep_tracking = true;
-            dl.Logger("keep tracking.. %d %d %d %d", obj->sx, obj->sy, obj->w, obj->h);
+            dl.Logger("[OBJ] %d %d %d %d", obj->sx, obj->sy, obj->w, obj->h);
         } else {
             isfound = false;
             p->keep_tracking = false;
@@ -174,14 +175,15 @@ void Tracking::MakeROI(TRACK_OBJ* obj, TRACK_OBJ* roi) {
     int real_h = max(p->roi_h, obj->h);
 
     if ((obj->cx + real_w /2) > p->limit_bx)
-        real_w = p->limit_bx - obj->sx;
+        real_w = real_w - ((obj->cx + real_w /2) - p->limit_bx);
     if ((obj->cy + real_h /2) > p->limit_by)
-        real_h = p->limit_by - obj->sy;
+        real_h = real_h - ((obj->cy + real_h /2) - p->limit_by);
 
     if ((obj->cx - real_w /2) > p->limit_lx)
         roi->sx = obj->cx - (real_w /2);
     else 
         roi->sx = p->limit_lx;
+
     if ((obj->cy - real_h /2) > p->limit_ly)
         roi->sy = obj->cx - (real_h / 2);
     else
@@ -190,7 +192,7 @@ void Tracking::MakeROI(TRACK_OBJ* obj, TRACK_OBJ* roi) {
     roi->h = real_h;;
     roi->update();
 
-    dl.Logger("MakeROI %d %d %d %d ", int(roi->sx), int(roi->sy), int(roi->w), int(roi->h));
+    dl.Logger("[ROI] %d %d %d %d ", int(roi->sx), int(roi->sy), int(roi->w), int(roi->h));
 
 }
 
@@ -234,15 +236,12 @@ void Tracking::ImageProcess(Mat& src, Mat& dst) {
 }
 
 void Tracking::DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin) {
-    if(borigin == false) {
-        rectangle(src, Point(obj->sx, obj->sy), Point(obj->ex, obj->ey), (0), 2);
-        putText(src, "FOCUS", Point(obj->sx, obj->sy - 10), FONT_HERSHEY_SIMPLEX, 0.4, (0), 1);
-        rectangle(src, Point(roi->sx, roi->sy), Point(roi->ex, roi->ey), (0), 2);    
-    } else if(borigin == true){
-        rectangle(src, Point(obj->sx * p->track_scale, obj->sy * p->track_scale), Point(obj->ex * p->track_scale, obj->ey * p->track_scale), (0), 2);
-        putText(src, "FOCUS", Point(obj->sx * p->track_scale, (obj->sy - 20) * p->track_scale), FONT_HERSHEY_SIMPLEX, 0.7, (255), 1);
-        rectangle(src, Point(roi->sx* p->track_scale, roi->sy * p->track_scale), Point(roi->ex * p->track_scale, roi->ey * p->track_scale), (0), 2);    
-    }
+    Mat canvas;
+    if(borigin == true) 
+        src.copyTo(canvas);
+    else
+        diff.copyTo(canvas);
+
     string contents;
     switch(p->replay_style) {
         case KEEP_TRACKING:
@@ -252,10 +251,25 @@ void Tracking::DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool
         case SWIPE_END :
             contents = "Swipe End";
         case MISSED_TRACKING :
-            contents = "Missed object";        
+            contents = "Missed object";
         case PAUSE_PERIOD :
-            contents = "Pause period ";                
+            contents = "Pause period ";
+        default :
+            contents = " --- ";
+    }    
+    if(isfound == true){ 
+        if(borigin == false) {
+            rectangle(canvas, Point(obj->sx, obj->sy), Point(obj->ex, obj->ey), (255), 2);
+            putText(canvas, "FOCUS", Point(obj->sx, obj->sy - 10), FONT_HERSHEY_SIMPLEX, 0.4, (255), 1);
+            rectangle(canvas, Point(roi->sx, roi->sy), Point(roi->ex, roi->ey), (255), 2);
+            putText(canvas, contents, Point(10, 10), FONT_HERSHEY_SIMPLEX, 0.4, (255), 1);            
+        } else if(borigin == true){
+            rectangle(canvas, Point(obj->sx * p->track_scale, obj->sy * p->track_scale), Point(obj->ex * p->track_scale, obj->ey * p->track_scale), (0), 2);
+            putText(canvas, "FOCUS", Point(obj->sx * p->track_scale, (obj->sy - 20) * p->track_scale), FONT_HERSHEY_SIMPLEX, 0.6, (0), 1);
+            rectangle(canvas, Point(roi->sx* p->track_scale, roi->sy * p->track_scale), Point(roi->ex * p->track_scale, roi->ey * p->track_scale), (0), 2);                
+            putText(canvas, contents, Point(10, 10), FONT_HERSHEY_SIMPLEX, 0.4, (0), 1);
+        }
     }
-
-    putText(src, contents, Point( 20, 20), FONT_HERSHEY_SIMPLEX, 1, (0), 1);
+    imshow("FIRST PROCESS", canvas);
+    waitKey(0);    
 }
