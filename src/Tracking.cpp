@@ -108,9 +108,9 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
     // for(int i = 0 ; i < t.size(); i++) 
     //     printf("rect t[i] %d %d %d %d\n", t[i].x, t[i].y, t[i].width, t[i].height);
 
-    // std::sort(t.begin(), t.end(), [](Rect a, Rect b) {
-    //          return a.width * a.height <= b.width * b.height;;
-    // });
+    std::sort(t.begin(), t.end(), [](Rect a, Rect b) {
+              return a.width * a.height < b.width * b.height;;
+    });
     for(int i = 0 ; i < t.size(); i++){
         if(CheckWithin(t[i], i, t) == false)
             q.push_back(t[i]);
@@ -123,7 +123,8 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
         }
     }
     dl.Logger("Filtered rect count %d", res_rect.size());    
-
+    //DrawObjectTracking(obj, roi, res_rect);
+    
     int last = res_rect.size() - 1;
     if(res_rect.size() == 0) {
         isfound = false;
@@ -221,7 +222,7 @@ void Tracking::MakeROI(TRACK_OBJ* obj, TRACK_OBJ* roi) {
         roi->ey = int(obj->cy + real_h /2);
     
 
-    dl.Logger("[ROI] s %d %d w %d %d c %f %f e %d %d", int(roi->sx), int(roi->sy), int(roi->w), int(roi->h),
+    dl.Logger("[ROI] s %d %d w %f %f e %d %d", int(roi->sx), int(roi->sy), int(roi->w), int(roi->h),
          int(roi->ex), int(roi->ey));
 
 }
@@ -301,6 +302,21 @@ void Tracking::DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool
             putText(canvas, contents, Point(10, 10), FONT_HERSHEY_SIMPLEX, 0.4, (0), 1);
         }
     }
+    imshow("FIRST PROCESS", canvas);
+    waitKey(0);    
+}
+
+void Tracking::DrawObjectTracking(TRACK_OBJ* obj, TRACK_OBJ* roi, vector<Rect> rects) {
+    Mat canvas;
+    diff.copyTo(canvas);
+
+    for(int i = 0 ; i < rects.size(); i ++) {
+        rectangle(canvas, Point(rects[i].x, rects[i].y), Point(rects[i].x + rects[i].width, rects[i].y + rects[i].height), (255), 2);
+    }
+
+    putText(canvas, "FOCUS", Point(obj->sx, obj->sy - 10), FONT_HERSHEY_SIMPLEX, 0.4, (255), 1);
+    rectangle(canvas, Point(roi->sx, roi->sy), Point(roi->ex, roi->ey), (255), 2);
+
     imshow("FIRST PROCESS", canvas);
     waitKey(0);    
 }

@@ -209,6 +209,8 @@ int Dove::ProcessTK() {
         //tck.DrawObjectTracking(src1o, obj, roi, false, replay_style);
         // sprintf(filename, "saved/%d_real.png", i);
         // imwrite(filename, src1o);
+        if ( i == p->swipe_start + 1)
+            tck.SetBg(src1o);
 
         if (i >= p->swipe_start && i <= p->swipe_end) {
             double dx = 0;
