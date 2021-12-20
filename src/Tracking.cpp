@@ -66,7 +66,7 @@ void Tracking::SetBg(Mat& src) {
     Ptr<CLAHE> clahe = createCLAHE();
     clahe->setClipLimit(10);
     clahe->apply(result, temp);
-    GaussianBlur(temp, bg, {3, 3}, 0.3, 0.3);
+    GaussianBlur(temp, bg, {3, 3}, 0.5, 0.5);
 }
 
 bool Tracking::CheckWithin(Rect& r) {
@@ -199,8 +199,8 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
         }
     }
 
-    //if (isfound == true) {        
-    MakeROI(obj, roi);
+    if (isfound == true)
+        MakeROI(obj, roi);
 
     dl.Logger("[%d] isfound %d issmae %d diff_val %f ", index, isfound, issame, diff_val);
     q.clear();
@@ -305,7 +305,7 @@ void Tracking::ImageProcess(Mat& src, Mat& dst) {
     Ptr<CLAHE> clahe = createCLAHE();
     clahe->setClipLimit(20);
     clahe->apply(result, temp);
-    GaussianBlur(temp, dst, {3, 3}, 0.3, 0.3);
+    GaussianBlur(temp, dst, {3, 3}, 0.5, 0.5);
 }
 
 void Tracking::DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin, int replay_style) {
