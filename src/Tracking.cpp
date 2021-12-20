@@ -18,7 +18,7 @@
 #include <functional>
 
 Tracking::Tracking() {
-    ms = MSER::create(5, 170, 16000, 0.5);
+    ms = MSER::create(2, 170, 16000, 0.5);
     p = new PARAM();    
     dl = Dlog();
     isfound = false;
@@ -31,7 +31,42 @@ Tracking::~Tracking() {
 }
 
 void Tracking::SetBg(Mat& src) {    
-    ImageProcess(src, bg);
+    int histbin = 256;
+    double minval; double maxval;
+    double cut_threshold;
+    Point minloc; Point maxloc;
+    Mat hist;
+
+    if(p->track_scale != 1 ) {
+        scale_w = int(src.cols/p->track_scale);
+        scale_h = int(src.rows/p->track_scale);
+        resize(src, bg, Size(scale_w, scale_h));
+    }    
+    calcHist(&bg, 1, 0, Mat(), hist, 1, &histbin, 0);
+    // for (int i = 0 ; i < histbin; i ++){
+    //     printf(" [%d] hist %d \n", i , (int)hist.at<float>(i));
+    // }
+
+    minMaxLoc(hist, &minval, &maxval, &minloc, &maxloc, Mat());
+    printf("searched minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
+    cut_threshold = maxloc.y * 0.85;
+    lut = Mat::zeros(1, histbin, CV_8UC1);
+    for (int i = 0 ; i < histbin; i ++){
+        if(i <= cut_threshold) 
+            lut.at<unsigned char>(i) = i;
+        else 
+            lut.at<unsigned char>(i) = 255;
+
+//        printf(" [%d] lut--  %d \n", i , lut.at<unsigned char>(i));            
+    }
+
+    Mat result; Mat temp;
+    LUT(bg, lut, result);
+
+    Ptr<CLAHE> clahe = createCLAHE();
+    clahe->setClipLimit(10);
+    clahe->apply(result, temp);
+    GaussianBlur(temp, bg, {3, 3}, 0.3, 0.3);
 }
 
 bool Tracking::CheckWithin(Rect& r) {
@@ -123,7 +158,7 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
         }
     }
     dl.Logger("Filtered rect count %d", res_rect.size());    
-    //DrawObjectTracking(obj, roi, res_rect);
+    DrawObjectTracking(obj, roi, res_rect);
     
     int last = res_rect.size() - 1;
     if(res_rect.size() == 0) {
@@ -256,14 +291,20 @@ float Tracking::GetIOU(Rect& r, int index, vector<Rect>& rects) {
 
 void Tracking::ImageProcess(Mat& src, Mat& dst) {
     Mat temp;
+    Mat result;
     src.copyTo(temp);
 
     if(p->track_scale != 1 ) {
         scale_w = int(src.cols/p->track_scale);
         scale_h = int(src.rows/p->track_scale);
         resize(temp, temp, Size(scale_w, scale_h));
-        imwrite("check2.png", temp);        
+//        imwrite("check2.png", dst);
     }
+    LUT(temp, lut, result);
+
+    Ptr<CLAHE> clahe = createCLAHE();
+    clahe->setClipLimit(20);
+    clahe->apply(result, temp);
     GaussianBlur(temp, dst, {3, 3}, 0.3, 0.3);
 }
 
