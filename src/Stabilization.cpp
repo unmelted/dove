@@ -79,6 +79,12 @@ void Dove::Initialize(bool has_mask, int* coord) {
     } else if (_in == "movie/4dmaker_598.mp4") {
         p->swipe_start = 79;
         p->swipe_end = 165; //598 -- frame drop severe
+    } else if (_in == "movie/4dmaker_607.mp4") {
+        p->swipe_start = 79;
+        p->swipe_end = 178; 
+    }else if (_in == "movie/4dmaker_622.mp4") {
+        p->swipe_start = 79;
+        p->swipe_end = 165; 
     }
 
 
@@ -197,16 +203,19 @@ int Dove::ProcessTK() {
             break;
         ImageProcess(src1oc, src1o);
 
-        if ( i == 0)
+        //if ( i == 0)
+        if( i == p->swipe_start - 8)
         {
             SetRef(src1o);
             SetRefC(src1oc);            
-            tck.SetBg(src1o);
-            i++;
-            continue;
+            tck.SetBg(src1o, i);
+//            i++;
+//            continue;
         }
-        result = CalculateMove(src1o, i);
-        replay_style = result;        
+        if( i > p->swipe_start - 8) {
+            result = CalculateMove(src1o, i);
+            replay_style = result;        
+        }
         //tck.DrawObjectTracking(src1o, obj, roi, false, replay_style);
         // sprintf(filename, "saved/%d_real.png", i);
         // imwrite(filename, src1o);
