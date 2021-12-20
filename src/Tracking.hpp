@@ -44,6 +44,7 @@ class Tracking {
     Mat diff;
     Ptr<MSER>ms;
 
+    Mat lut;
     int scale_w;
     int scale_h;
     int prev_summ;
