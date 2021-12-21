@@ -84,13 +84,13 @@ public:
     int MakeMask();
     void ApplyImage(Mat& src, bool scaled = false);
     void ApplyImageRef();
+    void CalculcateMargin(double minx, double maxx, double miny, double maxy, Rect* mg);
 
     int stab_2dof(char* in, char* out, int coord[4]);
     int stab_fastwin(char* in, char* out, int coord[4]);
     int stab_6dof(char* in, char* out);
 
     // void Kalman_Filter(double *scaleX , double *scaleY , double *thetha , double *transX , double *transY);
-
     int PickArea(Mat& src, WIN_INFO* _info, PARAM* p);
     int cvt_coord_to_vstmap(int sx, int sy, int range, int dx, int dy, int* tx, int ty);
     int GetImageSum(Mat& itg, int xx, int yy, int x, int y);
