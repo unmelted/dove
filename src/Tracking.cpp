@@ -150,7 +150,7 @@ int Tracking::PickArea(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
     minMaxLoc(diff, &minval, &maxval, &minloc, &maxloc, Mat());
     dl.Logger("PickArea minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
 
-    obj->update(maxloc.x -30, maxloc.y -30, 60, 60);
+    obj->update(maxloc.x -30, maxloc.y -20, 60, 70);
     obj->update();
     roi->update(obj->sx - 10, obj->sy - 10, obj->w + 20, obj->h + 20);    
     roi->update();
@@ -160,7 +160,7 @@ int Tracking::PickArea(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
 
     tracker->init(diff, rect_roi);
     isfound = true;
-    DrawObjectTracking(diff, obj, roi, false, 1);
+    //DrawObjectTracking(diff, obj, roi, false, 1);
 }
 
 int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
