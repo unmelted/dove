@@ -73,6 +73,18 @@ typedef enum _detectortype {
     BLOB_MSER       = 3,
 }DT_TYPE;
 
+typedef enum _trackertype {
+    TRACKER_NONE= 0,
+    BOOSTING    = 1,
+    CSRT        = 2,
+    GOTURN      = 3,    
+    KCF         = 4,    
+    MEDIANFLOW  = 5,
+    MIL         = 6,
+    MOSSE       = 7,    
+    TLD         = 8,
+}TRCK_TYPE;
+
 typedef struct _trackobj {
     int id;
     int sx;
@@ -179,6 +191,7 @@ typedef struct _param {
 
     //tracking
     bool run_tracking;
+    int tracker_type;
     int track_scale;
     int limit_lx;
     int limit_ly;

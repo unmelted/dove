@@ -40,7 +40,7 @@ Dove::Dove(int mode, bool has_mask, int* coord, string infile, string outfile, s
         Initialize(true, coord);
     else 
         Initialize(false, 0);    
-    tck.SetParam(p);        
+    tck.SetInitialData(p);      
 }
 
 Dove::Dove(string infile, string outfile) {
@@ -56,7 +56,7 @@ Dove::Dove(string infile, string outfile) {
     _in = infile;
     _out = outfile;
     Initialize(false, 0);    
-    tck.SetParam(p);        
+    tck.SetInitialData(p);
 }
 
 void Dove::Initialize(bool has_mask, int* coord) {
@@ -68,23 +68,23 @@ void Dove::Initialize(bool has_mask, int* coord) {
     } else if (_in == "movie/4dmaker_603.mp4") {
         printf(" ------------ 603 !\n");
         p->swipe_start = 79;
-        p->swipe_end = 181; //603 -- should conquer - couple gracking
+        p->swipe_end = 181; //603 -- should conquer - couple gracking -- square merge needed 
     } else if (_in == "movie/4dmaker_626.mp4") {
         printf(" ------------ 626 !\n");        
         p->swipe_start = 79;
         p->swipe_end = 183; //626 OK emerald onepiece single
     } else if (_in == "movie/4dmaker_639.mp4") {
         p->swipe_start = 78;
-        p->swipe_end = 130; //639 white shirts single
+        p->swipe_end = 130; //639 white shirts man single -- square merge needed
     } else if (_in == "movie/4dmaker_598.mp4") {
         p->swipe_start = 79;
         p->swipe_end = 165; //598 -- frame drop severe
     } else if (_in == "movie/4dmaker_607.mp4") {
         p->swipe_start = 79;
-        p->swipe_end = 178; 
+        p->swipe_end = 178; //silver onepiece single - missing during swipe because character
     }else if (_in == "movie/4dmaker_622.mp4") {
         p->swipe_start = 79;
-        p->swipe_end = 165; 
+        p->swipe_end = 165; //white onepiece single - missing during swipe because character
     }
 
 
@@ -97,6 +97,8 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->scale = 2;
         p->run_kalman = true;
         p->run_detection = true;
+        p->detector_type = DARKNET_YOLOV4;
+    
     } else if (p->mode == BLOB_DETECT_TRACKING) {
         tck = Tracking();
         obj = new TRACK_OBJ();
@@ -106,6 +108,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->run_tracking = true;
         p->run_detection = false;        
         p->detector_type = BLOB_MSER;
+        p->tracker_type = CSRT; //tracker_none;
         p->track_scale = 3;
         p->limit_lx = 5;
         p->limit_ly = 5;
@@ -116,7 +119,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->swipe_threshold = 15;
         p-> area_threshold = 200;
         p->iou_threshold = 0.3;
-        p->center_threshold  = 65;
+        p->center_threshold  = 60;
     }
 
     if(has_mask == true) {
@@ -196,26 +199,36 @@ int Dove::ProcessTK() {
     TIMER* all;
     all = new TIMER();    
     StartTimer(all);    
+    int pframe = p->swipe_start - 5;
 
     while(true) {
         in >> src1oc;
         if(src1oc.data == NULL)
             break;
-        ImageProcess(src1oc, src1o);
-
-        //if ( i == 0)
-        if( i == p->swipe_start - 8)
+                
+        if ( i == 0)
         {
+            ImageProcess(src1oc, src1o);            
             SetRef(src1o);
             SetRefC(src1oc);            
             tck.SetBg(src1o, i);
-//            i++;
-//            continue;
+            i++;
+            continue;
         }
-        if( i > p->swipe_start - 8) {
-            result = CalculateMove(src1o, i);
-            replay_style = result;        
+
+        if(i < pframe || i > p->swipe_end + 3) {
+            i++;
+            continue;            
         }
+
+        ImageProcess(src1oc, src1o);
+        if( i == pframe)
+            tck.PickArea(src1o, i, obj, roi);
+        tck.TrackerUpdate(src1o, i, obj, roi);            
+
+        // result = CalculateMove(src1o, i);
+        // replay_style = result;        
+
         //tck.DrawObjectTracking(src1o, obj, roi, false, replay_style);
         // sprintf(filename, "saved/%d_real.png", i);
         // imwrite(filename, src1o);
@@ -232,7 +245,7 @@ int Dove::ProcessTK() {
             }
             k->out_transform << (i - p->swipe_start - 1) << " "<< dx << " "<< dy << " " << da << endl;            
             prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));
-        }
+        } 
 
         if (tck.isfound) {
             obj->copy(pre_obj);
