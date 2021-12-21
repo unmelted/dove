@@ -108,7 +108,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->run_tracking = true;
         p->run_detection = false;        
         p->detector_type = BLOB_MSER;
-        p->tracker_type = TRACKER_NONE; //tracker_none;
+        p->tracker_type = CSRT; //tracker_none;
         p->track_scale = 3;
         p->limit_lx = 5;
         p->limit_ly = 5;
@@ -222,11 +222,12 @@ int Dove::ProcessTK() {
         }
 
         ImageProcess(src1oc, src1o);
-        // if( i == p->swipe_start)
-        //     tck.PickArea(src1o, i, obj, roi);
+        if( i == pframe)
+            tck.PickArea(src1o, i, obj, roi);
+        tck.TrackerUpdate(src1o, i, obj, roi);            
 
-        result = CalculateMove(src1o, i);
-        replay_style = result;        
+        // result = CalculateMove(src1o, i);
+        // replay_style = result;        
 
         //tck.DrawObjectTracking(src1o, obj, roi, false, replay_style);
         // sprintf(filename, "saved/%d_real.png", i);
@@ -234,8 +235,7 @@ int Dove::ProcessTK() {
         // if ( i == p->swipe_start + 1)
         //      tck.SetBg(src1o);
 
-        if (i > p->swipe_start && i <= p->swipe_end) {
-//            tck.TrackerUpdate(src1o, i, obj, roi);            
+        if (i >= p->swipe_start && i <= p->swipe_end) {
             double dx = 0;
             double dy = 0;
             double da = 0;
@@ -245,9 +245,7 @@ int Dove::ProcessTK() {
             }
             k->out_transform << (i - p->swipe_start - 1) << " "<< dx << " "<< dy << " " << da << endl;            
             prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));
-        } else {
-            prev_to_cur_transform.push_back(TransformParam(0, 0, 0));
-        }
+        } 
 
         if (tck.isfound) {
             obj->copy(pre_obj);
