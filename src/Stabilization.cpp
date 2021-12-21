@@ -196,31 +196,32 @@ int Dove::ProcessTK() {
     TIMER* all;
     all = new TIMER();    
     StartTimer(all);    
+    int pframe = p->swipe_start - 5;
 
     while(true) {
         in >> src1oc;
         if(src1oc.data == NULL)
             break;
-        ImageProcess(src1oc, src1o);
-
         //if ( i == 0)
-        if( i == p->swipe_start - 8)
+        if( i == 0)
         {
+            ImageProcess(src1oc, src1o);            
             SetRef(src1o);
             SetRefC(src1oc);            
             tck.SetBg(src1o, i);
-//            i++;
-//            continue;
+            i++;
+            continue;
         }
-        if( i > p->swipe_start - 8) {
-            result = CalculateMove(src1o, i);
-            replay_style = result;        
+
+        if( i < pframe || i > p->swipe_end + 3) {
+            i++;
+            continue;
         }
+
+        ImageProcess(src1oc, src1o);        
+        result = CalculateMove(src1o, i);
+        replay_style = result;        
         //tck.DrawObjectTracking(src1o, obj, roi, false, replay_style);
-        // sprintf(filename, "saved/%d_real.png", i);
-        // imwrite(filename, src1o);
-        // if ( i == p->swipe_start + 1)
-        //      tck.SetBg(src1o);
 
         if (i >= p->swipe_start && i <= p->swipe_end) {
             double dx = 0;

@@ -97,7 +97,7 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
     subtract(bg, cur, diff);
     float diff_val = sum(diff)[0]/(scale_w * scale_h);
 
-    if(index > start_frame) {
+    if(index > start_frame +1 && !prev.empty() ) {
         Mat same;        
         subtract(prev, cur, same);
         // sprintf(filename, "saved/%d_samecheck.png", index);
@@ -159,7 +159,7 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
         }
     }
     dl.Logger("Filtered rect count %d", res_rect.size());    
-    DrawObjectTracking(obj, roi, res_rect);
+    //DrawObjectTracking(obj, roi, res_rect);
     
     int last = res_rect.size() - 1;
     if(res_rect.size() == 0) {
