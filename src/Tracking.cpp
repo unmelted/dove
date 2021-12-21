@@ -18,7 +18,7 @@
 #include <functional>
 
 Tracking::Tracking() {
-    ms = MSER::create(2, 170, 16000, 0.5);
+    ms = MSER::create(3, 170, 16000, 0.5);
     p = new PARAM();    
     dl = Dlog();
     isfound = false;
@@ -30,12 +30,13 @@ Tracking::~Tracking() {
 
 }
 
-void Tracking::SetBg(Mat& src) {    
+void Tracking::SetBg(Mat& src, int frame_id) {    
     int histbin = 256;
     double minval; double maxval;
     double cut_threshold;
     Point minloc; Point maxloc;
     Mat hist;
+    start_frame = frame_id;
 
     if(p->track_scale != 1 ) {
         scale_w = int(src.cols/p->track_scale);
@@ -49,7 +50,7 @@ void Tracking::SetBg(Mat& src) {
 
     minMaxLoc(hist, &minval, &maxval, &minloc, &maxloc, Mat());
     printf("searched minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
-    cut_threshold = maxloc.y * 0.85;
+    cut_threshold = maxloc.y * 0.83;
     lut = Mat::zeros(1, histbin, CV_8UC1);
     for (int i = 0 ; i < histbin; i ++){
         if(i <= cut_threshold) 
@@ -64,9 +65,9 @@ void Tracking::SetBg(Mat& src) {
     LUT(bg, lut, result);
 
     Ptr<CLAHE> clahe = createCLAHE();
-    clahe->setClipLimit(10);
+    clahe->setClipLimit(20);
     clahe->apply(result, temp);
-    GaussianBlur(temp, bg, {3, 3}, 0.3, 0.3);
+    GaussianBlur(temp, bg, {3, 3}, 1.3, 1.3);
 }
 
 bool Tracking::CheckWithin(Rect& r) {
@@ -96,7 +97,7 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
     subtract(bg, cur, diff);
     float diff_val = sum(diff)[0]/(scale_w * scale_h);
 
-    if(index > 1) {
+    if(index > start_frame) {
         Mat same;        
         subtract(prev, cur, same);
         // sprintf(filename, "saved/%d_samecheck.png", index);
@@ -110,7 +111,7 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
         else
             issame = false;    
     }
-    else if( index == 1 ) {
+    else if( index == start_frame ) {
         first_summ = diff_val;    
         dl.Logger("First summ save %f ", first_summ);
     }
@@ -199,8 +200,8 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
         }
     }
 
-    //if (isfound == true) {        
-    MakeROI(obj, roi);
+    if (isfound == true)
+        MakeROI(obj, roi);
 
     dl.Logger("[%d] isfound %d issmae %d diff_val %f ", index, isfound, issame, diff_val);
     q.clear();
@@ -305,7 +306,7 @@ void Tracking::ImageProcess(Mat& src, Mat& dst) {
     Ptr<CLAHE> clahe = createCLAHE();
     clahe->setClipLimit(20);
     clahe->apply(result, temp);
-    GaussianBlur(temp, dst, {3, 3}, 0.3, 0.3);
+    GaussianBlur(temp, dst, {5, 5}, 1.3, 1.3);
 }
 
 void Tracking::DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin, int replay_style) {

@@ -23,6 +23,7 @@ class Tracking {
     public :
     PARAM* p;
     Dlog dl;
+    int start_frame;
     float first_summ;
     bool isfound;
     bool issame;
@@ -33,7 +34,7 @@ class Tracking {
     void SetParam(PARAM* _p) { memcpy(p, _p, sizeof(PARAM));};
     void SetLogFilename(string name) {dl.SetLogFilename(name); };    
     float DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
-    void SetBg(Mat& src);
+    void SetBg(Mat& src, int frame_id);
     void DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin = false, int replay_stype = 0);
     void DrawObjectTracking(TRACK_OBJ* obj, TRACK_OBJ* roi, vector<Rect> rects);
 
