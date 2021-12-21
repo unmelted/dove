@@ -97,7 +97,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->scale = 2;
         p->run_kalman = true;
         p->run_detection = true;
-        p->detector_type == DARKNET_YOLOV4;
+        p->detector_type = DARKNET_YOLOV4;
     
     } else if (p->mode == BLOB_DETECT_TRACKING) {
         tck = Tracking();
@@ -108,7 +108,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->run_tracking = true;
         p->run_detection = false;        
         p->detector_type = BLOB_MSER;
-        p->tracker_type = TRACKER_NONE;
+        p->tracker_type = TRACKER_NONE; //tracker_none;
         p->track_scale = 3;
         p->limit_lx = 5;
         p->limit_ly = 5;
@@ -119,7 +119,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->swipe_threshold = 15;
         p-> area_threshold = 200;
         p->iou_threshold = 0.3;
-        p->center_threshold  = 65;
+        p->center_threshold  = 60;
     }
 
     if(has_mask == true) {
@@ -220,7 +220,11 @@ int Dove::ProcessTK() {
             i++;
             continue;            
         }
+
         ImageProcess(src1oc, src1o);
+        // if( i == p->swipe_start)
+        //     tck.PickArea(src1o, i, obj, roi);
+
         result = CalculateMove(src1o, i);
         replay_style = result;        
 
@@ -230,7 +234,8 @@ int Dove::ProcessTK() {
         // if ( i == p->swipe_start + 1)
         //      tck.SetBg(src1o);
 
-        if (i >= p->swipe_start && i <= p->swipe_end) {
+        if (i > p->swipe_start && i <= p->swipe_end) {
+//            tck.TrackerUpdate(src1o, i, obj, roi);            
             double dx = 0;
             double dy = 0;
             double da = 0;

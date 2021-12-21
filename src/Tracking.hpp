@@ -36,6 +36,7 @@ class Tracking {
     void SetInitialData(PARAM* _p);
     void SetLogFilename(string name) {dl.SetLogFilename(name); };    
     float DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
+    int TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
     void SetBg(Mat& src, int frame_id);
     int PickArea(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);    
     void DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin = false, int replay_stype = 0);
@@ -48,6 +49,7 @@ class Tracking {
     Mat diff;
     Ptr<MSER>ms;
     Ptr<Tracker>tracker;
+    Rect rect_roi;
 
     Mat lut;
     int scale_w;
@@ -60,4 +62,6 @@ class Tracking {
     bool CheckWithin(Rect& r);
     bool CheckWithin(Rect& r, int index, vector<Rect>& rects);
     void ImageProcess(Mat& src, Mat& dst);
+    void ConvertToRect(TRACK_OBJ* roi);
+    void ConvertToROI(Rect& rec, TRACK_OBJ* obj, TRACK_OBJ* roi);
 };

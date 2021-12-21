@@ -24,6 +24,7 @@ Tracking::Tracking() {
     issame = false;
     first_summ = 0.0;
     ms = MSER::create(3, 170, 16000, 0.5);
+    rect_roi = Rect();
 }
 
 Tracking::~Tracking() {
@@ -110,8 +111,87 @@ bool Tracking::CheckWithin(Rect& r, int index, vector<Rect>& rects) {
     return false;
 }
 
-int Tracking::PickArea(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+void Tracking::ConvertToRect(TRACK_OBJ* roi) {
+    rect_roi.x = roi->sx;
+    rect_roi.y = roi->sy;
+    rect_roi.width = roi->w;
+    rect_roi.height = roi->h;
+}
 
+void Tracking::ConvertToROI(Rect& rec, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+    roi->sx = rec.x;
+    roi->sy = rec.y;
+    roi->w = rec.width;
+    roi->h = rec.height;
+
+    obj->sx = roi->sx + 10;
+    obj->sy = roi->sy + 10;
+    obj->w = roi->w - 20;
+    obj->h = roi->h - 20;
+
+    roi->update();
+    obj->update();
+}
+
+int Tracking::PickArea(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+    int result = 0;
+    double minval; double maxval;
+    Point minloc; Point maxloc;
+    Mat cur; Mat dst;
+    ImageProcess(src, cur);
+    dl.Logger("PickArea cos/row %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
+    subtract(bg, cur, diff);
+    float diff_val = sum(diff)[0]/(scale_w * scale_h);
+
+    minMaxLoc(diff, &minval, &maxval, &minloc, &maxloc, Mat());
+    dl.Logger("PickArea minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
+
+    obj->update(maxloc.x -20, maxloc.y -20, 40, 40);
+    obj->update();
+    roi->update(obj->sx - 10, obj->sy - 10, obj->w + 20, obj->h + 20);    
+    roi->update();
+    dl.Logger("obj %d %d %d %d", obj->sx, obj->sy ,obj->w , obj->h);
+    dl.Logger("roi %d %d %d %d", roi->sx, roi->sy ,roi->w , roi->h);
+    ConvertToRect(roi);
+    TrackerCSRT::Params tckp = TrackerCSRT::Params();
+    tckp.use_hog = false;    
+    tckp.use_gray = true;
+
+    tracker->init(diff, rect_roi);
+    isfound = true;
+    //DrawObjectTracking(diff, obj, roi, false, 1);
+}
+
+int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+    Mat cur; Mat dst;
+    ImageProcess(src, cur);
+    dl.Logger("TrackerUpdate cos/row %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
+    subtract(bg, cur, diff);
+    float diff_val = sum(diff)[0]/(scale_w * scale_h);
+
+    if(index > start_frame +1 && !prev.empty()) {
+        Mat same;        
+        subtract(prev, cur, same);
+        float same_check = sum(same)[0]/(scale_w * scale_h);
+        dl.Logger("same check %f ", same_check);
+        if (same_check < 0.2) {
+            dl.Logger("Current image is same as previous.. ");
+            issame = true;
+            return same_check;
+        }
+        else
+            issame = false;    
+    }
+    else if( index == start_frame ) {
+        first_summ = diff_val;    
+        dl.Logger("First summ save %f ", first_summ);
+    }
+    cur.copyTo(prev);
+
+    tracker->update(diff, rect_roi);
+    ConvertToROI(rect_roi, obj, roi);
+    isfound = true;    
+    //DrawObjectTracking(diff, obj, roi, false, 1);
 }
 
 float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
@@ -184,7 +264,7 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
         }
     }
     dl.Logger("Filtered rect count %d", res_rect.size());    
-    DrawObjectTracking(obj, roi, res_rect);
+    //DrawObjectTracking(obj, roi, res_rect);
     
     int last = res_rect.size() - 1;
     if(res_rect.size() == 0) {
