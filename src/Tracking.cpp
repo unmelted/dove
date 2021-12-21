@@ -46,8 +46,12 @@ void Tracking::SetInitialData(PARAM* _p) {
         tracker = TrackerGOTURN::create();
     // else if (p->tracker_type == MOSSE)
     //     tracker = TrackerMOSSE::create();
-    else if (p->tracker_type == CSRT)
-        tracker = TrackerCSRT::create();
+    else if (p->tracker_type == CSRT) {
+        TrackerCSRT::Params tckp = TrackerCSRT::Params();
+        tckp.use_hog = true;    
+        tckp.use_gray = true;
+        tracker = TrackerCSRT::create(tckp);        
+    }
 }
 
 void Tracking::SetBg(Mat& src, int frame_id) {    
@@ -146,20 +150,17 @@ int Tracking::PickArea(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
     minMaxLoc(diff, &minval, &maxval, &minloc, &maxloc, Mat());
     dl.Logger("PickArea minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
 
-    obj->update(maxloc.x -20, maxloc.y -20, 40, 40);
+    obj->update(maxloc.x -30, maxloc.y -30, 60, 60);
     obj->update();
     roi->update(obj->sx - 10, obj->sy - 10, obj->w + 20, obj->h + 20);    
     roi->update();
     dl.Logger("obj %d %d %d %d", obj->sx, obj->sy ,obj->w , obj->h);
     dl.Logger("roi %d %d %d %d", roi->sx, roi->sy ,roi->w , roi->h);
     ConvertToRect(roi);
-    TrackerCSRT::Params tckp = TrackerCSRT::Params();
-    tckp.use_hog = false;    
-    tckp.use_gray = true;
 
     tracker->init(diff, rect_roi);
     isfound = true;
-    //DrawObjectTracking(diff, obj, roi, false, 1);
+    DrawObjectTracking(diff, obj, roi, false, 1);
 }
 
 int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
@@ -177,7 +178,7 @@ int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi)
         if (same_check < 0.2) {
             dl.Logger("Current image is same as previous.. ");
             issame = true;
-            return same_check;
+            //return same_check;
         }
         else
             issame = false;    
@@ -188,10 +189,15 @@ int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi)
     }
     cur.copyTo(prev);
 
-    tracker->update(diff, rect_roi);
+    bool ret = tracker->update(diff, rect_roi);
+    if (ret == false) {
+        dl.Logger("tracker miss --------------------------------------------");
+    }
+
     ConvertToROI(rect_roi, obj, roi);
     isfound = true;    
-    //DrawObjectTracking(diff, obj, roi, false, 1);
+    tracker->init(diff, rect_roi);    
+    DrawObjectTracking(diff, obj, roi, false, 1);
 }
 
 float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {

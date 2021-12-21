@@ -152,7 +152,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
 
     if(p->run_kalman == true) {
         k = new KALMAN();
-        p->smoothing_radius = 20;        
+        p->smoothing_radius = 15;        
         k->Q.set(k->pstd, k->pstd, k->pstd);
         k->R.set(k->cstd, k->cstd, k->cstd);      
         k->out_transform.open("analysis/prev_to_cur_transformation.txt");
@@ -186,8 +186,12 @@ int Dove::Process() {
 
 int Dove::ProcessTK() {
     VideoCapture in(_in);
-    VideoWriter out;    
-    out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1930, 540));
+    VideoWriter out;
+    bool compare = false;
+    if (compare)    
+        out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1930, 540));
+    else 
+        out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));
     dl.Logger("Process TK started ");
     Mat src1oc; Mat src1o;
     int i = 0;
@@ -216,34 +220,33 @@ int Dove::ProcessTK() {
             continue;
         }
 
-        if(i < pframe || i > p->swipe_end + 3) {
+        if(i < pframe || i > p->swipe_end) {
             i++;
             continue;            
         }
 
         ImageProcess(src1oc, src1o);
-        if( i == pframe)
-            tck.PickArea(src1o, i, obj, roi);
-        tck.TrackerUpdate(src1o, i, obj, roi);            
+        if( p->tracker_type != TRACKER_NONE) {
+            if (i == pframe)
+                tck.PickArea(src1o, i, obj, roi);
+            else
+                tck.TrackerUpdate(src1o, i, obj, roi);            
+        } else {
+            result = CalculateMove(src1o, i);
+            replay_style = result;        
 
-        // result = CalculateMove(src1o, i);
-        // replay_style = result;        
-
+        }
         //tck.DrawObjectTracking(src1o, obj, roi, false, replay_style);
-        // sprintf(filename, "saved/%d_real.png", i);
-        // imwrite(filename, src1o);
-        // if ( i == p->swipe_start + 1)
-        //      tck.SetBg(src1o);
 
         if (i >= p->swipe_start && i <= p->swipe_end) {
             double dx = 0;
             double dy = 0;
             double da = 0;
-            if(!tck.issame) {
-                dx = (pre_obj->cx - obj->cx) * p->track_scale;
-                dy = (pre_obj->cy - obj->cy) * p->track_scale;
-            }
-            k->out_transform << (i - p->swipe_start - 1) << " "<< dx << " "<< dy << " " << da << endl;            
+            //if(!tck.issame) {
+            dx = (pre_obj->cx - obj->cx) * p->track_scale;
+            dy = (pre_obj->cy - obj->cy) * p->track_scale;
+            //}
+            k->out_transform << i << " "<< dx << " "<< dy << " " << da << endl;            
             prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));
         } 
 
@@ -308,6 +311,10 @@ int Dove::ProcessTK() {
     a = 0;
     x = 0;
     y = 0;
+    double minx = 2000;
+    double maxx = 0;
+    double miny = 2000;
+    double maxy = 0;
 
     for(size_t i = 0; i < prev_to_cur_transform.size(); i++) {
         x += prev_to_cur_transform[i].dx;
@@ -325,7 +332,18 @@ int Dove::ProcessTK() {
 
         new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
         k->out_new << (i+1) << " " << dx << " " << dy << " " << da << endl;
+        if(dx < minx)
+            minx = dx;
+        else if(dx > maxx)
+            maxx = dx;
+        if(dy < miny)
+            miny = dy;
+        else if (dy > maxy)
+            maxy = dy;
     }
+    dl.Logger("minx %f maxx %f miny %f maxy %f", minx, maxx, miny, maxy);
+    Rect mg;
+    CalculcateMargin(minx, maxx, miny, maxy, &mg);
 
     int k = 0;
     i = 0;
@@ -345,7 +363,12 @@ int Dove::ProcessTK() {
             continue;
         }
         //sprintf(filename, "saved/%d_apply.png", i);
-        Mat canvas = Mat::zeros(540, 1930, CV_8UC3);
+        Mat canvas;
+        if(compare) 
+            canvas = Mat::zeros(540, 1930, CV_8UC3);
+        else 
+            canvas = Mat::zeros(1080, 1920, CV_8UC3);
+
         if (i >= p->swipe_start && i <= p->swipe_end) {
             smth.at<double>(0,0) = 1; 
             smth.at<double>(0,1) = 0; 
@@ -361,19 +384,49 @@ int Dove::ProcessTK() {
         else {
             refc.copyTo(refcw);
         }
-        resize(refc, refc, Size(960, 540));        
-        resize(refcw, refcw, Size(960, 540));
-        refc.copyTo(canvas(Range::all(), Range(0, 960)));
-        refcw.copyTo(canvas(Range::all(), Range(970, 1930)));
 
-        out << canvas;
+        if(compare) {
+            resize(refc, refc, Size(960, 540));        
+            resize(refcw, refcw, Size(960, 540));
+            refc.copyTo(canvas(Range::all(), Range(0, 960)));
+            refcw.copyTo(canvas(Range::all(), Range(970, 1930)));
+        }
+        else {
+            refcw.copyTo(canvas);
+        }
+
+        out << canvas;        
         SetRefC(src1oc);
         i++;
     }
-
     dl.Logger(".. %f", LapTimer(all));
     return ERR_NONE;
 
+}
+
+void Dove::CalculcateMargin(double minx, double maxx, double miny, double maxy, Rect* mg) {
+    int c_lx = 0;
+    int c_ly = 0;
+    int c_bx = 0;
+    int c_by = 0;
+    int ww = 0;
+    int wh = 0;
+    if(abs(int(minx)) > maxx)
+        ww = abs(int(minx));
+    else 
+        ww = maxx;
+
+    if (abs(int(miny)) > maxy)
+        wh = abs(int(miny));
+    else 
+        wh = maxy;
+
+    mg->x = ww;
+    mg->y = wh;
+    mg->width = p->dst_width - ww*2;
+    mg->height = p->dst_height - wh*2;
+
+    dl.Logger("Rect Margin %d %d %d %d", ww, wh, mg->width, mg->height);
 }
 
 int Dove::ProcessLK() {
