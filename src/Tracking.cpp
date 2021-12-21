@@ -18,16 +18,35 @@
 #include <functional>
 
 Tracking::Tracking() {
-    ms = MSER::create(3, 170, 16000, 0.5);
     p = new PARAM();    
     dl = Dlog();
     isfound = false;
     issame = false;
     first_summ = 0.0;
+    ms = MSER::create(3, 170, 16000, 0.5);
 }
 
 Tracking::~Tracking() {
 
+}
+
+void Tracking::SetInitialData(PARAM* _p) {
+    memcpy(p, _p, sizeof(PARAM));
+
+    if(p->tracker_type == MIL)
+        tracker = TrackerMIL::create();
+    else if (p->tracker_type == KCF)
+        tracker = TrackerKCF::create();
+    // else if (p->tracker_type == TLD)
+    //     tracker = TrackerTLD::create();
+    // else if (p->tracker_type == MEDIANFLOW)
+    //     tracker = TrackerMedianFlow::create();
+    else if (p->tracker_type == GOTURN)
+        tracker = TrackerGOTURN::create();
+    // else if (p->tracker_type == MOSSE)
+    //     tracker = TrackerMOSSE::create();
+    else if (p->tracker_type == CSRT)
+        tracker = TrackerCSRT::create();
 }
 
 void Tracking::SetBg(Mat& src, int frame_id) {    
@@ -68,6 +87,7 @@ void Tracking::SetBg(Mat& src, int frame_id) {
     clahe->setClipLimit(20);
     clahe->apply(result, temp);
     GaussianBlur(temp, bg, {3, 3}, 1.3, 1.3);
+    dl.Logger("Setbg function finish %d %d ", bg.cols, bg.rows);
 }
 
 bool Tracking::CheckWithin(Rect& r) {
@@ -90,14 +110,19 @@ bool Tracking::CheckWithin(Rect& r, int index, vector<Rect>& rects) {
     return false;
 }
 
+int Tracking::PickArea(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+
+}
+
 float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
     int result = 0;
     Mat cur; Mat dst;
     ImageProcess(src, cur);
+    dl.Logger("DetectAndTrack function start %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
     subtract(bg, cur, diff);
     float diff_val = sum(diff)[0]/(scale_w * scale_h);
 
-    if(index > start_frame) {
+    if(index > start_frame +1 && !prev.empty()) {
         Mat same;        
         subtract(prev, cur, same);
         // sprintf(filename, "saved/%d_samecheck.png", index);
@@ -107,6 +132,7 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
         if (same_check < 0.2) {
             dl.Logger("Current image is same as previous.. ");
             issame = true;
+            return same_check;
         }
         else
             issame = false;    
@@ -116,7 +142,6 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
         dl.Logger("First summ save %f ", first_summ);
     }
     cur.copyTo(prev);
-
 
     if(isfound == true) {
         Mat mask = Mat::zeros(scale_h, scale_w, CV_8UC1);
