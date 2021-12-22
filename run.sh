@@ -22,5 +22,11 @@ if [ ! -d "analysis" ];then
     mkdir generated
 fi
 
+./dove 4dmaker_598 166 596 3300 1520
+./dove 4dmaker_600 166 596 3300 1520
+./dove 4dmaker_603 166 596 3300 1520
 ./dove 4dmaker_607 166 596 3300 1520
-python3 py/visualize_traj.py
+./dove 4dmaker_622 166 596 3300 1520
+./dove 4dmaker_626 166 596 3300 1520
+./dove 4dmaker_639 166 596 3300 1520
+#python3 py/visualize_traj.py

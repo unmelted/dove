@@ -192,12 +192,13 @@ int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi)
     bool ret = tracker->update(diff, rect_roi);
     if (ret == false) {
         dl.Logger("tracker miss --------------------------------------------");
-        tracker->init(diff, rect_roi);            
+//        tracker->init(diff, rect_roi);            
     }
 
     ConvertToROI(rect_roi, obj, roi);
     isfound = true;    
-    DrawObjectTracking(diff, obj, roi, false, 1);
+    //DrawObjectTracking(diff, obj, roi, false, 1);
+    tracker->init(diff, rect_roi);                    
 }
 
 float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {

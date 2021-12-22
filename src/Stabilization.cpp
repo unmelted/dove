@@ -152,7 +152,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
 
     if(p->run_kalman == true) {
         k = new KALMAN();
-        p->smoothing_radius = 15;        
+        p->smoothing_radius = 20;        
         k->Q.set(k->pstd, k->pstd, k->pstd);
         k->R.set(k->cstd, k->cstd, k->cstd);      
         k->out_transform.open("analysis/prev_to_cur_transformation.txt");
