@@ -11,6 +11,11 @@ filelist = [
  prj_path+"/analysis/trajectory.txt", #trajectory
  prj_path+"/analysis/smoothed_trajectory.txt" , #smoothe
  prj_path+"/analysis/new_prev_to_cur_transformation.txt", #new_tran
+
+ prj_path+"/analysis/trajectory2.txt", #trajectory
+ prj_path+"/analysis/smoothed_trajectory2.txt" , #smoothe
+ prj_path+"/analysis/new_prev_to_cur_transformation2.txt", #new_tran
+
 # "/Users/4dreplay/work/dove/prev_to_cur_transformation.txt", #prev
 # "/Users/4dreplay/work/dove/trajectory.txt", #trajectory
 # "/Users/4dreplay/work/dove/smoothed_trajectory.txt" , #smoothe
@@ -43,6 +48,8 @@ oh = []
 frame_id_dt_c = []
 cx = []
 cy = []
+cx_n = []
+cy_n = []
 
 for i in filelist :
     f = open(i, 'r')
@@ -80,6 +87,11 @@ for i in filelist :
             frame_id_dt_c.append( int(text[0]))            
             cx.append( float(text[1]))
             cy.append( float(text[2]))
+
+        elif i == filelist[5] :            
+            frame_id_dt_c.append( int(text[0]))            
+            cx_n.append( float(text[1]))
+            cy_n.append( float(text[2]))            
 
 print("length : ", len(frame_id_o))
 # for a in range(0, len(frame_id_o)) :

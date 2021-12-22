@@ -166,7 +166,7 @@ int Tracking::PickArea(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
 int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
     Mat cur; Mat dst;
     ImageProcess(src, cur);
-    dl.Logger("TrackerUpdate cos/row %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
+    //dl.Logger("TrackerUpdate cos/row %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
     subtract(bg, cur, diff);
     float diff_val = sum(diff)[0]/(scale_w * scale_h);
 
@@ -174,7 +174,7 @@ int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi)
         Mat same;        
         subtract(prev, cur, same);
         float same_check = sum(same)[0]/(scale_w * scale_h);
-        dl.Logger("same check %f ", same_check);
+        //dl.Logger("same check %f ", same_check);
         if (same_check < 0.2) {
             dl.Logger("Current image is same as previous.. ");
             issame = true;
