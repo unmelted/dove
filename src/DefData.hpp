@@ -324,8 +324,8 @@ typedef struct _kalman {
     double a = 0;
     double x = 0;
     double y = 0;
-    double pstd = 4e-5;//4e-5 - football many small person 4e-3 figure not severe jitter & object big move
-    double cstd = 0.4;//can be changed
+    double pstd = 0.3;//4e-5 -Q: football many small person 4e-3 figure not severe jitter & object big move
+    double cstd = 0.15;//R:can be changed
 
 	Trajectory X;//posteriori state estimate
 	Trajectory X_;//priori estimate
@@ -340,6 +340,9 @@ typedef struct _kalman {
     ofstream out_trajectory;
     ofstream out_smoothed;
     ofstream out_new;
+    ofstream out_trajectory2;
+    ofstream out_smoothed2;
+    ofstream out_new2;
 
 } KALMAN;
 

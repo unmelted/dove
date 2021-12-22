@@ -159,6 +159,9 @@ void Dove::Initialize(bool has_mask, int* coord) {
         k->out_trajectory.open("analysis/trajectory.txt");
         k->out_smoothed.open("analysis/smoothed_trajectory.txt");
         k->out_new.open("analysis/new_prev_to_cur_transformation.txt");
+        k->out_trajectory2.open("analysis/trajectory2.txt");
+        k->out_smoothed2.open("analysis/smoothed_trajectory2.txt");
+        k->out_new2.open("analysis/new_prev_to_cur_transformation2.txt");        
     }
 
     smth.create(2 , 3 , CV_64F);        
@@ -242,12 +245,54 @@ int Dove::ProcessTK() {
             double dx = 0;
             double dy = 0;
             double da = 0;
-            if(!tck.issame) {
+            //if(!tck.issame) 
+            {
                 dx = (pre_obj->cx - obj->cx) * p->track_scale;
                 dy = (pre_obj->cy - obj->cy) * p->track_scale;
+                dl.Logger("origin %f %f ", dx, dy);
+                if(p->run_kalman) {
+                    k->x += dx;
+                    k->y += dy;
+                    k->a += da;
+                    k->out_transform << i << " " << dx << " " << dy << " " << da << endl;
+
+                    k->z = Trajectory(k->x, k->y, k->a);                
+                    if( i == p->swipe_start ){
+                        k->X = Trajectory(0,0,0); //Initial estimate,  set 0
+                        k->P = Trajectory(1,1,1); //set error variance,set 1
+                    }
+                    else
+                    {
+                        //time update（prediction）
+                        k->X_ = k->X; //X_(k) = X(k-1);
+                        k->P_ = k->P+ k->Q; //P_(k) = P(k-1)+Q;
+                        // measurement update（correction）
+                        k->K = k->P_/ ( k->P_+ k->R ); //gain;K(k) = P_(k)/( P_(k)+R );
+                        k->X = k->X_+ k->K * (k->z - k->X_); //z-X_ is residual,X(k) = X_(k)+K(k)*(z(k)-X_(k)); 
+                        k->P = (Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
+                    }
+                    //smoothed_trajectory.push_back(X);
+                    k->out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
+
+                    // target - current
+                    double diff_x = k->X.x - k->x;//
+                    double diff_y = k->X.y - k->y;
+                    double diff_a = k->X.a - k->a;
+
+                    dx = dx + diff_x;
+                    dy = dy + diff_y;
+                    da = da + diff_a;
+                    dl.Logger("from kalman %f %f ", dx, dy);
+                    //new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
+                    //
+                    k->out_new << i << " " << dx << " " << dy << " " << da << endl;     
+                    prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));                    
+                }
             }
-            k->out_transform << i << " "<< dx << " "<< dy << " " << da << endl;            
-            prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));
+            // else {
+            //     k->out_transform << i << " "<< dx << " "<< dy << " " << da << endl;            
+            //     prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));
+            // }
         } 
 
         if (tck.isfound) {
@@ -276,7 +321,7 @@ int Dove::ProcessTK() {
         a += prev_to_cur_transform[i].da;
 
         trajectory.push_back(Trajectory(x,y,a));
-        k->out_trajectory << (i+1) << " " << x << " " << y << " " << a << endl;
+        k->out_trajectory2 << (i+1) << " " << x << " " << y << " " << a << endl;
     }
 
     // Step 3 - Smooth out the trajectory using an averaging window
@@ -302,7 +347,7 @@ int Dove::ProcessTK() {
         double avg_y = sum_y / count;
 
         smoothed_trajectory.push_back(Trajectory(avg_x, avg_y, avg_a));
-        k->out_smoothed << (i+1) << " " << avg_x << " " << avg_y << " " << avg_a << endl;
+        k->out_smoothed2 << (i+1) << " " << avg_x << " " << avg_y << " " << avg_a << endl;
     }
 
     // Step 4 - Generate new set of previous to current transform, such that the trajectory ends up being the same as the smoothed trajectory
@@ -331,7 +376,7 @@ int Dove::ProcessTK() {
         double da = prev_to_cur_transform[i].da + diff_a;
 
         new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
-        k->out_new << (i+1) << " " << dx << " " << dy << " " << da << endl;
+        k->out_new2 << (i+1) << " " << dx << " " << dy << " " << da << endl;
         if(dx < minx)
             minx = dx;
         else if(dx > maxx)
