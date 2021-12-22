@@ -152,7 +152,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
 
     if(p->run_kalman == true) {
         k = new KALMAN();
-        p->smoothing_radius = 15;        
+        p->smoothing_radius = 20;        
         k->Q.set(k->pstd, k->pstd, k->pstd);
         k->R.set(k->cstd, k->cstd, k->cstd);      
         k->out_transform.open("analysis/prev_to_cur_transformation.txt");
@@ -242,10 +242,10 @@ int Dove::ProcessTK() {
             double dx = 0;
             double dy = 0;
             double da = 0;
-            //if(!tck.issame) {
-            dx = (pre_obj->cx - obj->cx) * p->track_scale;
-            dy = (pre_obj->cy - obj->cy) * p->track_scale;
-            //}
+            if(!tck.issame) {
+                dx = (pre_obj->cx - obj->cx) * p->track_scale;
+                dy = (pre_obj->cy - obj->cy) * p->track_scale;
+            }
             k->out_transform << i << " "<< dx << " "<< dy << " " << da << endl;            
             prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));
         } 
@@ -377,7 +377,7 @@ int Dove::ProcessTK() {
             smth.at<double>(0,2) = -new_prev_to_cur_transform[k].dx;
             smth.at<double>(1,2) = -new_prev_to_cur_transform[k].dy;        
             k++;
-            dl.Logger("will Apply %f %f ", smth.at<double>(0,2), smth.at<double>(1,2));
+            dl.Logger("[%d] will Apply %f %f ",i, smth.at<double>(0,2), smth.at<double>(1,2));
             ApplyImageRef();
             // imwrite(filename, refcw);
         }
