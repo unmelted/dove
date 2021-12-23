@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
     }
 
     bool has_mask = false;
-    int mode = BLOB_DETECT_TRACKING; 
+    int mode = DETECT_TRACKING; 
     //stab_live(infile);
     Dove stblz(mode, has_mask, coord, infile, outfile);
     stblz.Process();

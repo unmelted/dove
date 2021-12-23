@@ -54,7 +54,7 @@ typedef enum _calmode {
     SIMPLE_KALMAN_LIVE      = 6,
     PATH_SMOOTHE            = 7,
     DARKNET_DETECT_MOVE     = 8,
-    BLOB_DETECT_TRACKING    = 9,
+    DETECT_TRACKING         = 9,
 
 }CALMODE;
 
@@ -179,6 +179,8 @@ typedef struct _param {
     float blur_sigma;
 
     bool run_kalman;
+    bool run_kalman_pre;
+    bool run_kalman_post;    
     int smoothing_radius;
     //detection
     bool run_detection;
@@ -324,8 +326,13 @@ typedef struct _kalman {
     double a = 0;
     double x = 0;
     double y = 0;
-    double pstd = 0.3;//4e-5 -Q: football many small person 4e-3 figure not severe jitter & object big move
-    double cstd = 0.15;//R:can be changed
+    // double pstd = 0.3;//4e-5 -Q: football many small person 4e-3 figure not severe jitter & object big move
+    // double cstd = 0.15;//R:can be changed //tracker csrt scale 640 parameter with pre kalman
+    // double pstd = 0.2;//4e-5 -Q: football many small person 4e-3 figure not severe jitter & object big move
+    // double cstd = 0.05;//R:can be changed //tracker csrt scale 640 parameter with post kalman
+    double pstd = 0.01;//4e-5 -Q: football many small person 4e-3 figure not severe jitter & object big move
+    double cstd = 0.15;//R:can be changed //tracker csrt scale 640 parameter with post kalman
+
 
 	Trajectory X;//posteriori state estimate
 	Trajectory X_;//priori estimate

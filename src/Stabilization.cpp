@@ -99,12 +99,11 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->run_detection = true;
         p->detector_type = DARKNET_YOLOV4;
     
-    } else if (p->mode == BLOB_DETECT_TRACKING) {
+    } else if (p->mode == DETECT_TRACKING) {
         tck = Tracking();
         obj = new TRACK_OBJ();
         roi = new TRACK_OBJ();
         p->scale = 2;
-        p->run_kalman = true;
         p->run_tracking = true;
         p->run_detection = false;        
         p->detector_type = BLOB_MSER;
@@ -120,6 +119,10 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p-> area_threshold = 200;
         p->iou_threshold = 0.3;
         p->center_threshold  = 60;
+
+        p->run_kalman = true;
+        p->run_kalman_pre = false;
+        p->run_kalman_post = false;        
     }
 
     if(has_mask == true) {
@@ -150,9 +153,10 @@ void Dove::Initialize(bool has_mask, int* coord) {
         }
     }
 
-    if(p->run_kalman == true) {
-        k = new KALMAN();
-        p->smoothing_radius = 20;        
+    k = new KALMAN();
+    p->smoothing_radius = 20;    
+    if(p->run_kalman == true || 
+        p->run_kalman_pre == true || p->run_kalman_post == true) {    
         k->Q.set(k->pstd, k->pstd, k->pstd);
         k->R.set(k->cstd, k->cstd, k->cstd);      
         k->out_transform.open("analysis/prev_to_cur_transformation.txt");
@@ -181,7 +185,7 @@ Dove::~Dove() {
 int Dove::Process() {
     if(p->mode == OPTICALFLOW_LK_2DOF)
         ProcessLK();
-    else if (p->mode == BLOB_DETECT_TRACKING)
+    else if (p->mode == DETECT_TRACKING)
         ProcessTK();
 
     return ERR_NONE;
@@ -224,6 +228,13 @@ int Dove::ProcessTK() {
         }
 
         if(i < pframe || i > p->swipe_end) {
+            ImageProcess(src1oc, src1o);     
+            printf("refc %d %d \n", refc.cols, refc.rows);       
+            resize(refc, refc, Size(1920, 1080));
+            out << refc;        
+            printf("just put normal image %d \n", i);
+            SetRef(src1o);
+            SetRefC(src1oc);            
             i++;
             continue;            
         }
@@ -240,17 +251,17 @@ int Dove::ProcessTK() {
 
         }
         //tck.DrawObjectTracking(src1o, obj, roi, false, replay_style);
-
+        double dx = 0;
+        double dy = 0;
+        double da = 0;
         if (i >= p->swipe_start && i <= p->swipe_end) {
-            double dx = 0;
-            double dy = 0;
-            double da = 0;
+
             //if(!tck.issame) 
             {
                 dx = (pre_obj->cx - obj->cx) * p->track_scale;
                 dy = (pre_obj->cy - obj->cy) * p->track_scale;
-                dl.Logger("origin %f %f ", dx, dy);
-                if(p->run_kalman) {
+                dl.Logger("pre origin %f %f ", dx, dy);
+                if(p->run_kalman || p->run_kalman_pre) {
                     k->x += dx;
                     k->y += dy;
                     k->a += da;
@@ -282,33 +293,51 @@ int Dove::ProcessTK() {
                     dx = dx + diff_x;
                     dy = dy + diff_y;
                     da = da + diff_a;
-                    dl.Logger("from kalman %f %f ", dx, dy);
+                    dl.Logger("pre from kalman %f %f ", dx, dy);
                     //new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
                     //
                     k->out_new << i << " " << dx << " " << dy << " " << da << endl;     
                     prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));                    
+                } 
+                else 
+                {
+                    printf("[%d] not same. out_transform without kalman", i);
+                    k->out_new << i << " " << dx << " " << dy << " " << da << endl;     
+                    prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));                         
                 }
             }
-            // else {
+            // else {      
+            //     printf("[%d] same. out_transform without kalman", i);
             //     k->out_transform << i << " "<< dx << " "<< dy << " " << da << endl;            
             //     prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));
             // }
-        } 
+        }
 
         if (tck.isfound) {
             obj->copy(pre_obj);
         }
 
+        smth.at<double>(0,0) = 1; 
+        smth.at<double>(0,1) = 0; 
+        smth.at<double>(1,0) = 0; 
+        smth.at<double>(1,1) = 1;         
+        smth.at<double>(0,2) = -dx;
+        smth.at<double>(1,2) = -dy;
+        resize(refc, refc, Size(1920, 1080));               
+        ApplyImageRef();    
+        printf("refcw apply %f %f \n", smth.at<double>(0,2), smth.at<double>(1,2));
+        out << refcw;        
+        
         SetRef(src1o);
         SetRefC(src1oc);
         i++;
         // if(i == 50)
         //      break;
 
-        dl.Logger("[%d] Image Analysis  %f ", i, LapTimer(all));        
     }
+    dl.Logger("[%d] Image Analysis  %f ", i, LapTimer(all));        
+    return ERR_NONE;	
 
-    //return ERR_NONE;	
     dl.Logger("PostPrcess start ... ");
     double a = 0;
     double x = 0;
@@ -390,7 +419,7 @@ int Dove::ProcessTK() {
     Rect mg;
     CalculcateMargin(minx, maxx, miny, maxy, &mg);
 
-    int k = 0;
+    int vi = 0;
     i = 0;
     VideoCapture in2(_in);    
     while(true) {
@@ -419,9 +448,50 @@ int Dove::ProcessTK() {
             smth.at<double>(0,1) = 0; 
             smth.at<double>(1,0) = 0; 
             smth.at<double>(1,1) = 1; 
-            smth.at<double>(0,2) = -new_prev_to_cur_transform[k].dx;
-            smth.at<double>(1,2) = -new_prev_to_cur_transform[k].dy;        
-            k++;
+            double dx = -new_prev_to_cur_transform[vi].dx;
+            double dy = -new_prev_to_cur_transform[vi].dy;
+
+            if(p->run_kalman_post) {
+                k->x += dx;
+                k->y += dy;
+                k->a += 0;
+                dl.Logger("post origin %f %f ", dx, dy);                
+                k->out_transform << i << " " << dx << " " << dy << " " << 0 << endl;
+
+                k->z = Trajectory(k->x, k->y, k->a);                
+                if( i == p->swipe_start ){
+                    k->X = Trajectory(0,0,0); //Initial estimate,  set 0
+                    k->P = Trajectory(1,1,1); //set error variance,set 1
+                }
+                else
+                {
+                    //time update（prediction）
+                    k->X_ = k->X; //X_(k) = X(k-1);
+                    k->P_ = k->P+ k->Q; //P_(k) = P(k-1)+Q;
+                    // measurement update（correction）
+                    k->K = k->P_/ ( k->P_+ k->R ); //gain;K(k) = P_(k)/( P_(k)+R );
+                    k->X = k->X_+ k->K * (k->z - k->X_); //z-X_ is residual,X(k) = X_(k)+K(k)*(z(k)-X_(k)); 
+                    k->P = (Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
+                }
+                //smoothed_trajectory.push_back(X);
+                k->out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
+
+                // target - current
+                double diff_x = k->X.x - k->x;//
+                double diff_y = k->X.y - k->y;
+                double diff_a = k->X.a - k->a;
+
+                dx = dx + diff_x;
+                dy = dy + diff_y;
+                dl.Logger("post from kalman %f %f ", dx, dy);
+                smth.at<double>(0,2) = dx;
+                smth.at<double>(1,2) = dy;
+            } else {
+                smth.at<double>(0,2) = dx;
+                smth.at<double>(1,2) = dy;
+            }
+
+            vi++;
             dl.Logger("[%d] will Apply %f %f ",i, smth.at<double>(0,2), smth.at<double>(1,2));
             ApplyImageRef();
             // imwrite(filename, refcw);
@@ -562,7 +632,7 @@ int Dove::CalculateMove(Mat& cur, int frame_id) {
     } else if (p->mode == INTEGRAL_IMAGE) {
         result = CalculateMove_Integral(cur);
 
-    } else if (p->mode == BLOB_DETECT_TRACKING) {
+    } else if (p->mode == DETECT_TRACKING) {
         float fret = 0.0;
         fret = tck.DetectAndTrack(cur, frame_id, obj, roi);
         dl.Logger("[%d] result %f isFound %d issmae %d ", frame_id, fret, tck.isfound, tck.issame);
