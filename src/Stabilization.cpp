@@ -268,10 +268,10 @@ int Dove::ProcessTK() {
                     k->a += da;
                     k->out_transform << i << " " << dx << " " << dy << " " << da << endl;
 
-                    k->z = Trajectory(k->x, k->y, k->a);                
+                    k->z = dove::Trajectory(k->x, k->y, k->a);
                     if( i == p->swipe_start ){
-                        k->X = Trajectory(0,0,0); //Initial estimate,  set 0
-                        k->P = Trajectory(1,1,1); //set error variance,set 1
+                        k->X = dove::Trajectory(0,0,0); //Initial estimate,  set 0
+                        k->P = dove::Trajectory(1,1,1); //set error variance,set 1
                     }
                     else
                     {
@@ -281,7 +281,7 @@ int Dove::ProcessTK() {
                         // measurement update（correction）
                         k->K = k->P_/ ( k->P_+ k->R ); //gain;K(k) = P_(k)/( P_(k)+R );
                         k->X = k->X_+ k->K * (k->z - k->X_); //z-X_ is residual,X(k) = X_(k)+K(k)*(z(k)-X_(k)); 
-                        k->P = (Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
+                        k->P = (dove::Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
                     }
                     //smoothed_trajectory.push_back(X);
                     k->out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
@@ -343,19 +343,19 @@ int Dove::ProcessTK() {
     double a = 0;
     double x = 0;
     double y = 0;
-    vector <Trajectory> trajectory; // trajectory at all frames
+    vector <dove::Trajectory> trajectory; // trajectory at all frames
 
     for(size_t i = 0; i < prev_to_cur_transform.size(); i++) {
         x += prev_to_cur_transform[i].dx;
         y += prev_to_cur_transform[i].dy;
         a += prev_to_cur_transform[i].da;
 
-        trajectory.push_back(Trajectory(x,y,a));
+        trajectory.push_back(dove::Trajectory(x,y,a));
         k->out_trajectory2 << (i+1) << " " << x << " " << y << " " << a << endl;
     }
 
     // Step 3 - Smooth out the trajectory using an averaging window
-    vector <Trajectory> smoothed_trajectory; // trajectory at all frames
+    vector <dove::Trajectory> smoothed_trajectory; // trajectory at all frames
     for(size_t i = 0; i < trajectory.size(); i++) {
         double sum_x = 0;
         double sum_y = 0;
@@ -376,7 +376,7 @@ int Dove::ProcessTK() {
         double avg_x = sum_x / count;
         double avg_y = sum_y / count;
 
-        smoothed_trajectory.push_back(Trajectory(avg_x, avg_y, avg_a));
+        smoothed_trajectory.push_back(dove::Trajectory(avg_x, avg_y, avg_a));
         k->out_smoothed2 << (i+1) << " " << avg_x << " " << avg_y << " " << avg_a << endl;
     }
 
@@ -459,10 +459,10 @@ int Dove::ProcessTK() {
                 dl.Logger("post origin %f %f ", dx, dy);                
                 k->out_transform << i << " " << dx << " " << dy << " " << 0 << endl;
 
-                k->z = Trajectory(k->x, k->y, k->a);                
+                k->z = dove::Trajectory(k->x, k->y, k->a);                
                 if( i == p->swipe_start ){
-                    k->X = Trajectory(0,0,0); //Initial estimate,  set 0
-                    k->P = Trajectory(1,1,1); //set error variance,set 1
+                    k->X = dove::Trajectory(0,0,0); //Initial estimate,  set 0
+                    k->P = dove::Trajectory(1,1,1); //set error variance,set 1
                 }
                 else
                 {
@@ -472,7 +472,7 @@ int Dove::ProcessTK() {
                     // measurement update（correction）
                     k->K = k->P_/ ( k->P_+ k->R ); //gain;K(k) = P_(k)/( P_(k)+R );
                     k->X = k->X_+ k->K * (k->z - k->X_); //z-X_ is residual,X(k) = X_(k)+K(k)*(z(k)-X_(k)); 
-                    k->P = (Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
+                    k->P = (dove::Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
                 }
                 //smoothed_trajectory.push_back(X);
                 k->out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
@@ -788,11 +788,11 @@ int Dove::CalculateMove_LK(Mat& cur, int frame_id) {
 		//trajectory.push_back(Trajectory(x,y,a));
 		//
 		k->out_trajectory << i << " " << k->x << " " << k->y << " " << k->a << endl;
-		k->z = Trajectory(k->x, k->y, k->a);
+		k->z = dove::Trajectory(k->x, k->y, k->a);
 
 		if(i == 1){
-			k->X = Trajectory(0,0,0); //Initial estimate,  set 0
-			k->P = Trajectory(1,1,1); //set error variance,set 1
+			k->X = dove::Trajectory(0,0,0); //Initial estimate,  set 0
+			k->P = dove::Trajectory(1,1,1); //set error variance,set 1
 		}
 		else
 		{
@@ -802,7 +802,7 @@ int Dove::CalculateMove_LK(Mat& cur, int frame_id) {
 			// measurement update（correction）
 			k->K = k->P_/ ( k->P_+ k->R ); //gain;K(k) = P_(k)/( P_(k)+R );
 			k->X = k->X_+ k->K * (k->z - k->X_); //z-X_ is residual,X(k) = X_(k)+K(k)*(z(k)-X_(k)); 
-			k->P = (Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
+			k->P = (dove::Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
 		}
 		//smoothed_trajectory.push_back(X);
 		k->out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
