@@ -19,6 +19,7 @@
 
 using namespace std;
 using namespace cv;
+using namespace dove;
 
 Dove::Dove(int mode, bool has_mask, int* coord, string infile, string outfile, string id) {
     p = new PARAM();

@@ -16,6 +16,8 @@
 
 #include "DefData.hpp"
 
+using namespace dove;
+
 int stab_fastwin(char* in, char* out, int coord[4]) {
 
     VideoCapture stab(in);

@@ -16,6 +16,8 @@
 
 #include "DefData.hpp"
 
+using namespace dove;
+
 int MakeMask2(Mat& mask, PARAM* p);
 int stab_2dof(char* in, char* out, int coord[4]) { 
 

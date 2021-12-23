@@ -15,6 +15,8 @@
 */
 #include "DefData.h"
 
+using namespace dove;
+
 int stab_6dof(char* in, char* out) {
 
     VideoCapture stab(in);

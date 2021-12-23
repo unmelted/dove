@@ -37,7 +37,7 @@
 
 using namespace std;
 using namespace cv;
-
+namespace dove {
 typedef enum _err {
     ERR_NONE = 0,
     
@@ -357,3 +357,4 @@ int stab_2dof(char* in, char* out, int coord[4]);
 int stab_live(char* infile);
 int stab_pathsmoothe(char* infile);
 //int test_search();
+}

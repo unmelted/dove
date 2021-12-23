@@ -15,7 +15,7 @@ email:chenjia2013@foxmail.com
 
 using namespace std;
 using namespace cv;
-
+using namespace dove;
 // This video stablisation smooths the global trajectory using a sliding average window
 
 //const int SMOOTHING_RADIUS = 15; // In frames. The larger the more stable the video, but less reactive to sudden panning
