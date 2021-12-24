@@ -310,7 +310,7 @@ void GodStabil::CreateStabilizatedMovie(string outputPath, double outputFps)
 		twoPassStabilizer->setCorrectionForInclusion(incl_constr); 
 		twoPassStabilizer->setBorderMode(BORDER_REPLICATE);		
 
-		stabilizedFrames.reset(make_shared<ImageSetForStabil*>(twoPassStabilizer)); // 4-Processing the stabilized frames. The results are showed and saved. 
+		//stabilizedFrames.reset(make_shared<ImageSetForStabil*>(twoPassStabilizer)); // 4-Processing the stabilized frames. The results are showed and saved. 
 		IncodingWithStabilizedImage(stabilizedFrames, outputPath, outputFps); 	
 	} 
 	catch (const exception &e) 
