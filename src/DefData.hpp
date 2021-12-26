@@ -26,7 +26,7 @@
 #include <iostream>
 #include <cmath>
 #include <fstream>
-#include <sys/time.h>
+//#include <sys/time.h>
 #include <ctime>
 #include <stdio.h>
 #include <string.h>
@@ -37,7 +37,7 @@
 
 using namespace std;
 using namespace cv;
-
+namespace dove {
 typedef enum _err {
     ERR_NONE = 0,
     
@@ -54,7 +54,8 @@ typedef enum _calmode {
     SIMPLE_KALMAN_LIVE      = 6,
     PATH_SMOOTHE            = 7,
     DARKNET_DETECT_MOVE     = 8,
-    BLOB_DETECT_TRACKING    = 9,
+    DETECT_TRACKING         = 9,
+    DETECT_TRACKING_CH      = 10,
 
 }CALMODE;
 
@@ -179,6 +180,9 @@ typedef struct _param {
     float blur_sigma;
 
     bool run_kalman;
+    bool run_kalman_pre;
+    bool run_kalman_post;
+    bool run_path_smoothing;    
     int smoothing_radius;
     //detection
     bool run_detection;
@@ -324,8 +328,15 @@ typedef struct _kalman {
     double a = 0;
     double x = 0;
     double y = 0;
-    double pstd = 0.3;//4e-5 -Q: football many small person 4e-3 figure not severe jitter & object big move
-    double cstd = 0.15;//R:can be changed
+    // double pstd = 0.3;//4e-5 -Q: football many small person 4e-3 figure not severe jitter & object big move
+    // double cstd = 0.15;//R:can be changed //tracker csrt scale 640 parameter with pre kalman
+    // double pstd = 0.2;//4e-5 -Q: football many small person 4e-3 figure not severe jitter & object big move
+    // double cstd = 0.05;//R:can be changed //tracker csrt scale 640 parameter with post kalman
+    // double pstd = 0.01;//4e-5 -Q: football many small person 4e-3 figure not severe jitter & object big move
+    // double cstd = 0.15;//R:can be changed //tracker csrt scale 640 parameter with post kalman
+    double pstd = 0.005;//4e-5 -Q: football many small person 4e-3 figure not severe jitter & object big move
+    double cstd = 0.2;//R:can be changed //tracker csrt scale 640 parameter with post kalman
+
 
 	Trajectory X;//posteriori state estimate
 	Trajectory X_;//priori estimate
@@ -340,6 +351,7 @@ typedef struct _kalman {
     ofstream out_trajectory;
     ofstream out_smoothed;
     ofstream out_new;
+    ofstream out_transform2;    
     ofstream out_trajectory2;
     ofstream out_smoothed2;
     ofstream out_new2;
@@ -350,3 +362,4 @@ int stab_2dof(char* in, char* out, int coord[4]);
 int stab_live(char* infile);
 int stab_pathsmoothe(char* infile);
 //int test_search();
+}

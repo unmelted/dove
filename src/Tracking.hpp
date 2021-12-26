@@ -19,6 +19,7 @@
 
 using namespace std;
 using namespace cv;
+using namespace dove;
 
 class Tracking {
 
@@ -29,7 +30,7 @@ class Tracking {
     float first_summ;
     bool isfound;
     bool issame;
-
+    Rect rect_feature_roi;
 
     Tracking();
     ~Tracking();
@@ -50,6 +51,8 @@ class Tracking {
     Ptr<MSER>ms;
     Ptr<Tracker>tracker;
     Rect rect_roi;
+    TRACK_OBJ* feature_roi;
+
 
     Mat lut;
     int scale_w;
@@ -62,6 +65,6 @@ class Tracking {
     bool CheckWithin(Rect& r);
     bool CheckWithin(Rect& r, int index, vector<Rect>& rects);
     void ImageProcess(Mat& src, Mat& dst);
-    void ConvertToRect(TRACK_OBJ* roi);
+    void ConvertToRect(TRACK_OBJ* roi, Rect* rec, int scale = 1);
     void ConvertToROI(Rect& rec, TRACK_OBJ* obj, TRACK_OBJ* roi);
 };

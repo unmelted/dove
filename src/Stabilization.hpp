@@ -22,6 +22,7 @@
 
 using namespace std;
 using namespace cv;
+using namespace dove;
 
 class Dove {
 public: 
@@ -67,6 +68,7 @@ public:
     int Process();
     int ProcessTK();
     int ProcessLK();
+    void ProcessChristmas();
 
     int ImageProcess(Mat& src, Mat& dst);
     void SetRef(Mat& _src) {_src.copyTo(ref); };

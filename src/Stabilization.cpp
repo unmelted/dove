@@ -19,6 +19,7 @@
 
 using namespace std;
 using namespace cv;
+using namespace dove;
 
 Dove::Dove(int mode, bool has_mask, int* coord, string infile, string outfile, string id) {
     p = new PARAM();
@@ -36,10 +37,10 @@ Dove::Dove(int mode, bool has_mask, int* coord, string infile, string outfile, s
 
     dl.Logger("Start construct. %s %s  ", _in.c_str(), _out.c_str());
     p->mode = mode;
-    if(has_mask == true) 
-        Initialize(true, coord);
-    else 
-        Initialize(false, 0);    
+    //if(has_mask == true) 
+    Initialize(false, coord);
+    // else 
+    //     Initialize(false, 0);    
     tck.SetInitialData(p);      
 }
 
@@ -64,7 +65,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
     if(_in == "movie/4dmaker_600.mp4") {
         printf(" ------------ 600 !\n");        
         p->swipe_start = 80; //600 OK        
-        p->swipe_end = 198;
+        p->swipe_end = 180;
     } else if (_in == "movie/4dmaker_603.mp4") {
         printf(" ------------ 603 !\n");
         p->swipe_start = 79;
@@ -99,12 +100,12 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->run_detection = true;
         p->detector_type = DARKNET_YOLOV4;
     
-    } else if (p->mode == BLOB_DETECT_TRACKING) {
+    } else if (p->mode == DETECT_TRACKING || 
+            p->mode == DETECT_TRACKING_CH) {
         tck = Tracking();
         obj = new TRACK_OBJ();
         roi = new TRACK_OBJ();
-        p->scale = 2;
-        p->run_kalman = true;
+        p->scale = 1;
         p->run_tracking = true;
         p->run_detection = false;        
         p->detector_type = BLOB_MSER;
@@ -114,21 +115,28 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->limit_ly = 5;
         p->limit_bx = 630;
         p->limit_by = 350;
-        p->roi_w = 400;
-        p->roi_h = 300;
+        p->roi_w = 200;
+        p->roi_h = 160;
         p->swipe_threshold = 15;
         p-> area_threshold = 200;
         p->iou_threshold = 0.3;
         p->center_threshold  = 60;
+
+        p->run_path_smoothing = true;
+        p->smoothing_radius = 30;
+        p->run_kalman = true;
+        p->run_kalman_pre = false;
+        p->run_kalman_post = false;        
     }
 
-    if(has_mask == true) {
-        p->has_mask = true;
-        p->sx = coord[0] / p->scale;
-        p->sy = coord[1] / p->scale;
-        p->width = coord[2] / p->scale;
-        p->height = coord[3] / p->scale;    
-    }
+    //if(has_mask == true) 
+    // {
+        //p->has_mask = true;
+        // p->sx = coord[0] / p->scale;
+        // p->sy = coord[1] / p->scale;
+        // p->width = coord[2] / p->scale;
+        // p->height = coord[3] / p->scale;    
+    // }
 
     p->blur_size = 5;
     p->blur_sigma = 0.7;
@@ -150,15 +158,23 @@ void Dove::Initialize(bool has_mask, int* coord) {
         }
     }
 
-    if(p->run_kalman == true) {
-        k = new KALMAN();
-        p->smoothing_radius = 20;        
-        k->Q.set(k->pstd, k->pstd, k->pstd);
-        k->R.set(k->cstd, k->cstd, k->cstd);      
+    k = new KALMAN();
+    k->pstd = (double)coord[0]/10000;
+    k->cstd = (double)coord[1]/10000;
+    dl.Logger("pstd %f cstd %f ", k->pstd, k->cstd);
+
+    if(p->run_path_smoothing == true || p->run_kalman == true)  {
         k->out_transform.open("analysis/prev_to_cur_transformation.txt");
         k->out_trajectory.open("analysis/trajectory.txt");
         k->out_smoothed.open("analysis/smoothed_trajectory.txt");
-        k->out_new.open("analysis/new_prev_to_cur_transformation.txt");
+        k->out_new.open("analysis/new_prev_to_cur_transformation.txt");        
+    }
+
+    if(p->run_kalman == true || 
+        p->run_kalman_pre == true || p->run_kalman_post == true) {    
+        k->Q.set(k->pstd, k->pstd, k->pstd);
+        k->R.set(k->cstd, k->cstd, k->cstd);      
+        k->out_transform2.open("analysis/prev_to_cur_transformation2.txt");
         k->out_trajectory2.open("analysis/trajectory2.txt");
         k->out_smoothed2.open("analysis/smoothed_trajectory2.txt");
         k->out_new2.open("analysis/new_prev_to_cur_transformation2.txt");        
@@ -181,8 +197,10 @@ Dove::~Dove() {
 int Dove::Process() {
     if(p->mode == OPTICALFLOW_LK_2DOF)
         ProcessLK();
-    else if (p->mode == BLOB_DETECT_TRACKING)
+    else if (p->mode == DETECT_TRACKING)
         ProcessTK();
+    else if (p->mode == DETECT_TRACKING_CH)
+        ProcessChristmas();
 
     return ERR_NONE;
 }   
@@ -206,13 +224,19 @@ int Dove::ProcessTK() {
     TIMER* all;
     all = new TIMER();    
     StartTimer(all);    
-    int pframe = p->swipe_start - 5;
+    int t_frame_start = p->swipe_start;
+    int t_frame_end = p->swipe_end;
+
+    bool oversampling = false;
+    vector<int>same;
 
     while(true) {
         in >> src1oc;
         if(src1oc.data == NULL)
             break;
-                
+        if(i > t_frame_end)
+            break;
+
         if ( i == 0)
         {
             ImageProcess(src1oc, src1o);            
@@ -223,14 +247,17 @@ int Dove::ProcessTK() {
             continue;
         }
 
-        if(i < pframe || i > p->swipe_end) {
+        if(i < t_frame_start || i > t_frame_end) {
+            ImageProcess(src1oc, src1o);     
+            SetRef(src1o);
+            SetRefC(src1oc);            
             i++;
             continue;            
         }
 
         ImageProcess(src1oc, src1o);
         if( p->tracker_type != TRACKER_NONE) {
-            if (i == pframe)
+            if (i == t_frame_start)
                 tck.PickArea(src1o, i, obj, roi);
             else
                 tck.TrackerUpdate(src1o, i, obj, roi);            
@@ -240,26 +267,26 @@ int Dove::ProcessTK() {
 
         }
         //tck.DrawObjectTracking(src1o, obj, roi, false, replay_style);
+        double dx = 0;
+        double dy = 0;
+        double da = 0;
+        if (i > t_frame_start && i <= t_frame_end) {
 
-        if (i >= p->swipe_start && i <= p->swipe_end) {
-            double dx = 0;
-            double dy = 0;
-            double da = 0;
-            //if(!tck.issame) 
+            if(!tck.issame) 
             {
                 dx = (pre_obj->cx - obj->cx) * p->track_scale;
                 dy = (pre_obj->cy - obj->cy) * p->track_scale;
-                dl.Logger("origin %f %f ", dx, dy);
-                if(p->run_kalman) {
+                dl.Logger("pre origin %f %f ", dx, dy);
+                if(p->run_kalman || p->run_kalman_pre) {
                     k->x += dx;
                     k->y += dy;
                     k->a += da;
-                    k->out_transform << i << " " << dx << " " << dy << " " << da << endl;
+                    k->out_transform2 << i << " " << dx << " " << dy << " " << da << endl;
 
-                    k->z = Trajectory(k->x, k->y, k->a);                
+                    k->z = dove::Trajectory(k->x, k->y, k->a);
                     if( i == p->swipe_start ){
-                        k->X = Trajectory(0,0,0); //Initial estimate,  set 0
-                        k->P = Trajectory(1,1,1); //set error variance,set 1
+                        k->X = dove::Trajectory(0,0,0); //Initial estimate,  set 0
+                        k->P = dove::Trajectory(1,1,1); //set error variance,set 1
                     }
                     else
                     {
@@ -269,10 +296,10 @@ int Dove::ProcessTK() {
                         // measurement update（correction）
                         k->K = k->P_/ ( k->P_+ k->R ); //gain;K(k) = P_(k)/( P_(k)+R );
                         k->X = k->X_+ k->K * (k->z - k->X_); //z-X_ is residual,X(k) = X_(k)+K(k)*(z(k)-X_(k)); 
-                        k->P = (Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
+                        k->P = (dove::Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
                     }
                     //smoothed_trajectory.push_back(X);
-                    k->out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
+                    k->out_smoothed2 << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
 
                     // target - current
                     double diff_x = k->X.x - k->x;//
@@ -282,22 +309,44 @@ int Dove::ProcessTK() {
                     dx = dx + diff_x;
                     dy = dy + diff_y;
                     da = da + diff_a;
-                    dl.Logger("from kalman %f %f ", dx, dy);
+                    dl.Logger("pre from kalman %f %f ", dx, dy);
                     //new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
                     //
-                    k->out_new << i << " " << dx << " " << dy << " " << da << endl;     
+                    k->out_new2 << i << " " << dx << " " << dy << " " << da << endl;     
+                    prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));                    
+                } 
+                else if (p->run_path_smoothing == true) {      
+                    printf("[%d] not same. out_transform without kalman", i);                    
+                    k->out_transform << i << " "<< dx << " "<< dy << " " << da << endl;            
+                    prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));
+                } else {
+                    k->out_transform << i << " "<< dx << " "<< dy << " " << da << endl;            
                     prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));                    
                 }
+            } else {
+                same.push_back(i);
+                printf("[%d] same. out_transform without kalman", i);
+                k->out_transform << i << " "<< dx << " "<< dy << " " << da << endl;            
+                prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));
             }
-            // else {
-            //     k->out_transform << i << " "<< dx << " "<< dy << " " << da << endl;            
-            //     prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));
-            // }
-        } 
+        }
 
         if (tck.isfound) {
             obj->copy(pre_obj);
         }
+        //direct apply
+        // {
+        //     smth.at<double>(0,0) = 1; 
+        //     smth.at<double>(0,1) = 0; 
+        //     smth.at<double>(1,0) = 0; 
+        //     smth.at<double>(1,1) = 1;         
+        //     smth.at<double>(0,2) = -dx;
+        //     smth.at<double>(1,2) = -dy;
+        //     resize(refc, refc, Size(1920, 1080));               
+        //     ApplyImageRef();    
+        //     printf("refcw apply %f %f \n", smth.at<double>(0,2), smth.at<double>(1,2));
+        // }
+        // out << refcw;
 
         SetRef(src1o);
         SetRefC(src1oc);
@@ -305,27 +354,48 @@ int Dove::ProcessTK() {
         // if(i == 50)
         //      break;
 
-        dl.Logger("[%d] Image Analysis  %f ", i, LapTimer(all));        
     }
 
+    dl.Logger("[%d] Image Analysis  %f ", i, LapTimer(all));        
     //return ERR_NONE;	
+
     dl.Logger("PostPrcess start ... ");
     double a = 0;
     double x = 0;
     double y = 0;
-    vector <Trajectory> trajectory; // trajectory at all frames
+    vector <dove::Trajectory> trajectory; // trajectory at all frames
 
     for(size_t i = 0; i < prev_to_cur_transform.size(); i++) {
-        x += prev_to_cur_transform[i].dx;
-        y += prev_to_cur_transform[i].dy;
-        a += prev_to_cur_transform[i].da;
+        if(oversampling ) {
+            if(prev_to_cur_transform[i+1].dx == 0 && prev_to_cur_transform[i+1].dy == 0) {
+                x += prev_to_cur_transform[i].dx/2;
+                y += prev_to_cur_transform[i].dy/2;
+                a += 0;
 
-        trajectory.push_back(Trajectory(x,y,a));
-        k->out_trajectory2 << (i+1) << " " << x << " " << y << " " << a << endl;
+                trajectory.push_back(dove::Trajectory(x,y,a));
+                k->out_trajectory << (i) << " " << x << " " << y << " " << a << endl;
+                printf("trajectory 1[%d] %f %f \n", i , x, y);
+                x += prev_to_cur_transform[i].dx/2;
+                y += prev_to_cur_transform[i].dy/2;
+                a += 0;
+
+                trajectory.push_back(dove::Trajectory(x,y,a));
+                k->out_trajectory << (i) << " " << x << " " << y << " " << a << endl;
+                printf("trajectory 2[%d] %f %f \n", i, x, y);            
+            }
+
+        } else {
+            x += prev_to_cur_transform[i].dx;
+            y += prev_to_cur_transform[i].dy;
+            a += prev_to_cur_transform[i].da;
+
+            trajectory.push_back(dove::Trajectory(x,y,a));
+            k->out_trajectory << (i+1) << " " << x << " " << y << " " << a << endl;
+        }
     }
 
     // Step 3 - Smooth out the trajectory using an averaging window
-    vector <Trajectory> smoothed_trajectory; // trajectory at all frames
+    vector <dove::Trajectory> smoothed_trajectory; // trajectory at all frames
     for(size_t i = 0; i < trajectory.size(); i++) {
         double sum_x = 0;
         double sum_y = 0;
@@ -346,8 +416,8 @@ int Dove::ProcessTK() {
         double avg_x = sum_x / count;
         double avg_y = sum_y / count;
 
-        smoothed_trajectory.push_back(Trajectory(avg_x, avg_y, avg_a));
-        k->out_smoothed2 << (i+1) << " " << avg_x << " " << avg_y << " " << avg_a << endl;
+        smoothed_trajectory.push_back(dove::Trajectory(avg_x, avg_y, avg_a));
+        k->out_smoothed << (i+1) << " " << avg_x << " " << avg_y << " " << avg_a << endl;
     }
 
     // Step 4 - Generate new set of previous to current transform, such that the trajectory ends up being the same as the smoothed trajectory
@@ -361,7 +431,7 @@ int Dove::ProcessTK() {
     double miny = 2000;
     double maxy = 0;
 
-    for(size_t i = 0; i < prev_to_cur_transform.size(); i++) {
+    for(size_t i = 0; i < smoothed_trajectory.size(); i++) {
         x += prev_to_cur_transform[i].dx;
         y += prev_to_cur_transform[i].dy;
         a += prev_to_cur_transform[i].da;
@@ -376,7 +446,7 @@ int Dove::ProcessTK() {
         double da = prev_to_cur_transform[i].da + diff_a;
 
         new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
-        k->out_new2 << (i+1) << " " << dx << " " << dy << " " << da << endl;
+        k->out_new << (i+1) << " " << dx << " " << dy << " " << da << endl;
         if(dx < minx)
             minx = dx;
         else if(dx > maxx)
@@ -390,8 +460,10 @@ int Dove::ProcessTK() {
     Rect mg;
     CalculcateMargin(minx, maxx, miny, maxy, &mg);
 
-    int k = 0;
-    i = 0;
+    int vi = 0;
+    int m = 0;    
+    i = 0; 
+    char tx[10];    
     VideoCapture in2(_in);    
     while(true) {
         in2 >> src1oc;
@@ -414,17 +486,56 @@ int Dove::ProcessTK() {
         else 
             canvas = Mat::zeros(1080, 1920, CV_8UC3);
 
-        if (i >= p->swipe_start && i <= p->swipe_end) {
+        if (i > t_frame_start && i <= t_frame_end) {
             smth.at<double>(0,0) = 1; 
             smth.at<double>(0,1) = 0; 
             smth.at<double>(1,0) = 0; 
             smth.at<double>(1,1) = 1; 
-            smth.at<double>(0,2) = -new_prev_to_cur_transform[k].dx;
-            smth.at<double>(1,2) = -new_prev_to_cur_transform[k].dy;        
-            k++;
-            dl.Logger("[%d] will Apply %f %f ",i, smth.at<double>(0,2), smth.at<double>(1,2));
-            ApplyImageRef();
-            // imwrite(filename, refcw);
+            double dx = -new_prev_to_cur_transform[vi].dx;
+            double dy = -new_prev_to_cur_transform[vi].dy;
+
+            if(p->run_kalman_post) {
+                k->x += dx;
+                k->y += dy;
+                k->a += 0;
+                dl.Logger("post origin %f %f ", dx, dy);                
+                k->out_transform << i << " " << dx << " " << dy << " " << 0 << endl;
+
+                k->z = dove::Trajectory(k->x, k->y, k->a);                
+                if( i == p->swipe_start ){
+                    k->X = dove::Trajectory(0,0,0); //Initial estimate,  set 0
+                    k->P = dove::Trajectory(1,1,1); //set error variance,set 1
+                }
+                else
+                {
+                    //time update（prediction）
+                    k->X_ = k->X; //X_(k) = X(k-1);
+                    k->P_ = k->P+ k->Q; //P_(k) = P(k-1)+Q;
+                    // measurement update（correction）
+                    k->K = k->P_/ ( k->P_+ k->R ); //gain;K(k) = P_(k)/( P_(k)+R );
+                    k->X = k->X_+ k->K * (k->z - k->X_); //z-X_ is residual,X(k) = X_(k)+K(k)*(z(k)-X_(k)); 
+                    k->P = (dove::Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
+                }
+                //smoothed_trajectory.push_back(X);
+                k->out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
+
+                // target - current
+                double diff_x = k->X.x - k->x;//
+                double diff_y = k->X.y - k->y;
+                double diff_a = k->X.a - k->a;
+
+                dx = dx + diff_x;
+                dy = dy + diff_y;
+                dl.Logger("post from kalman %f %f ", dx, dy);
+                smth.at<double>(0,2) = dx;
+                smth.at<double>(1,2) = dy;
+            } else {
+                smth.at<double>(0,2) = dx;
+                smth.at<double>(1,2) = dy;
+                dl.Logger("[%d] will Apply %f %f ",i, smth.at<double>(0,2), smth.at<double>(1,2));
+                ApplyImageRef();
+                vi++;
+            }
         }
         else {
             refc.copyTo(refcw);
@@ -439,6 +550,9 @@ int Dove::ProcessTK() {
         else {
             refcw.copyTo(canvas);
         }
+
+        // sprintf(tx, "%d", i);
+        // putText(canvas, tx, Point( 100, 100), FONT_HERSHEY_SIMPLEX, 5, (0), 3);
 
         out << canvas;        
         SetRefC(src1oc);
@@ -562,7 +676,7 @@ int Dove::CalculateMove(Mat& cur, int frame_id) {
     } else if (p->mode == INTEGRAL_IMAGE) {
         result = CalculateMove_Integral(cur);
 
-    } else if (p->mode == BLOB_DETECT_TRACKING) {
+    } else if (p->mode == DETECT_TRACKING) {
         float fret = 0.0;
         fret = tck.DetectAndTrack(cur, frame_id, obj, roi);
         dl.Logger("[%d] result %f isFound %d issmae %d ", frame_id, fret, tck.isfound, tck.issame);
@@ -717,11 +831,11 @@ int Dove::CalculateMove_LK(Mat& cur, int frame_id) {
 		//trajectory.push_back(Trajectory(x,y,a));
 		//
 		k->out_trajectory << i << " " << k->x << " " << k->y << " " << k->a << endl;
-		k->z = Trajectory(k->x, k->y, k->a);
+		k->z = dove::Trajectory(k->x, k->y, k->a);
 
 		if(i == 1){
-			k->X = Trajectory(0,0,0); //Initial estimate,  set 0
-			k->P = Trajectory(1,1,1); //set error variance,set 1
+			k->X = dove::Trajectory(0,0,0); //Initial estimate,  set 0
+			k->P = dove::Trajectory(1,1,1); //set error variance,set 1
 		}
 		else
 		{
@@ -731,7 +845,7 @@ int Dove::CalculateMove_LK(Mat& cur, int frame_id) {
 			// measurement update（correction）
 			k->K = k->P_/ ( k->P_+ k->R ); //gain;K(k) = P_(k)/( P_(k)+R );
 			k->X = k->X_+ k->K * (k->z - k->X_); //z-X_ is residual,X(k) = X_(k)+K(k)*(z(k)-X_(k)); 
-			k->P = (Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
+			k->P = (dove::Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
 		}
 		//smoothed_trajectory.push_back(X);
 		k->out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
@@ -809,4 +923,177 @@ int Dove::MakeMask() {
     imwrite("saved/mask.png", mask);
 
     return ERR_NONE;
+}
+
+void Dove::ProcessChristmas() {
+
+    VideoCapture in(_in);
+    VideoWriter out;
+    bool compare = false;
+    if (compare)    
+        out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1930, 540));
+    else 
+        out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));
+    dl.Logger("Process TK started ");
+    Mat src1oc; Mat src1o;
+    int i = 0;
+    int result = 0;
+    int found = 0;
+    vector <TransformParam> prev_to_cur_transform;
+    TRACK_OBJ* pre_obj = new TRACK_OBJ();;
+
+    TIMER* all;
+    all = new TIMER();    
+    StartTimer(all);    
+    int t_frame_start = p->swipe_start;
+    int t_frame_end = p->swipe_end;
+
+    bool oversampling = false;
+    vector<int>same;
+
+    while(true) {
+        in >> src1oc;
+        if(src1oc.data == NULL)
+            break;            
+
+        if(src1oc.cols > p->dst_width)
+            resize(src1oc, src1oc, Size(p->dst_width, p->dst_height));
+
+        if ( i == 0)
+        {
+            ImageProcess(src1oc, src1o);            
+            SetRef(src1o);
+            SetRefC(src1oc);            
+            tck.SetBg(src1o, i);
+            i++;
+            continue;
+        }
+
+        if(i < t_frame_start || i > t_frame_end) {
+            ImageProcess(src1oc, src1o);     
+            SetRef(src1o);
+            SetRefC(src1oc);
+            out << refc;
+            i++;
+            continue;            
+        }
+
+        ImageProcess(src1oc, src1o);
+        if( p->tracker_type != TRACKER_NONE) {
+            if (i == t_frame_start)
+                tck.PickArea(src1o, i, obj, roi);
+            else
+                tck.TrackerUpdate(src1o, i, obj, roi);            
+        }
+
+        //tck.DrawObjectTracking(src1o, obj, roi, false, replay_style);
+        
+        if (i > t_frame_start && i <= t_frame_end) {
+            double dx = 0;
+            double dy = 0;
+            double da = 0;
+        
+            vector <Point2f> features1, features2;
+            vector <Point2f> goodFeatures1, goodFeatures2;
+            vector <uchar> status;
+            vector <float> err;
+            dl.Logger("tck.rect_feature_roi s %d %d w %d %d ", tck.rect_feature_roi.x, tck.rect_feature_roi.y,
+                    tck.rect_feature_roi.width, tck.rect_feature_roi.height);
+            Mat roi_ref = ref(tck.rect_feature_roi);
+            Mat roi_cur = src1o(tck.rect_feature_roi);
+            goodFeaturesToTrack(roi_ref, features1, 200, 0.01, 30);    
+            calcOpticalFlowPyrLK(roi_ref, roi_cur, features1, features2, status, err );
+
+            for(size_t i = 0; i < status.size(); i++)
+            {
+                if(status[i])
+                {
+                    goodFeatures1.push_back(features1[i]);
+                    goodFeatures2.push_back(features2[i]);
+                }
+            }
+
+            if(goodFeatures1.size() < threshold || goodFeatures2.size() < threshold) {
+                    dl.Logger("[%d] no feature to track.. feature %d: ", i,  goodFeatures1.size());
+                    pre_affine.copyTo(affine);
+            }
+            else {
+                affine = estimateAffine2D(goodFeatures1, goodFeatures2);
+            }
+
+            if(affine.empty() == true) {
+                dl.Logger("there is no solution ..");
+                pre_affine.copyTo(affine);
+            }
+
+            dx = affine.at<double>(0,2);
+            dy = affine.at<double>(1,2);
+
+            dl.Logger("origin dx %f dy %f", dx ,dy);
+
+            if(p->run_kalman) {
+                k->out_transform << i << " " << dx << " " << dy << " " << da << endl;        
+                k->x += dx;
+                k->y += dy;
+                k->a += 0;
+                //trajectory.push_back(Trajectory(x,y,a));
+                //
+                k->out_trajectory << i << " " << k->x << " " << k->y << " " << k->a << endl;
+                k->z = dove::Trajectory(k->x, k->y, k->a);
+
+                if(i == 1){
+                    k->X = dove::Trajectory(0,0,0); //Initial estimate,  set 0
+                    k->P = dove::Trajectory(1,1,1); //set error variance,set 1
+                }
+                else
+                {
+                    //time update（prediction）
+                    k->X_ = k->X; //X_(k) = X(k-1);
+                    k->P_ = k->P+ k->Q; //P_(k) = P(k-1)+Q;
+                    // measurement update（correction）
+                    k->K = k->P_/ ( k->P_+ k->R ); //gain;K(k) = P_(k)/( P_(k)+R );
+                    k->X = k->X_+ k->K * (k->z - k->X_); //z-X_ is residual,X(k) = X_(k)+K(k)*(z(k)-X_(k)); 
+                    k->P = (dove::Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
+                }
+                //smoothed_trajectory.push_back(X);
+                k->out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
+
+                // target - current
+                double diff_x = k->X.x - k->x;//
+                double diff_y = k->X.y - k->y;
+                double diff_a = k->X.a - k->a;
+
+                dx = dx + diff_x;
+                dy = dy + diff_y;
+                da = da + diff_a;
+                dl.Logger("from kalman %f %f ", dx, dy);
+                //new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
+                //
+                k->out_new << i << " " << dx << " " << dy << " " << da << endl;        
+            }
+
+            smth.at<double>(0,0) = 1; 
+            smth.at<double>(0,1) = 0; 
+            smth.at<double>(1,0) = 0; 
+            smth.at<double>(1,1) = 1; 
+            smth.at<double>(0,2) = dx;
+            smth.at<double>(1,2) = dy;
+        }
+
+        if (tck.isfound) {
+            obj->copy(pre_obj);
+        }           
+
+        ApplyImageRef();    
+        //printf("refcw apply %f %f \n", smth.at<double>(0,2), smth.at<double>(1,2));
+        // sprintf(filename,"%d_warp.png", i);
+        // imwrite(filename, refcw);
+        out << refcw;
+
+        SetRef(src1o);
+        SetRefC(src1oc);
+        i++;
+    }
+
+    dl.Logger(" All process done.  %f ", LapTimer(all));
 }

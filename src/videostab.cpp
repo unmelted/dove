@@ -74,7 +74,8 @@ Mat VideoStab::stabilize(Mat frame_1, Mat frame_2)
     }
 
     //All the parameters scale, angle, and translation are stored in affine
-    affine = estimateRigidTransform(goodFeatures1, goodFeatures2, false);
+    //affine = estimateRigidTransform(goodFeatures1, goodFeatures2, false);
+    affine = estimateAffine2D(goodFeatures1, goodFeatures2);
 
     //cout<<affine;
     //flush(cout);

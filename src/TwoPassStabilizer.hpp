@@ -24,7 +24,7 @@
 
 using namespace std;
 using namespace cv;
-
+using namespace dove;
 
 class ImageSetForStabilization : public videostab::IFrameSource
 {
