@@ -62,7 +62,7 @@ Dove::Dove(string infile, string outfile) {
 
 void Dove::Initialize(bool has_mask, int* coord) {
     
-    if(_in == "movie/4dmaker_600.mp4") {
+    if(_in == "movie/4dmaker_600.mp4" || _in == "movie/4dmaker_600_out2.mp4") {
         printf(" ------------ 600 !\n");        
         p->swipe_start = 80; //600 OK        
         p->swipe_end = 180;
@@ -86,8 +86,10 @@ void Dove::Initialize(bool has_mask, int* coord) {
     }else if (_in == "movie/4dmaker_622.mp4") {
         p->swipe_start = 79;
         p->swipe_end = 165; //white onepiece single - missing during swipe because character
+    } else if (_in == "movie/4NylanderGoal.mp4") {
+        p->swipe_start = 153;
+        p->swipe_end = 188; //white onepiece single - missing during swipe because character
     }
-
 
     if (p->mode == OPTICALFLOW_LK_2DOF) {
         p->scale = 2;
@@ -161,7 +163,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
     k = new KALMAN();
     k->pstd = (double)coord[0]/10000;
     k->cstd = (double)coord[1]/10000;
-    dl.Logger("pstd %f cstd %f ", k->pstd, k->cstd);
+    //dl.Logger("pstd %f cstd %f ", k->pstd, k->cstd);
 
     if(p->run_path_smoothing == true || p->run_kalman == true)  {
         k->out_transform.open("analysis/prev_to_cur_transformation.txt");
@@ -374,14 +376,12 @@ int Dove::ProcessTK() {
 
                 trajectory.push_back(dove::Trajectory(x,y,a));
                 k->out_trajectory << (i) << " " << x << " " << y << " " << a << endl;
-                printf("trajectory 1[%d] %f %f \n", i , x, y);
                 x += prev_to_cur_transform[i].dx/2;
                 y += prev_to_cur_transform[i].dy/2;
                 a += 0;
 
                 trajectory.push_back(dove::Trajectory(x,y,a));
                 k->out_trajectory << (i) << " " << x << " " << y << " " << a << endl;
-                printf("trajectory 2[%d] %f %f \n", i, x, y);            
             }
 
         } else {
