@@ -42,6 +42,8 @@ class Tracking {
     int PickArea(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);    
     void DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin = false, int replay_stype = 0);
     void DrawObjectTracking(TRACK_OBJ* obj, TRACK_OBJ* roi, vector<Rect> rects);
+    int PickAreaFx(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
+    int TrackerUpdateFx(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
 
     private :
     char filename[50];

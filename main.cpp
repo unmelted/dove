@@ -37,6 +37,7 @@ int main(int argc, char* argv[]) {
 
     char infile[40];
     char outfile[40];
+//    sprintf(infile,"movie/%s.avi", argv[1]);    
     sprintf(infile,"movie/%s.mp4", argv[1]);
     sprintf(outfile, "movie/%s_out2.mp4", argv[1]);
 
@@ -52,7 +53,7 @@ int main(int argc, char* argv[]) {
     }
 
     bool has_mask = false;
-    int mode = dove::DETECT_TRACKING_CH; 
+    int mode = dove::DETECT_TRACKING; 
     //stab_live(infile);
     Dove stblz(mode, has_mask, coord, infile, outfile);
     stblz.Process();

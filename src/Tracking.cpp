@@ -137,6 +137,14 @@ void Tracking::ConvertToROI(Rect& rec, TRACK_OBJ* obj, TRACK_OBJ* roi) {
     obj->update();
 }
 
+int Tracking::PickAreaFx(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+
+}
+
+int Tracking::TrackerUpdateFx(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+
+}
+
 int Tracking::PickArea(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
     int result = 0;
     double minval; double maxval;
@@ -197,7 +205,7 @@ int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi)
 
     ConvertToROI(rect_roi, obj, roi);
     isfound = true;    
-    //DrawObjectTracking(diff, obj, roi, false, 1);
+    DrawObjectTracking(diff, obj, roi, false, 1);
     tracker->init(diff, rect_roi);                    
     if(p->mode == DETECT_TRACKING_CH) {
         MakeROI(obj, feature_roi);
