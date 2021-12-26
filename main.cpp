@@ -18,7 +18,7 @@
 
 #include <iostream>
 #include "src/DefData.hpp"
-//#include "rc/Stabilization.hpp"
+#include "src/Stabilization.hpp"
 #include <opencv2/core/utility.hpp>
 #include "opencv2/video.hpp"
 #include "opencv2/videoio.hpp"
@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
     }
 
     bool has_mask = false;
-    int mode = DETECT_TRACKING; 
+    int mode = dove::DETECT_TRACKING_CH; 
     //stab_live(infile);
     Dove stblz(mode, has_mask, coord, infile, outfile);
     stblz.Process();

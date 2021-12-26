@@ -115,11 +115,11 @@ bool Tracking::CheckWithin(Rect& r, int index, vector<Rect>& rects) {
     return false;
 }
 
-void Tracking::ConvertToRect(TRACK_OBJ* roi) {
-    rect_roi.x = roi->sx;
-    rect_roi.y = roi->sy;
-    rect_roi.width = roi->w;
-    rect_roi.height = roi->h;
+void Tracking::ConvertToRect(TRACK_OBJ* roi, Rect* rec, int scale) {
+    rec->x = roi->sx * scale;
+    rec->y = roi->sy * scale;
+    rec->width = roi->w * scale;
+    rec->height = roi->h * scale;
 }
 
 void Tracking::ConvertToROI(Rect& rec, TRACK_OBJ* obj, TRACK_OBJ* roi) {
@@ -156,7 +156,7 @@ int Tracking::PickArea(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
     roi->update();
     dl.Logger("obj %d %d %d %d", obj->sx, obj->sy ,obj->w , obj->h);
     dl.Logger("roi %d %d %d %d", roi->sx, roi->sy ,roi->w , roi->h);
-    ConvertToRect(roi);
+    ConvertToRect(roi, &rect_roi);
 
     tracker->init(diff, rect_roi);
     isfound = true;
@@ -169,7 +169,7 @@ int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi)
     //dl.Logger("TrackerUpdate cos/row %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
     subtract(bg, cur, diff);
     float diff_val = sum(diff)[0]/(scale_w * scale_h);
-
+    /*
     if(index > start_frame +1 && !prev.empty()) {
         Mat same;        
         subtract(prev, cur, same);
@@ -186,7 +186,7 @@ int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi)
     else if( index == start_frame ) {
         first_summ = diff_val;    
         dl.Logger("First summ save %f ", first_summ);
-    }
+    }*/
     cur.copyTo(prev);
 
     bool ret = tracker->update(diff, rect_roi);
@@ -199,6 +199,10 @@ int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi)
     isfound = true;    
     //DrawObjectTracking(diff, obj, roi, false, 1);
     tracker->init(diff, rect_roi);                    
+    if(p->mode == DETECT_TRACKING_CH) {
+        MakeROI(obj, feature_roi);
+        ConvertToRect(feature_roi, &rect_feature_roi, p->track_scale);
+    }
 }
 
 float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
@@ -329,33 +333,32 @@ void Tracking::MakeROI(TRACK_OBJ* obj, TRACK_OBJ* roi) {
 
     if ((obj->cx + real_w /2) > p->limit_bx) {
         real_w = real_w - ((obj->cx + real_w /2) - p->limit_bx);
-        printf("1 real_w %f\n", real_w);
+        //printf("1 real_w %f\n", real_w);
     }
     if ((obj->cx - real_w /2) < p->limit_lx) {
         real_w = real_w - (p->limit_lx - (obj->cx - real_w /2));
-        printf("2 real_w %f \n", real_w);        
+        //printf("2 real_w %f \n", real_w);        
     }
     if ((obj->cy + real_h /2) > p->limit_by) {
         real_h = real_h - ((obj->cy + real_h /2) - p->limit_by);
-        printf("3 real_h %f \n", real_h);
+        //printf("3 real_h %f \n", real_h);
     }
     if ((obj->cy - real_h/ 2) < p->limit_ly) {
         real_h = real_h - (p->limit_ly - (obj->cy - real_h /2));
-        printf("4 real_h %f \n", real_h);        
+        //printf("4 real_h %f \n", real_h);        
     }
 
-    dl.Logger("modifed ROI w %f h %f", real_w, real_h);
-
+    //dl.Logger("modifed ROI w %f h %f", real_w, real_h);    
     if ((obj->cx - real_w /2) > p->limit_lx) {
         roi->sx = int(obj->cx - (real_w /2));
-        printf("roi->sx %d \n", roi->sx);        
+        //printf("roi->sx %d \n", roi->sx);        
     }
     else 
         roi->sx = p->limit_lx;
 
     if ((obj->cy - real_h /2) > p->limit_ly) {
         roi->sy = int(obj->cy - (real_h / 2));
-        printf("roi->sy %d \n", roi->sy);
+        //printf("roi->sy %d \n", roi->sy);
     }
     else
         roi->sy = p->limit_ly;
@@ -370,7 +373,9 @@ void Tracking::MakeROI(TRACK_OBJ* obj, TRACK_OBJ* roi) {
     else 
         roi->ey = int(obj->cy + real_h /2);
     
-
+    roi->w = roi->ex - roi->sx;
+    roi->h = roi->ey - roi->sy;
+    
     dl.Logger("[ROI] s %d %d w %f %f e %d %d", int(roi->sx), int(roi->sy), int(roi->w), int(roi->h),
          int(roi->ex), int(roi->ey));
 
