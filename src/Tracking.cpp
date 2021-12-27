@@ -200,6 +200,7 @@ int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi)
 
 #if defined _MAC_    
     bool ret = tracker->update(diff, rect_roi);
+    dl.Logger("tracker update %d %d %d %d ", rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
 #else
     Rect2d temp;
     bool ret = tracker->update(diff, temp);    
@@ -207,6 +208,8 @@ int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi)
     rect_roi.y = (int)temp.y;
     rect_roi.width = (int)temp.width;
     rect_roi.height = (int)temp.height;    
+    dl.Logger("tracker update1 %d %d %d %d ", temp.x, temp.y, temp.width, temp.height);
+    dl.Logger("tracker update2 %d %d %d %d ", rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
 #endif    
 
     if (ret == false) {
