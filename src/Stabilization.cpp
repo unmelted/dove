@@ -30,8 +30,9 @@ Dove::Dove(int mode, bool has_mask, int* coord, string infile, string outfile, s
 #endif
     tck = Tracking();
 
-    dl.Logger("instance created.. ");
     dl.SetLogFilename("TEST");
+    dl.Logger("instance created.. ");
+
 #if defined _MAC_
     dt.SetLogger(dl);    
 #endif
@@ -74,10 +75,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
         printf(" ------------ 600 !\n");        
         p->swipe_start = 80; //600 OK        
         p->swipe_end = 198;
-#if defined _WIN_ || _WINDOWS        
-        _in = "D:\\dove_test\\x64\\Release\\" + _in;
-        _out = "D:\\dove_test\\x64\\Release\\" + out;
-#endif        
+        
     } else if (_in == "movie/4dmaker_603.mp4") {
         printf(" ------------ 603 !\n");
         p->swipe_start = 79;
@@ -119,7 +117,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
         tck = Tracking();
         obj = new TRACK_OBJ();
         roi = new TRACK_OBJ();
-        p->scale = 1;
+        p->scale = 2;
         p->run_tracking = true;
         p->run_detection = false;        
         p->detector_type = BLOB_MSER;
@@ -138,7 +136,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
 
         p->run_path_smoothing = true;
         p->smoothing_radius = 30;
-        p->run_kalman = true;
+        p->run_kalman = false;
         p->run_kalman_pre = false;
         p->run_kalman_post = false;        
     }
@@ -332,10 +330,11 @@ int Dove::ProcessTK() {
                     prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));                    
                 } 
                 else if (p->run_path_smoothing == true) {      
-                    printf("[%d] not same. out_transform without kalman", i);                    
+                    printf("[%d] not same1. out_transform without kalman", i);                    
                     k->out_transform << i << " "<< dx << " "<< dy << " " << da << endl;            
                     prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));
                 } else {
+                    printf("[%d] not same2. out_transform without kalman", i);
                     k->out_transform << i << " "<< dx << " "<< dy << " " << da << endl;            
                     prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));                    
                 }

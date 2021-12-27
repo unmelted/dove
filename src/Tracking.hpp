@@ -35,7 +35,7 @@ class Tracking {
     Tracking();
     ~Tracking();
     void SetInitialData(PARAM* _p);
-    void SetLogFilename(string name) {dl.SetLogFilename(name); };    
+    void SetLogFilename(string name) {this->dl.SetLogFilename(name); };    
     float DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
     int TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
     void SetBg(Mat& src, int frame_id);

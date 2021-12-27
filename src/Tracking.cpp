@@ -165,10 +165,11 @@ int Tracking::PickArea(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
     dl.Logger("obj %d %d %d %d", obj->sx, obj->sy ,obj->w , obj->h);
     dl.Logger("roi %d %d %d %d", roi->sx, roi->sy ,roi->w , roi->h);
     ConvertToRect(roi, &rect_roi);
-
+    dl.Logger("rect roi for tracker init %d %d %d %d", rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
     tracker->init(diff, rect_roi);
     isfound = true;
     //DrawObjectTracking(diff, obj, roi, false, 1);
+    return ERR_NONE;
 }
 
 int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
@@ -201,10 +202,12 @@ int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi)
     bool ret = tracker->update(diff, rect_roi);
 #else
     Rect2d temp;
-    temp.x = rect_roi.x;
-    temp.y = rect_roi.y;
-    temp.width = rect_roi.width;
-    temp.height = rect_roi.height;
+    temp.x = (double)rect_roi.x;
+    temp.y = (double)rect_roi.y;
+    temp.width = (double)rect_roi.width;
+    temp.height = (double)rect_roi.height;
+    dl.Logger("tracker update rect %d %d %d %d", rect_roi.x, rect_roi.y ,rect_roi.width, rect_roi.height);
+    dl.Logger("tracker update rect %f %f %f %f", temp.x, temp.y, temp.width, temp.height);
     bool ret = tracker->update(diff, temp);    
 #endif    
 
@@ -216,11 +219,15 @@ int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi)
     ConvertToROI(rect_roi, obj, roi);
     isfound = true;    
     DrawObjectTracking(diff, obj, roi, false, 1);
+    sprintf(filename, "saved\\%d_trck.png", index);
+    imwrite(filename, diff);
     tracker->init(diff, rect_roi);                    
     if(p->mode == DETECT_TRACKING_CH) {
         MakeROI(obj, feature_roi);
         ConvertToRect(feature_roi, &rect_feature_roi, p->track_scale);
     }
+
+    return ERR_NONE;
 }
 
 float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {

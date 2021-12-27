@@ -37,9 +37,19 @@ int main(int argc, char* argv[]) {
 
     char infile[40];
     char outfile[40];
-//    sprintf(infile,"movie/%s.avi", argv[1]);    
+
+#if defined _MAC_
     sprintf(infile,"movie/%s.mp4", argv[1]);
     sprintf(outfile, "movie/%s_out2.mp4", argv[1]);
+#else
+    string inpath;
+    cout << "input : ";
+    getline(cin, inpath);
+    sprintf(infile, "movie/%s.mp4", inpath.c_str());
+    sprintf(outfile, "movie/%s_out2.mp4", inpath.c_str());
+    cout << "main in " << infile << endl;
+    cout << "main out " << outfile << endl;
+#endif
 
     cout<<infile<<endl;
     cout<<outfile<<endl;
