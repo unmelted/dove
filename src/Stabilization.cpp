@@ -25,12 +25,16 @@ Dove::Dove(int mode, bool has_mask, int* coord, string infile, string outfile, s
     p = new PARAM();
     t = new TIMER();
     dl = Dlog();
+#if defined _MAC_
     dt = Detection();
+#endif
     tck = Tracking();
 
     dl.Logger("instance created.. ");
     dl.SetLogFilename("TEST");
+#if defined _MAC_
     dt.SetLogger(dl);    
+#endif
     tck.SetLogFilename("TEST");    
     _in = infile;
     _out = outfile;
@@ -48,11 +52,15 @@ Dove::Dove(string infile, string outfile) {
     p = new PARAM();
     t = new TIMER();
     dl = Dlog();
+#if defined _MAC_
     dt = Detection();
+#endif
     tck = Tracking();    
 
     dl.SetLogFilename("TEST");
+#if defined _MAC_
     dt.SetLogger(dl);
+#endif
     tck.SetLogFilename("TEST");
     _in = infile;
     _out = outfile;
@@ -65,7 +73,9 @@ void Dove::Initialize(bool has_mask, int* coord) {
     if(_in == "movie/4dmaker_600.mp4" || _in == "movie/4dmaker_600_out2.mp4") {
         printf(" ------------ 600 !\n");        
         p->swipe_start = 80; //600 OK        
-        p->swipe_end = 180;
+        p->swipe_end = 198;
+        _in = "D:\\dove_test\\x64\\Release\\movie\\4dmaker_600.mp4";
+        _out = "D:\\dove_test\\x64\\Release\\movie\\4dmaker_600_out2.mp4";
     } else if (_in == "movie/4dmaker_603.mp4") {
         printf(" ------------ 603 !\n");
         p->swipe_start = 79;
@@ -146,6 +156,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
     p->dst_height = 1080;
 
     if(p->run_detection == true) {
+#if defined _MAC_
         if(p->detector_type == DARKNET_YOLOV4) {
             dt = Detection();
             p->detect_threshold = 0.5;
@@ -158,6 +169,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
             obj_c_trajectory.open("analysis/detected_obj_center.txt");        
             dt.LoadModel(p);            
         }
+#endif
     }
 
     k = new KALMAN();
@@ -705,15 +717,17 @@ int Dove::CalculateMove(Mat& cur, int frame_id) {
             dl.Logger("[%d] NONE", frame_id);             
         }
     } else if( p->mode == DARKNET_DETECT_MOVE) {
+#if defined _MAC_
         Detect(cur, frame_id);
         result = CalculateMove(frame_id);
         if(objects[i].obj_cnt > 0 ) {
              dt.DrawBoxes(refcw, objects[i - 1].bbx);
         }
+#endif
     } 
     return result;
 }
-
+#if defined _MAC_
 int Dove::Detect(Mat cur, int frame_id) {
     int result = -1;
     vector<bbox_t>box;
@@ -766,6 +780,7 @@ int Dove::Detect(Mat cur, int frame_id) {
     
     return ERR_NONE;
 }
+#endif
 int Dove::CalculateMove_LK(Mat& cur, int frame_id) {
     static int i = 1;
     // sprintf(filename, "saved/%d_cur.png", i);
@@ -903,7 +918,7 @@ void Dove::ApplyImage(Mat& src, bool scaled) {
     }
 
     dl.Logger("apply image %f %f ", smth.at<double>(0,2), smth.at<double>(1,2));
-    warpAffine(src, src, smth, src.size());
+    cv::warpAffine(src, src, smth, src.size());
     // if(scaled == true) {
     //      static int i = 1;
     //      sprintf(filename, "saved/%d_apply.png", i);
@@ -913,7 +928,7 @@ void Dove::ApplyImage(Mat& src, bool scaled) {
 }
 
 void Dove::ApplyImageRef() {
-    warpAffine(refc, refcw, smth, refc.size());
+    cv::warpAffine(refc, refcw, smth, refc.size());
 }
 
 int Dove::MakeMask() {

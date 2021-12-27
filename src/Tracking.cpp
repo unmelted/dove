@@ -177,7 +177,7 @@ int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi)
     //dl.Logger("TrackerUpdate cos/row %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
     subtract(bg, cur, diff);
     float diff_val = sum(diff)[0]/(scale_w * scale_h);
-    /*
+    /* if you need to check the same image, please uncommnet these block.
     if(index > start_frame +1 && !prev.empty()) {
         Mat same;        
         subtract(prev, cur, same);
