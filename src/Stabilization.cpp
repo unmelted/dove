@@ -74,8 +74,10 @@ void Dove::Initialize(bool has_mask, int* coord) {
         printf(" ------------ 600 !\n");        
         p->swipe_start = 80; //600 OK        
         p->swipe_end = 198;
-        _in = "D:\\dove_test\\x64\\Release\\movie\\4dmaker_600.mp4";
-        _out = "D:\\dove_test\\x64\\Release\\movie\\4dmaker_600_out2.mp4";
+#if defined _WIN_ || _WINDOWS        
+        _in = "D:\\dove_test\\x64\\Release\\" + _in;
+        _out = "D:\\dove_test\\x64\\Release\\" + out;
+#endif        
     } else if (_in == "movie/4dmaker_603.mp4") {
         printf(" ------------ 603 !\n");
         p->swipe_start = 79;
