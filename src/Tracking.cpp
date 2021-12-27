@@ -201,11 +201,11 @@ int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi)
     bool ret = tracker->update(diff, rect_roi);
 #else
     Rect2d temp;
-    temp.x = rect_roi.x;
-    temp.y = rect_roi.y;
-    temp.width = rect_roi.width;
-    temp.height = rect_roi.height;
     bool ret = tracker->update(diff, temp);    
+    rect_roi.x = temp.x;
+    rect_roi.y = temp.y;
+    rect_roi.width = temp.width;
+    rect_roi.height = temp.height;    
 #endif    
 
     if (ret == false) {
