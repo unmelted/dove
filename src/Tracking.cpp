@@ -202,13 +202,11 @@ int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi)
     bool ret = tracker->update(diff, rect_roi);
 #else
     Rect2d temp;
-    temp.x = (double)rect_roi.x;
-    temp.y = (double)rect_roi.y;
-    temp.width = (double)rect_roi.width;
-    temp.height = (double)rect_roi.height;
-    dl.Logger("tracker update rect %d %d %d %d", rect_roi.x, rect_roi.y ,rect_roi.width, rect_roi.height);
-    dl.Logger("tracker update rect %f %f %f %f", temp.x, temp.y, temp.width, temp.height);
     bool ret = tracker->update(diff, temp);    
+    rect_roi.x = (int)temp.x;
+    rect_roi.y = (int)temp.y;
+    rect_roi.width = (int)temp.width;
+    rect_roi.height = (int)temp.height;    
 #endif    
 
     if (ret == false) {
@@ -218,9 +216,9 @@ int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi)
 
     ConvertToROI(rect_roi, obj, roi);
     isfound = true;    
-    DrawObjectTracking(diff, obj, roi, false, 1);
-    sprintf(filename, "saved\\%d_trck.png", index);
-    imwrite(filename, diff);
+    //DrawObjectTracking(diff, obj, roi, false, 1);
+    //sprintf(filename, "saved\\%d_trck.png", index);
+    //imwrite(filename, diff);
     tracker->init(diff, rect_roi);                    
     if(p->mode == DETECT_TRACKING_CH) {
         MakeROI(obj, feature_roi);

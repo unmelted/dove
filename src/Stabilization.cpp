@@ -223,9 +223,11 @@ int Dove::ProcessTK() {
     VideoCapture in(_in);
     VideoWriter out;
     bool compare = false;
+    _out = "movie\\4dmaker_600_out2.mp4";
+
     if (compare)    
         out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1930, 540));
-    else 
+    else            
         out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));
     dl.Logger("Process TK started ");
     Mat src1oc; Mat src1o;
