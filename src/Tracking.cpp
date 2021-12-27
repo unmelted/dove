@@ -197,7 +197,17 @@ int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi)
     }*/
     cur.copyTo(prev);
 
+#if defined _MAC_    
     bool ret = tracker->update(diff, rect_roi);
+#else
+    Rect2d temp;
+    temp.x = rect_roi.x;
+    temp.y = rect_roi.y;
+    temp.width = rect_roi.width;
+    temp.height = rect_roi.height;
+    bool ret = tracker->update(diff, temp);    
+#endif    
+
     if (ret == false) {
         dl.Logger("tracker miss --------------------------------------------");
 //        tracker->init(diff, rect_roi);            
