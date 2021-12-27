@@ -69,8 +69,11 @@ Dove::Dove(string infile, string outfile) {
 }
 
 void Dove::Initialize(bool has_mask, int* coord) {
-    
+#if defined _MAC_
     if(_in == "movie/4dmaker_600.mp4" || _in == "movie/4dmaker_600_out2.mp4") {
+#else
+    if (_in == "movie\\4dmaker_600.mp4" || _in == "movie\\4dmaker_600_out2.mp4") {
+#endif
         printf(" ------------ 600 !\n");        
         p->swipe_start = 80; //600 OK        
         p->swipe_end = 198;     
