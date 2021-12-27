@@ -29,8 +29,7 @@ Dove::Dove(int mode, bool has_mask, int* coord, string infile, string outfile, s
     dt = Detection();
 #endif
     tck = Tracking();
-
-    dl.SetLogFilename("TEST");
+    dl.SetLogFilename("TEST");    
     dl.Logger("instance created.. ");
 
 #if defined _MAC_
@@ -56,13 +55,13 @@ Dove::Dove(string infile, string outfile) {
 #if defined _MAC_
     dt = Detection();
 #endif
-    tck = Tracking();    
-
     dl.SetLogFilename("TEST");
+    tck = Tracking();    
+    tck.SetLogFilename("TEST");
+
 #if defined _MAC_
     dt.SetLogger(dl);
 #endif
-    tck.SetLogFilename("TEST");
     _in = infile;
     _out = outfile;
     Initialize(false, 0);    
@@ -74,8 +73,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
     if(_in == "movie/4dmaker_600.mp4" || _in == "movie/4dmaker_600_out2.mp4") {
         printf(" ------------ 600 !\n");        
         p->swipe_start = 80; //600 OK        
-        p->swipe_end = 198;
-        
+        p->swipe_end = 198;     
     } else if (_in == "movie/4dmaker_603.mp4") {
         printf(" ------------ 603 !\n");
         p->swipe_start = 79;
@@ -118,7 +116,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
         obj = new TRACK_OBJ();
         roi = new TRACK_OBJ();
         p->scale = 2;
-        p->run_tracking = true;
+        p->run_tracking =   true;
         p->run_detection = false;        
         p->detector_type = BLOB_MSER;
         p->tracker_type = CSRT; //tracker_none;
@@ -130,7 +128,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->roi_w = 200;
         p->roi_h = 160;
         p->swipe_threshold = 15;
-        p-> area_threshold = 200;
+        p->area_threshold = 200;
         p->iou_threshold = 0.3;
         p->center_threshold  = 60;
 
@@ -223,13 +221,12 @@ int Dove::ProcessTK() {
     VideoCapture in(_in);
     VideoWriter out;
     bool compare = false;
-    _out = "movie\\4dmaker_600_out2.mp4";
-
     if (compare)    
         out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1930, 540));
-    else            
+    else 
         out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));
     dl.Logger("Process TK started ");
+
     Mat src1oc; Mat src1o;
     int i = 0;
     int result = 0;
@@ -289,7 +286,7 @@ int Dove::ProcessTK() {
         if (i > t_frame_start && i <= t_frame_end) {
 
             if(!tck.issame) 
-            {
+            { 
                 dx = (pre_obj->cx - obj->cx) * p->track_scale;
                 dy = (pre_obj->cy - obj->cy) * p->track_scale;
                 dl.Logger("pre origin %f %f ", dx, dy);
@@ -332,11 +329,10 @@ int Dove::ProcessTK() {
                     prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));                    
                 } 
                 else if (p->run_path_smoothing == true) {      
-                    printf("[%d] not same1. out_transform without kalman", i);                    
+                    printf("[%d] not same. out_transform without kalman", i);                    
                     k->out_transform << i << " "<< dx << " "<< dy << " " << da << endl;            
                     prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));
                 } else {
-                    printf("[%d] not same2. out_transform without kalman", i);
                     k->out_transform << i << " "<< dx << " "<< dy << " " << da << endl;            
                     prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));                    
                 }
