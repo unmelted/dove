@@ -90,16 +90,35 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->swipe_end = 165; //white onepiece single - missing during swipe because character
     } else if (_in == "movie/4NylanderGoal.mp4") {
         p->swipe_start = 153;
-        p->swipe_end = 188; //white onepiece single - missing during swipe because character
+        p->swipe_end = 188; 
+    } else if (_in == "movie/BUT_TATAR_4-0.mp4") {
+        p->swipe_start = 188;
+        p->swipe_end = 232; 
+    } else if (_in == "movie/2018_02_09_17_58_50.mp4") {
+        p->swipe_start = 64;
+        p->swipe_end = 88; //short track
+        p->roi_sx = 960;
+        p->roi_sy = 540;
+    } else if (_in == "movie/2018_02_25_09_55_28.mp4") {
+        p->swipe_start = 58;
+        p->swipe_end = 91; //short track
+        p->roi_sx = 1160; 
+        p->roi_sy = 730;
     }
 
     if (p->event == FIGURE) {
-        p->colored = true;    
+        p->colored = false;    
         p->mode = DETECT_TRACKING;
-    }  else if(p->event == HOCKEY) {
+        p->roi_input = false;
+    } else if(p->event == HOCKEY) {
         p->colored = true;
         p->mode = DETECT_TRACKING;        
-    }
+        p->roi_input = true;
+        p->roi_sx = 960;
+        p->roi_sy = 540;
+    } 
+
+    p->scale = 2;
 
     if (p->mode == OPTICALFLOW_LK_2DOF) {
         p->scale = 2;
@@ -116,7 +135,6 @@ void Dove::Initialize(bool has_mask, int* coord) {
             p->mode == DETECT_TRACKING_CH) {
         obj = new TRACK_OBJ();
         roi = new TRACK_OBJ();
-        p->scale = 1;
         p->run_tracking =   true;
         p->run_detection = false;        
         p->detector_type = BLOB_MSER;
@@ -284,10 +302,12 @@ int Dove::ProcessTK() {
         ImageProcess(src1oc, src1o);
         if( p->tracker_type != TRACKER_NONE) {
             if (i == t_frame_start)
-                //tck->TrackerInit(src1o, i, obj, roi);
-                tck->TrackerInitFx(src1oc, i, 960, 540, obj, roi);                
+                if(p->roi_input)
+                    tck->TrackerInitFx(src1o, i, p->roi_sx, p->roi_sy, obj, roi);                
+                else 
+                    tck->TrackerInit(src1o, i, obj, roi);
             else
-                tck->TrackerUpdate(src1oc, i, obj, roi);            
+                tck->TrackerUpdate(src1o, i, obj, roi);            
         } else {
             result = CalculateMove(src1o, i);
             replay_style = result;        

@@ -13,6 +13,7 @@
     Notes           : Tracking
 */
 
+#pragma once
 #include "DefData.hpp"
 #include <opencv2/tracking.hpp>
 #include <opencv2/core/ocl.hpp>
@@ -68,26 +69,4 @@ class Tracking {
     void ConvertToRect(TRACK_OBJ* roi, Rect* rec, int scale = 1);
     void ConvertToROI(Rect& rec, TRACK_OBJ* obj, TRACK_OBJ* roi);
 
-};
-
-class ColoredTracking : public Tracking {
-    public:
-    ColoredTracking();
-    ~ColoredTracking();
-
-    void SetBg(Mat& src, int frame_id);
-    int TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);    
-    int TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);    
-    void ImageProcess(Mat& src, Mat& dst);
-};
-
-class GrayTracking : public Tracking {
-    public:
-    GrayTracking();
-    ~GrayTracking();
-
-    void SetBg(Mat& src, int frame_id);
-    int TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);    
-    int TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);    
-    void ImageProcess(Mat& src, Mat& dst);    
 };
