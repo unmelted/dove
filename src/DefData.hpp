@@ -185,12 +185,15 @@ typedef enum _masktype {
 
 typedef struct _param {   
     int event; 
-    bool has_mask;
     float scale;
     int mode;
+    bool colored; //default value is false. if you want to use colored image, then set true.
+    bool roi_input;
+    int roi_sx;
+    int roi_sy;
+    
     int blur_size;
     float blur_sigma;
-    bool colored; //default value is false. if you want to use colored image, then set true.
 
     bool run_kalman;
     bool run_kalman_pre;
@@ -237,6 +240,7 @@ typedef struct _param {
     int dst_width;
     int dst_height;
 
+    bool has_mask; //no use
 }PARAM;
 
 typedef struct _win_info {

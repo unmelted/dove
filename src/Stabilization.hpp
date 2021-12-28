@@ -20,7 +20,8 @@
 #if defined _MAC_
 #include "Detection.hpp"
 #endif
-#include "Tracking.hpp"
+#include "ColorTracking.hpp"
+#include "GrayTracking.hpp"
 
 using namespace std;
 using namespace cv;
