@@ -63,9 +63,9 @@ int main(int argc, char* argv[]) {
     }
 
     bool has_mask = false;
-    int mode = dove::DETECT_TRACKING; 
+    int event = dove::FIGURE; 
     //stab_live(infile);
-    Dove stblz(mode, has_mask, coord, infile, outfile);
+    Dove stblz(event, has_mask, coord, infile, outfile);
     stblz.Process();
 
 }

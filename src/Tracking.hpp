@@ -32,20 +32,6 @@ class Tracking {
     bool issame;
     Rect rect_feature_roi;
 
-    Tracking();
-    ~Tracking();
-    void SetInitialData(PARAM* _p);
-    void SetLogFilename(string name) {this->dl.SetLogFilename(name); };    
-    float DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
-    int TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
-    void SetBg(Mat& src, int frame_id);
-    int PickArea(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);    
-    void DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin = false, int replay_stype = 0);
-    void DrawObjectTracking(TRACK_OBJ* obj, TRACK_OBJ* roi, vector<Rect> rects);
-    int PickAreaFx(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
-    int TrackerUpdateFx(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
-
-    private :
     char filename[50];
     Mat bg;
     Mat prev;
@@ -55,18 +41,53 @@ class Tracking {
     Rect rect_roi;
     TRACK_OBJ* feature_roi;
 
-
     Mat lut;
     int scale_w;
     int scale_h;
     int prev_summ;
     int prev_diff;
 
+    Tracking();
+    virtual ~Tracking();
+    void SetInitialData(PARAM* _p);
+    void SetLogFilename(string name) {this->dl.SetLogFilename(name); };    
+    float DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
+    void DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin = false, int replay_stype = 0);
+    void DrawObjectTracking(TRACK_OBJ* obj, TRACK_OBJ* roi, vector<Rect> rects);
+    int TrackerInit(int index, int cx, int cy, TRACK_OBJ* obj, TRACK_OBJ* roi);
+
+    virtual int TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) = 0;
+    virtual void SetBg(Mat& src, int frame_id) = 0;
+    virtual int TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) = 0;
+    virtual void ImageProcess(Mat& src, Mat& dst) = 0;
+
     void MakeROI(TRACK_OBJ* obj, TRACK_OBJ* roi);
     float GetIOU(Rect& r, int index, vector<Rect>& rects);
     bool CheckWithin(Rect& r);
     bool CheckWithin(Rect& r, int index, vector<Rect>& rects);
-    void ImageProcess(Mat& src, Mat& dst);
     void ConvertToRect(TRACK_OBJ* roi, Rect* rec, int scale = 1);
     void ConvertToROI(Rect& rec, TRACK_OBJ* obj, TRACK_OBJ* roi);
+
+};
+
+class ColoredTracking : public Tracking {
+    public:
+    ColoredTracking();
+    ~ColoredTracking();
+
+    void SetBg(Mat& src, int frame_id);
+    int TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);    
+    int TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);    
+    void ImageProcess(Mat& src, Mat& dst);
+};
+
+class GrayTracking : public Tracking {
+    public:
+    GrayTracking();
+    ~GrayTracking();
+
+    void SetBg(Mat& src, int frame_id);
+    int TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);    
+    int TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);    
+    void ImageProcess(Mat& src, Mat& dst);    
 };

@@ -54,46 +54,6 @@ void Tracking::SetInitialData(PARAM* _p) {
     }
 }
 
-void Tracking::SetBg(Mat& src, int frame_id) {    
-    int histbin = 256;
-    double minval; double maxval;
-    double cut_threshold;
-    Point minloc; Point maxloc;
-    Mat hist;
-    start_frame = frame_id;
-
-    if(p->track_scale != 1 ) {
-        scale_w = int(src.cols/p->track_scale);
-        scale_h = int(src.rows/p->track_scale);
-        resize(src, bg, Size(scale_w, scale_h));
-    }    
-    calcHist(&bg, 1, 0, Mat(), hist, 1, &histbin, 0);
-    // for (int i = 0 ; i < histbin; i ++){
-    //     printf(" [%d] hist %d \n", i , (int)hist.at<float>(i));
-    // }
-
-    minMaxLoc(hist, &minval, &maxval, &minloc, &maxloc, Mat());
-    printf("searched minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
-    cut_threshold = maxloc.y * 0.83;
-    lut = Mat::zeros(1, histbin, CV_8UC1);
-    for (int i = 0 ; i < histbin; i ++){
-        if(i <= cut_threshold) 
-            lut.at<unsigned char>(i) = i;
-        else 
-            lut.at<unsigned char>(i) = 255;
-
-//        printf(" [%d] lut--  %d \n", i , lut.at<unsigned char>(i));            
-    }
-
-    Mat result; Mat temp;
-    LUT(bg, lut, result);
-
-    Ptr<CLAHE> clahe = createCLAHE();
-    clahe->setClipLimit(20);
-    clahe->apply(result, temp);
-    GaussianBlur(temp, bg, {3, 3}, 1.3, 1.3);
-    dl.Logger("Setbg function finish %d %d ", bg.cols, bg.rows);
-}
 
 bool Tracking::CheckWithin(Rect& r) {
     if(r.x >= p->limit_lx && r.y >= p->limit_ly &&
@@ -137,96 +97,19 @@ void Tracking::ConvertToROI(Rect& rec, TRACK_OBJ* obj, TRACK_OBJ* roi) {
     obj->update();
 }
 
-int Tracking::PickAreaFx(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
-
-}
-
-int Tracking::TrackerUpdateFx(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
-
-}
-
-int Tracking::PickArea(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
-    int result = 0;
-    double minval; double maxval;
-    Point minloc; Point maxloc;
-    Mat cur; Mat dst;
-    ImageProcess(src, cur);
-    dl.Logger("PickArea cos/row %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
-    subtract(bg, cur, diff);
-    float diff_val = sum(diff)[0]/(scale_w * scale_h);
-
-    minMaxLoc(diff, &minval, &maxval, &minloc, &maxloc, Mat());
-    dl.Logger("PickArea minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
-
-    obj->update(maxloc.x -30, maxloc.y -30, 60, 90);
+int Tracking::TrackerInit(int index, int cx, int cy, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+    int ccx = round(cx / p->track_scale);
+    int ccy = round(cy / p->track_scale);
+    obj->update(ccx - 30, ccy -30, 60 , 90);
     obj->update();
-    roi->update(obj->sx - 10, obj->sy - 10, obj->w + 20, obj->h + 20);    
+    roi->update(obj->sx - 10, obj->sy - 10, obj->w + 20, obj->h +20);
     roi->update();
-    dl.Logger("obj %d %d %d %d", obj->sx, obj->sy ,obj->w , obj->h);
-    dl.Logger("roi %d %d %d %d", roi->sx, roi->sy ,roi->w , roi->h);
+    dl.Logger("[%d] obj %d %d %d %d", index, obj->sx, obj->sy ,obj->w , obj->h);
+    dl.Logger("[%d] roi %d %d %d %d", index, roi->sx, roi->sy ,roi->w , roi->h);
     ConvertToRect(roi, &rect_roi);
-    dl.Logger("rect roi for tracker init %d %d %d %d", rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
+    dl.Logger("color rect roi for tracker init %d %d %d %d", rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
     tracker->init(diff, rect_roi);
     isfound = true;
-    //DrawObjectTracking(diff, obj, roi, false, 1);
-    return ERR_NONE;
-}
-
-int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
-    Mat cur; Mat dst;
-    ImageProcess(src, cur);
-    //dl.Logger("TrackerUpdate cos/row %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
-    subtract(bg, cur, diff);
-    float diff_val = sum(diff)[0]/(scale_w * scale_h);
-    /* if you need to check the same image, please uncommnet these block.
-    if(index > start_frame +1 && !prev.empty()) {
-        Mat same;        
-        subtract(prev, cur, same);
-        float same_check = sum(same)[0]/(scale_w * scale_h);
-        //dl.Logger("same check %f ", same_check);
-        if (same_check < 0.2) {
-            dl.Logger("Current image is same as previous.. ");
-            issame = true;
-            //return same_check;
-        }
-        else
-            issame = false;    
-    }
-    else if( index == start_frame ) {
-        first_summ = diff_val;    
-        dl.Logger("First summ save %f ", first_summ);
-    }*/
-    cur.copyTo(prev);
-
-#if defined _MAC_    
-    bool ret = tracker->update(diff, rect_roi);
-    dl.Logger("[%d] tracker update %d %d %d %d ",index, rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
-#else
-    Rect2d temp;
-    bool ret = tracker->update(diff, temp);    
-    rect_roi.x = (int)temp.x;
-    rect_roi.y = (int)temp.y;
-    rect_roi.width = (int)temp.width;
-    rect_roi.height = (int)temp.height;    
-    dl.Logger("[%d]tracker update1 %f %f %f %f ", index, temp.x, temp.y, temp.width, temp.height);
-    dl.Logger("[%d]tracker update2 %d %d %d %d ", index, rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
-#endif    
-
-    if (ret == false) {
-        dl.Logger("tracker miss --------------------------------------------");
-//        tracker->init(diff, rect_roi);            
-    }
-
-    ConvertToROI(rect_roi, obj, roi);
-    isfound = true;    
-    //DrawObjectTracking(diff, obj, roi, false, 1);
-    //sprintf(filename, "saved\\%d_trck.png", index);
-    //imwrite(filename, diff);
-    tracker->init(diff, rect_roi);                    
-    if(p->mode == DETECT_TRACKING_CH) {
-        MakeROI(obj, feature_roi);
-        ConvertToRect(feature_roi, &rect_feature_roi, p->track_scale);
-    }
 
     return ERR_NONE;
 }
@@ -433,25 +316,6 @@ float Tracking::GetIOU(Rect& r, int index, vector<Rect>& rects) {
     return max_iou;
 }
 
-void Tracking::ImageProcess(Mat& src, Mat& dst) {
-    Mat temp;
-    Mat result;
-    src.copyTo(temp);
-
-    if(p->track_scale != 1 ) {
-        scale_w = int(src.cols/p->track_scale);
-        scale_h = int(src.rows/p->track_scale);
-        resize(temp, temp, Size(scale_w, scale_h));
-//        imwrite("check2.png", dst);
-    }
-    LUT(temp, lut, result);
-
-    Ptr<CLAHE> clahe = createCLAHE();
-    clahe->setClipLimit(20);
-    clahe->apply(result, temp);
-    GaussianBlur(temp, dst, {5, 5}, 1.3, 1.3);
-}
-
 void Tracking::DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin, int replay_style) {
     Mat canvas;
     if(borigin == true) 
@@ -505,4 +369,254 @@ void Tracking::DrawObjectTracking(TRACK_OBJ* obj, TRACK_OBJ* roi, vector<Rect> r
 
     imshow("FIRST PROCESS", canvas);
     waitKey(0);    
+}
+
+GrayTracking::GrayTracking() {
+
+}
+
+GrayTracking::~GrayTracking() {
+
+}
+
+void GrayTracking::SetBg(Mat& src, int frame_id) {    
+    int histbin = 256;
+    double minval; double maxval;
+    double cut_threshold;
+    Point minloc; Point maxloc;
+    Mat hist;
+    start_frame = frame_id;
+
+    if(p->track_scale != 1 ) {
+        scale_w = int(src.cols/p->track_scale);
+        scale_h = int(src.rows/p->track_scale);
+        resize(src, bg, Size(scale_w, scale_h));
+    }    
+    calcHist(&bg, 1, 0, Mat(), hist, 1, &histbin, 0);
+    // for (int i = 0 ; i < histbin; i ++){
+    //     printf(" [%d] hist %d \n", i , (int)hist.at<float>(i));
+    // }
+
+    minMaxLoc(hist, &minval, &maxval, &minloc, &maxloc, Mat());
+    printf("searched minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
+    cut_threshold = maxloc.y * 0.83;
+    lut = Mat::zeros(1, histbin, CV_8UC1);
+    for (int i = 0 ; i < histbin; i ++){
+        if(i <= cut_threshold) 
+            lut.at<unsigned char>(i) = i;
+        else 
+            lut.at<unsigned char>(i) = 255;
+
+//        printf(" [%d] lut--  %d \n", i , lut.at<unsigned char>(i));            
+    }
+
+    Mat result; Mat temp;
+    LUT(bg, lut, result);
+
+    Ptr<CLAHE> clahe = createCLAHE();
+    clahe->setClipLimit(20);
+    clahe->apply(result, temp);
+    GaussianBlur(temp, bg, {3, 3}, 1.3, 1.3);
+    dl.Logger("Setbg function finish %d %d ", bg.cols, bg.rows);
+}
+
+void GrayTracking::ImageProcess(Mat& src, Mat& dst) {
+    Mat temp;
+    Mat result;
+    src.copyTo(temp);
+
+    if(p->track_scale != 1 ) {
+        scale_w = int(src.cols/p->track_scale);
+        scale_h = int(src.rows/p->track_scale);
+        resize(temp, temp, Size(scale_w, scale_h));
+//        imwrite("check2.png", dst);
+    }
+    LUT(temp, lut, result);
+
+    Ptr<CLAHE> clahe = createCLAHE();
+    clahe->setClipLimit(20);
+    clahe->apply(result, temp);
+    GaussianBlur(temp, dst, {5, 5}, 1.3, 1.3);
+}
+
+int GrayTracking::TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+    int result = 0;
+    double minval; double maxval;
+    Point minloc; Point maxloc;
+    Mat cur; Mat dst;
+    ImageProcess(src, cur);
+    dl.Logger("PickArea cos/row %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
+    subtract(bg, cur, diff);
+    float diff_val = sum(diff)[0]/(scale_w * scale_h);
+
+    minMaxLoc(diff, &minval, &maxval, &minloc, &maxloc, Mat());
+    dl.Logger("PickArea minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
+
+    obj->update(maxloc.x -30, maxloc.y -30, 60, 90);
+    obj->update();
+    roi->update(obj->sx - 10, obj->sy - 10, obj->w + 20, obj->h + 20);    
+    roi->update();
+    dl.Logger("gray obj %d %d %d %d", obj->sx, obj->sy ,obj->w , obj->h);
+    dl.Logger("gray roi %d %d %d %d", roi->sx, roi->sy ,roi->w , roi->h);
+    ConvertToRect(roi, &rect_roi);
+    dl.Logger("gray rect roi for tracker init %d %d %d %d", rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
+    tracker->init(diff, rect_roi);
+    isfound = true;
+    //DrawObjectTracking(diff, obj, roi, false, 1);
+    return ERR_NONE;
+}
+
+int GrayTracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+    Mat cur; Mat dst;
+    ImageProcess(src, cur);
+    //dl.Logger("TrackerUpdate cos/row %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
+    subtract(bg, cur, diff);
+    float diff_val = sum(diff)[0]/(scale_w * scale_h);
+    /* if you need to check the same image, please uncommnet these block.
+    if(index > start_frame +1 && !prev.empty()) {
+        Mat same;        
+        subtract(prev, cur, same);
+        float same_check = sum(same)[0]/(scale_w * scale_h);
+        //dl.Logger("same check %f ", same_check);
+        if (same_check < 0.2) {
+            dl.Logger("Current image is same as previous.. ");
+            issame = true;
+            //return same_check;
+        }
+        else
+            issame = false;    
+    }
+    else if( index == start_frame ) {
+        first_summ = diff_val;    
+        dl.Logger("First summ save %f ", first_summ);
+    }*/
+    cur.copyTo(prev);
+
+#if defined _MAC_    
+    bool ret = tracker->update(diff, rect_roi);
+    dl.Logger("[%d] tracker update %d %d %d %d ",index, rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
+#else
+    Rect2d temp;
+    bool ret = tracker->update(diff, temp);    
+    rect_roi.x = (round)temp.x;
+    rect_roi.y = (round)temp.y;
+    rect_roi.width = (round)temp.width;
+    rect_roi.height = (round)temp.height;    
+    dl.Logger("[%d]tracker update1 %f %f %f %f ", index, temp.x, temp.y, temp.width, temp.height);
+    dl.Logger("[%d]tracker update2 %d %d %d %d ", index, rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
+#endif    
+
+    if (ret == false) {
+        dl.Logger("tracker miss --------------------------------------------");
+//        tracker->init(diff, rect_roi);            
+    }
+
+    ConvertToROI(rect_roi, obj, roi);
+    isfound = true;    
+    //DrawObjectTracking(diff, obj, roi, false, 1);
+    //sprintf(filename, "saved\\%d_trck.png", index);
+    //imwrite(filename, diff);
+    tracker->init(diff, rect_roi);                    
+    if(p->mode == DETECT_TRACKING_CH) {
+        MakeROI(obj, feature_roi);
+        ConvertToRect(feature_roi, &rect_feature_roi, p->track_scale);
+    }
+
+    return ERR_NONE;
+}
+
+ColoredTracking::ColoredTracking() {
+
+}
+
+ColoredTracking::~ColoredTracking() {
+
+}
+
+void ColoredTracking::SetBg(Mat& src, int frame_id) {
+
+    if(p->track_scale != 1 ) {
+        scale_w = int(src.cols/p->track_scale);
+        scale_h = int(src.rows/p->track_scale);
+        resize(src, bg, Size(scale_w, scale_h));
+    }
+
+    dl.Logger("Colored Setbg function finish %d %d ", bg.cols, bg.rows);    
+}
+
+int ColoredTracking::TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+    int result = 0;
+    double minval; double maxval;
+    Point minloc; Point maxloc;
+    Mat cur; Mat cur_gray; Mat bg_gray;
+    ImageProcess(src, cur);
+    dl.Logger("PickArea cos/row %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
+    cvtColor(bg, bg_gray, COLOR_BGR2GRAY);
+    cvtColor(cur, cur_gray, COLOR_BGR2GRAY);
+    subtract(bg_gray, cur_gray, diff);
+    float diff_val = sum(diff)[0]/(scale_w * scale_h);
+
+    minMaxLoc(diff, &minval, &maxval, &minloc, &maxloc, Mat());
+    dl.Logger("PickArea minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
+
+    obj->update(maxloc.x -30, maxloc.y -30, 60, 90);
+    obj->update();
+    roi->update(obj->sx - 10, obj->sy - 10, obj->w + 20, obj->h + 20);    
+    roi->update();
+    dl.Logger("color obj %d %d %d %d", obj->sx, obj->sy ,obj->w , obj->h);
+    dl.Logger("color roi %d %d %d %d", roi->sx, roi->sy ,roi->w , roi->h);
+
+    ConvertToRect(roi, &rect_roi);
+    dl.Logger("color rect roi for tracker init %d %d %d %d", rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
+    tracker->init(cur, rect_roi);
+    isfound = true;
+    //DrawObjectTracking(diff, obj, roi, false, 1);
+    return ERR_NONE;
+}
+
+int ColoredTracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+    Mat cur; Mat dst;
+    ImageProcess(src, cur);
+    cur.copyTo(prev);
+
+#if defined _MAC_    
+    bool ret = tracker->update(cur, rect_roi);
+    dl.Logger("[%d] colortracker update %d %d %d %d ",index, rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
+#else
+    Rect2d temp;
+    bool ret = tracker->update(cur, temp);    
+    rect_roi.x = (round)temp.x;
+    rect_roi.y = (round)temp.y;
+    rect_roi.width = (round)temp.width;
+    rect_roi.height = (round)temp.height;    
+    dl.Logger("[%d]cur tracker update1 %f %f %f %f ", index, temp.x, temp.y, temp.width, temp.height);
+    dl.Logger("[%d]cur tracker update2 %d %d %d %d ", index, rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
+#endif    
+
+    if (ret == false) {
+        dl.Logger("tracker miss --------------------------------------------");
+//        tracker->init(diff, rect_roi);            
+    }
+
+    ConvertToROI(rect_roi, obj, roi);
+    isfound = true;    
+    //DrawObjectTracking(diff, obj, roi, false, 1);
+    //sprintf(filename, "saved\\%d_trck.png", index);
+    //imwrite(filename, diff);
+    tracker->init(cur, rect_roi);                    
+    if(p->mode == DETECT_TRACKING_CH) {
+        MakeROI(obj, feature_roi);
+        ConvertToRect(feature_roi, &rect_feature_roi, p->track_scale);
+    }
+
+    return ERR_NONE;
+}
+
+void ColoredTracking::ImageProcess(Mat& src, Mat& dst) {
+
+    if(p->track_scale != 1 ) {
+        scale_w = int(src.cols/p->track_scale);
+        scale_h = int(src.rows/p->track_scale);
+        resize(src, dst, Size(scale_w, scale_h));
+    }
 }
