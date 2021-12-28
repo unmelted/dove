@@ -54,7 +54,7 @@ class Tracking {
     float DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
     void DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin = false, int replay_stype = 0);
     void DrawObjectTracking(TRACK_OBJ* obj, TRACK_OBJ* roi, vector<Rect> rects);
-    int TrackerInit(int index, int cx, int cy, TRACK_OBJ* obj, TRACK_OBJ* roi);
+    int TrackerInitFx(Mat& src, int index, int cx, int cy, TRACK_OBJ* obj, TRACK_OBJ* roi);
 
     virtual int TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) = 0;
     virtual void SetBg(Mat& src, int frame_id) = 0;

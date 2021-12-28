@@ -97,7 +97,9 @@ void Tracking::ConvertToROI(Rect& rec, TRACK_OBJ* obj, TRACK_OBJ* roi) {
     obj->update();
 }
 
-int Tracking::TrackerInit(int index, int cx, int cy, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+int Tracking::TrackerInitFx(Mat& src, int index, int cx, int cy, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+    Mat cur;
+    ImageProcess(src, cur);
     int ccx = round(cx / p->track_scale);
     int ccy = round(cy / p->track_scale);
     obj->update(ccx - 30, ccy -30, 60 , 90);
@@ -107,8 +109,8 @@ int Tracking::TrackerInit(int index, int cx, int cy, TRACK_OBJ* obj, TRACK_OBJ* 
     dl.Logger("[%d] obj %d %d %d %d", index, obj->sx, obj->sy ,obj->w , obj->h);
     dl.Logger("[%d] roi %d %d %d %d", index, roi->sx, roi->sy ,roi->w , roi->h);
     ConvertToRect(roi, &rect_roi);
-    dl.Logger("color rect roi for tracker init %d %d %d %d", rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
-    tracker->init(diff, rect_roi);
+    dl.Logger("color rect fx roi for tracker init %d %d %d %d", rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
+    tracker->init(cur, rect_roi);
     isfound = true;
 
     return ERR_NONE;
@@ -600,7 +602,7 @@ int ColoredTracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OB
 
     ConvertToROI(rect_roi, obj, roi);
     isfound = true;    
-    //DrawObjectTracking(diff, obj, roi, false, 1);
+    DrawObjectTracking(cur, obj, roi, true, 1);
     //sprintf(filename, "saved\\%d_trck.png", index);
     //imwrite(filename, diff);
     tracker->init(cur, rect_roi);                    
