@@ -48,6 +48,12 @@ typedef enum _err {
     EXECUTE_CLIENT_EXCEPTION    = -30,
 } ERR;
 
+typedef enum _event {
+    FIGURE          = 1,
+    HOCKEY          = 2,
+    SHORT           = 3,
+}EVENT;
+
 typedef enum _calmode {
 
     OPTICALFLOW_LK_2DOF     = 1,
@@ -177,12 +183,14 @@ typedef enum _masktype {
     CIRCLE  = 2,
 }MASKTYPE;
 
-typedef struct _param {    
+typedef struct _param {   
+    int event; 
     bool has_mask;
     float scale;
     int mode;
     int blur_size;
     float blur_sigma;
+    bool colored; //default value is false. if you want to use colored image, then set true.
 
     bool run_kalman;
     bool run_kalman_pre;

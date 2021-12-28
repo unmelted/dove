@@ -34,7 +34,7 @@ public:
 #if defined _MAC_
     Detection dt;
 #endif
-    Tracking tck;
+    Tracking* tck;
 #if defined _MAC_
     map<int, DT_OBJECTS>objects;
 #endif
@@ -68,7 +68,7 @@ public:
     KALMAN* k;
 
     Dove(string infile, string outfile);
-    Dove(int mode, bool has_mask, int* coord, string infile, string outfile, string id = "TEST");
+    Dove(int event, bool has_mask, int* coord, string infile, string outfile, string id = "TEST");
     ~Dove();
     int Process();
     int ProcessTK();

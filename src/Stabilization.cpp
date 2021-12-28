@@ -21,31 +21,25 @@ using namespace std;
 using namespace cv;
 using namespace dove;
 
-Dove::Dove(int mode, bool has_mask, int* coord, string infile, string outfile, string id) {
+Dove::Dove(int event, bool has_mask, int* coord, string infile, string outfile, string id) {
     p = new PARAM();
     t = new TIMER();
     dl = Dlog();
 #if defined _MAC_
     dt = Detection();
 #endif
-    tck = Tracking();
     dl.SetLogFilename("TEST");    
     dl.Logger("instance created.. ");
 
 #if defined _MAC_
     dt.SetLogger(dl);    
 #endif
-    tck.SetLogFilename("TEST");    
     _in = infile;
     _out = outfile;
 
     dl.Logger("Start construct. %s %s  ", _in.c_str(), _out.c_str());
-    p->mode = mode;
-    //if(has_mask == true) 
+    p->event = event;
     Initialize(false, coord);
-    // else 
-    //     Initialize(false, 0);    
-    tck.SetInitialData(p);      
 }
 
 Dove::Dove(string infile, string outfile) {
@@ -56,8 +50,6 @@ Dove::Dove(string infile, string outfile) {
     dt = Detection();
 #endif
     dl.SetLogFilename("TEST");
-    tck = Tracking();    
-    tck.SetLogFilename("TEST");
 
 #if defined _MAC_
     dt.SetLogger(dl);
@@ -65,7 +57,6 @@ Dove::Dove(string infile, string outfile) {
     _in = infile;
     _out = outfile;
     Initialize(false, 0);    
-    tck.SetInitialData(p);
 }
 
 void Dove::Initialize(bool has_mask, int* coord) {
@@ -102,6 +93,14 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->swipe_end = 188; //white onepiece single - missing during swipe because character
     }
 
+    if (p->event == FIGURE) {
+        p->colored = true;    
+        p->mode = DETECT_TRACKING;
+    }  else if(p->event == HOCKEY) {
+        p->colored = true;
+        p->mode = DETECT_TRACKING;        
+    }
+
     if (p->mode == OPTICALFLOW_LK_2DOF) {
         p->scale = 2;
         p->run_kalman = true;
@@ -115,10 +114,9 @@ void Dove::Initialize(bool has_mask, int* coord) {
     
     } else if (p->mode == DETECT_TRACKING || 
             p->mode == DETECT_TRACKING_CH) {
-        tck = Tracking();
         obj = new TRACK_OBJ();
         roi = new TRACK_OBJ();
-        p->scale = 2;
+        p->scale = 1;
         p->run_tracking =   true;
         p->run_detection = false;        
         p->detector_type = BLOB_MSER;
@@ -140,6 +138,18 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->run_kalman = false;
         p->run_kalman_pre = false;
         p->run_kalman_post = false;        
+    }
+
+    if(p->colored == false) {
+        p->colored = false;
+        tck = new GrayTracking();    
+        tck->SetLogFilename("TEST");
+        tck->SetInitialData(p);
+    } else if(p->colored == true) {
+        p->colored = true;
+        tck = new ColoredTracking();    
+        tck->SetLogFilename("TEST");
+        tck->SetInitialData(p);
     }
 
     //if(has_mask == true) 
@@ -258,7 +268,7 @@ int Dove::ProcessTK() {
             ImageProcess(src1oc, src1o);            
             SetRef(src1o);
             SetRefC(src1oc);            
-            tck.SetBg(src1o, i);
+            tck->SetBg(src1o, i);
             i++;
             continue;
         }
@@ -274,21 +284,22 @@ int Dove::ProcessTK() {
         ImageProcess(src1oc, src1o);
         if( p->tracker_type != TRACKER_NONE) {
             if (i == t_frame_start)
-                tck.PickArea(src1o, i, obj, roi);
+                //tck->TrackerInit(src1o, i, obj, roi);
+                tck->TrackerInitFx(src1oc, i, 960, 540, obj, roi);                
             else
-                tck.TrackerUpdate(src1o, i, obj, roi);            
+                tck->TrackerUpdate(src1oc, i, obj, roi);            
         } else {
             result = CalculateMove(src1o, i);
             replay_style = result;        
 
         }
-        //tck.DrawObjectTracking(src1o, obj, roi, false, replay_style);
+        //tck->DrawObjectTracking(src1o, obj, roi, false, replay_style);
         double dx = 0;
         double dy = 0;
         double da = 0;
         if (i > t_frame_start && i <= t_frame_end) {
 
-            if(!tck.issame) 
+            if(!tck->issame) 
             { 
                 dx = (pre_obj->cx - obj->cx) * p->track_scale;
                 dy = (pre_obj->cy - obj->cy) * p->track_scale;
@@ -347,7 +358,7 @@ int Dove::ProcessTK() {
             }
         }
 
-        if (tck.isfound) {
+        if (tck->isfound) {
             obj->copy(pre_obj);
         }
         //direct apply
@@ -657,7 +668,8 @@ int Dove::ImageProcess(Mat& src, Mat& dst) {
     else 
         src.copyTo(temp);
 
-    cvtColor(temp, temp, COLOR_BGR2GRAY);
+    if(!p->colored)
+        cvtColor(temp, temp, COLOR_BGR2GRAY);
     //if tk on? 
     if(!p->run_tracking)
         GaussianBlur(temp, dst, {p->blur_size, p->blur_size}, p->blur_sigma, p->blur_sigma);
@@ -692,11 +704,11 @@ int Dove::CalculateMove(Mat& cur, int frame_id) {
 
     } else if (p->mode == DETECT_TRACKING) {
         float fret = 0.0;
-        fret = tck.DetectAndTrack(cur, frame_id, obj, roi);
-        dl.Logger("[%d] result %f isFound %d issmae %d ", frame_id, fret, tck.isfound, tck.issame);
+        fret = tck->DetectAndTrack(cur, frame_id, obj, roi);
+        dl.Logger("[%d] result %f isFound %d issmae %d ", frame_id, fret, tck->isfound, tck->issame);
 
-        if (tck.isfound == true) {
-            if( fret >= p->swipe_threshold * tck.first_summ && swipe_on == false) {
+        if (tck->isfound == true) {
+            if( fret >= p->swipe_threshold * tck->first_summ && swipe_on == false) {
                 swipe_on = true;
                 result = SWIPE_ON;            
                 dl.Logger("[%d] SWIPE START ", frame_id);
@@ -709,12 +721,12 @@ int Dove::CalculateMove(Mat& cur, int frame_id) {
                 result = KEEP_TRACKING;
                 dl.Logger("[%d] KEEP TRACKING", frame_id); 
             }
-            if (tck.issame == true) {
+            if (tck->issame == true) {
                 dl.Logger("[%d] SAME ", frame_id);      
             }
 
         }    
-        else if (tck.isfound == false){ 
+        else if (tck->isfound == false){ 
             result = TRACK_NONE;
             dl.Logger("[%d] NONE", frame_id);             
         }
@@ -981,7 +993,7 @@ void Dove::ProcessChristmas() {
             ImageProcess(src1oc, src1o);            
             SetRef(src1o);
             SetRefC(src1oc);            
-            tck.SetBg(src1o, i);
+            tck->SetBg(src1o, i);
             i++;
             continue;
         }
@@ -998,12 +1010,12 @@ void Dove::ProcessChristmas() {
         ImageProcess(src1oc, src1o);
         if( p->tracker_type != TRACKER_NONE) {
             if (i == t_frame_start)
-                tck.PickArea(src1o, i, obj, roi);
+                tck->TrackerInit(src1o, i, obj, roi);
             else
-                tck.TrackerUpdate(src1o, i, obj, roi);            
+                tck->TrackerUpdate(src1o, i, obj, roi);            
         }
 
-        //tck.DrawObjectTracking(src1o, obj, roi, false, replay_style);
+        //tck->DrawObjectTracking(src1o, obj, roi, false, replay_style);
         
         if (i > t_frame_start && i <= t_frame_end) {
             double dx = 0;
@@ -1014,10 +1026,10 @@ void Dove::ProcessChristmas() {
             vector <Point2f> goodFeatures1, goodFeatures2;
             vector <uchar> status;
             vector <float> err;
-            dl.Logger("tck.rect_feature_roi s %d %d w %d %d ", tck.rect_feature_roi.x, tck.rect_feature_roi.y,
-                    tck.rect_feature_roi.width, tck.rect_feature_roi.height);
-            Mat roi_ref = ref(tck.rect_feature_roi);
-            Mat roi_cur = src1o(tck.rect_feature_roi);
+            dl.Logger("tck->rect_feature_roi s %d %d w %d %d ", tck->rect_feature_roi.x, tck->rect_feature_roi.y,
+                    tck->rect_feature_roi.width, tck->rect_feature_roi.height);
+            Mat roi_ref = ref(tck->rect_feature_roi);
+            Mat roi_cur = src1o(tck->rect_feature_roi);
             goodFeaturesToTrack(roi_ref, features1, 200, 0.01, 30);    
             calcOpticalFlowPyrLK(roi_ref, roi_cur, features1, features2, status, err );
 
@@ -1097,7 +1109,7 @@ void Dove::ProcessChristmas() {
             smth.at<double>(1,2) = dy;
         }
 
-        if (tck.isfound) {
+        if (tck->isfound) {
             obj->copy(pre_obj);
         }           
 
