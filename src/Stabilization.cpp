@@ -100,8 +100,11 @@ void Dove::Initialize(bool has_mask, int* coord) {
     }  else if(p->event == HOCKEY) {
         p->colored = true;
         p->mode = DETECT_TRACKING;        
-        p->roi_input = false;        
+        p->roi_input = true;
+        p->roi_sx = 960;
+        p->roi_sy = 540;
     }
+    p->scale = 1;
 
     if (p->mode == OPTICALFLOW_LK_2DOF) {
         p->scale = 2;
@@ -118,7 +121,6 @@ void Dove::Initialize(bool has_mask, int* coord) {
             p->mode == DETECT_TRACKING_CH) {
         obj = new TRACK_OBJ();
         roi = new TRACK_OBJ();
-        p->scale = 2;
         p->run_tracking =   true;
         p->run_detection = false;        
         p->detector_type = BLOB_MSER;
@@ -287,7 +289,7 @@ int Dove::ProcessTK() {
         if( p->tracker_type != TRACKER_NONE) {
             if (i == t_frame_start)
                 if(p->roi_input)
-                    tck->TrackerInitFx(src1o, i, 960, 540, obj, roi);                
+                    tck->TrackerInitFx(src1o, i, p->roi_sx, p->roi_sy, obj, roi);                
                 else 
                     tck->TrackerInit(src1o, i, obj, roi);
             else
