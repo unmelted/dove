@@ -161,9 +161,9 @@ void Dlog::Logger(const char* format, ...) {
     ofstream ofs(filePath.c_str(), std::ios_base::out | std::ios_base::app);
     ofs << now << '\t' << buf << endl;
 
-#ifdef _DEBUG
+//#ifdef _DEBUG
     printf("[%s]\t%s\t%s \n", now.c_str(), fname.c_str(), buf); fflush(stdout);
-#endif
+//#endif
 
     ofs.close();
 }

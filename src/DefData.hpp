@@ -33,7 +33,11 @@
 #include <vector>
 #include <algorithm>
 #include "common/TimeUtil.hpp"
+#if defined _MAC_
 #include "darknet/yolo_v2_class.hpp"
+#else
+#define _DEBUG
+#endif
 
 using namespace std;
 using namespace cv;
@@ -132,7 +136,7 @@ typedef struct _trackobj {
 
 } TRACK_OBJ;
 
-
+#if defined _MAC_
 typedef struct _dtobjs {
     int frame_id;
     int obj_cnt;
@@ -161,6 +165,7 @@ typedef struct _dtobjs {
         }
     }    
 }DT_OBJECTS;
+#endif
 
 typedef struct _dtxy {
     int dx;

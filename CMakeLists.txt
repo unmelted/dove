@@ -18,6 +18,12 @@ add_definitions(-D_DEBUG)
 add_definitions(-D_IMGDEBUG)
 add_definitions(-DOPENCV)
 
+if(APPLE)
+    add_definitions(-D_MAC_)
+else ()
+    add_definitions(-D_WIN_)
+endif()
+
 set(PRJ_PATH        ${CMAKE_CURRENT_SOURCE_DIR})
 set(DARKNET_PATH    ${PRJ_PATH}/darknet)
 set(DARKNET_LIB      ${DARKNET_PATH}/libdarknet.dylib)

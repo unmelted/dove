@@ -17,7 +17,9 @@
 #pragma once
 #include <map>
 #include "DefData.hpp"
+#if defined _MAC_
 #include "Detection.hpp"
+#endif
 #include "Tracking.hpp"
 
 using namespace std;
@@ -29,10 +31,13 @@ public:
     PARAM* p;
     TIMER* t;
     Dlog dl;
+#if defined _MAC_
     Detection dt;
+#endif
     Tracking tck;
-
+#if defined _MAC_
     map<int, DT_OBJECTS>objects;
+#endif
     ofstream obj_trajectory;
     ofstream obj_c_trajectory;    
     map<int, DT_XY>dt_comp;

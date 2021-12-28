@@ -5,7 +5,7 @@ import numpy as np
 import random
 
 out = cv2.VideoWriter('test_out.mp4', cv2.VideoWriter_fourcc(*"MJPG"), 30,(1920, 1080))
-datapath = "/Users/kelly/work/winter_data/frames/data/2021_03_11_20_40_59_4NylanderGoal"
+datapath = "/Users/4dreplay/work/data/winter/frames/data/2021_03_11_20_40_59_4NylanderGoal"
 imglist = os.listdir(datapath)
 imglist.sort()
 

@@ -165,10 +165,11 @@ int Tracking::PickArea(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
     dl.Logger("obj %d %d %d %d", obj->sx, obj->sy ,obj->w , obj->h);
     dl.Logger("roi %d %d %d %d", roi->sx, roi->sy ,roi->w , roi->h);
     ConvertToRect(roi, &rect_roi);
-
+    dl.Logger("rect roi for tracker init %d %d %d %d", rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
     tracker->init(diff, rect_roi);
     isfound = true;
     //DrawObjectTracking(diff, obj, roi, false, 1);
+    return ERR_NONE;
 }
 
 int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
@@ -177,7 +178,7 @@ int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi)
     //dl.Logger("TrackerUpdate cos/row %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
     subtract(bg, cur, diff);
     float diff_val = sum(diff)[0]/(scale_w * scale_h);
-    /*
+    /* if you need to check the same image, please uncommnet these block.
     if(index > start_frame +1 && !prev.empty()) {
         Mat same;        
         subtract(prev, cur, same);
@@ -197,7 +198,20 @@ int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi)
     }*/
     cur.copyTo(prev);
 
+#if defined _MAC_    
     bool ret = tracker->update(diff, rect_roi);
+    dl.Logger("[%d] tracker update %d %d %d %d ",index, rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
+#else
+    Rect2d temp;
+    bool ret = tracker->update(diff, temp);    
+    rect_roi.x = (int)temp.x;
+    rect_roi.y = (int)temp.y;
+    rect_roi.width = (int)temp.width;
+    rect_roi.height = (int)temp.height;    
+    dl.Logger("[%d]tracker update1 %f %f %f %f ", index, temp.x, temp.y, temp.width, temp.height);
+    dl.Logger("[%d]tracker update2 %d %d %d %d ", index, rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
+#endif    
+
     if (ret == false) {
         dl.Logger("tracker miss --------------------------------------------");
 //        tracker->init(diff, rect_roi);            
@@ -205,12 +219,16 @@ int Tracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi)
 
     ConvertToROI(rect_roi, obj, roi);
     isfound = true;    
-    DrawObjectTracking(diff, obj, roi, false, 1);
+    //DrawObjectTracking(diff, obj, roi, false, 1);
+    //sprintf(filename, "saved\\%d_trck.png", index);
+    //imwrite(filename, diff);
     tracker->init(diff, rect_roi);                    
     if(p->mode == DETECT_TRACKING_CH) {
         MakeROI(obj, feature_roi);
         ConvertToRect(feature_roi, &rect_feature_roi, p->track_scale);
     }
+
+    return ERR_NONE;
 }
 
 float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
