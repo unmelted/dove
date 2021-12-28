@@ -493,21 +493,10 @@ int GrayTracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* 
         dl.Logger("First summ save %f ", first_summ);
     }*/
     cur.copyTo(prev);
-
-#if defined _MAC_    
+  
     bool ret = tracker->update(diff, rect_roi);
     dl.Logger("[%d] tracker update %d %d %d %d ",index, rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
-#else
-    Rect2d temp;
-    bool ret = tracker->update(diff, temp);    
-    rect_roi.x = round(temp.x);
-    rect_roi.y = round(temp.y);
-    rect_roi.width = round(temp.width);
-    rect_roi.height = round(temp.height);  
-    dl.Logger("[%d]tracker update1 %f %f %f %f ", index, temp.x, temp.y, temp.width, temp.height);
-    dl.Logger("[%d]tracker update2 %d %d %d %d ", index, rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
-#endif    
-
+   
     if (ret == false) {
         dl.Logger("tracker miss --------------------------------------------");
 //        tracker->init(diff, rect_roi);            
@@ -580,21 +569,10 @@ int ColoredTracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OB
     Mat cur; Mat dst;
     ImageProcess(src, cur);
     cur.copyTo(prev);
-
-#if defined _MAC_    
+   
     bool ret = tracker->update(cur, rect_roi);
     dl.Logger("[%d] colortracker update %d %d %d %d ",index, rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
-#else
-    Rect2d temp;
-    bool ret = tracker->update(cur, temp);    
-    rect_roi.x = round(temp.x);
-    rect_roi.y = round(temp.y);
-    rect_roi.width = round(temp.width);
-    rect_roi.height = round(temp.height);    
-    dl.Logger("[%d]cur tracker update1 %f %f %f %f ", index, temp.x, temp.y, temp.width, temp.height);
-    dl.Logger("[%d]cur tracker update2 %d %d %d %d ", index, rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
-#endif    
-
+   
     if (ret == false) {
         dl.Logger("tracker miss --------------------------------------------");
 //        tracker->init(diff, rect_roi);            
