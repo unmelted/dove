@@ -28,7 +28,9 @@ class GrayTracking : public Tracking {
     GrayTracking();
     ~GrayTracking();
 
+    void SetBg(cuda::GpuMat& src, int frame_id);
     void SetBg(Mat& src, int frame_id);
+
     int TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);    
     int TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);    
     void ImageProcess(Mat& src, Mat& dst);    

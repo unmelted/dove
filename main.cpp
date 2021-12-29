@@ -64,7 +64,6 @@ int main(int argc, char* argv[]) {
 
     bool has_mask = false;
     int event = dove::FIGURE; 
-    //stab_live(infile);
     Dove stblz(event, has_mask, coord, infile, outfile);
     stblz.Process();
 

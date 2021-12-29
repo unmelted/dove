@@ -253,14 +253,24 @@ int Dove::Process() {
 }   
 
 int Dove::ProcessTK() {
+#if defined GPU
+    Ptr<cudacodec::VideoReader> in = cudacodec::createVideoReader(_in);
+    Ptr<cudacodec::VideoWriter> out = cudacodec::createVideoWriter(_out, Size(p->dst_width, p->dst_height), 30);
+#else
     VideoCapture in(_in);
     VideoWriter out;
     bool compare = false;
-    if (compare)    
+    if (compare)
         out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1930, 540));
-    else 
+    else
         out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));
+#endif
+
     dl.Logger("Process TK started ");
+#if defined GPU
+    cuda::GpuMat src1ocg; 
+    cuda::GpuMat src1og;
+#endif
 
     Mat src1oc; Mat src1o;
     int i = 0;
@@ -279,31 +289,36 @@ int Dove::ProcessTK() {
     vector<int>same;
 
     while(true) {
+#if defined GPU
+        if (!in->nextFrame(src1ocg))
+            break;
+        ImageProcess(src1ocg, src1o);
+#else 
         in >> src1oc;
         if(src1oc.data == NULL)
             break;
-        if(i > t_frame_end)
-            break;
+        ImageProcess(src1oc, src1o);
+#endif
 
         if ( i == 0)
-        {
-            ImageProcess(src1oc, src1o);            
-            SetRef(src1o);
-            SetRefC(src1oc);            
+        {                     
+#if defined GPU
+            tck->SetBg(src1og, i);
+#else
             tck->SetBg(src1o, i);
+#endif
             i++;
             continue;
         }
 
-        if(i < t_frame_start || i > t_frame_end) {
-            ImageProcess(src1oc, src1o);     
-            SetRef(src1o);
-            SetRefC(src1oc);            
+        if (i > t_frame_end)
+            break;
+
+        if(i < t_frame_start || i > t_frame_end) {         
             i++;
             continue;            
         }
 
-        ImageProcess(src1oc, src1o);
         if( p->tracker_type != TRACKER_NONE) {
             if (i == t_frame_start)
                 if(p->roi_input)
@@ -385,6 +400,8 @@ int Dove::ProcessTK() {
         if (tck->isfound) {
             obj->copy(pre_obj);
         }
+        i++;
+
         //direct apply
         // {
         //     smth.at<double>(0,0) = 1; 
@@ -398,10 +415,6 @@ int Dove::ProcessTK() {
         //     printf("refcw apply %f %f \n", smth.at<double>(0,2), smth.at<double>(1,2));
         // }
         // out << refcw;
-
-        SetRef(src1o);
-        SetRefC(src1oc);
-        i++;
         // if(i == 50)
         //      break;
 
@@ -602,8 +615,11 @@ int Dove::ProcessTK() {
 
         // sprintf(tx, "%d", i);
         // putText(canvas, tx, Point( 100, 100), FONT_HERSHEY_SIMPLEX, 5, (0), 3);
-
+#if defined GPU
+        out->write(canvas);
+#else
         out << canvas;        
+#endif
         SetRefC(src1oc);
         i++;
     }
@@ -684,8 +700,23 @@ int Dove::ProcessLK() {
 
     return ERR_NONE;
 };
-
+#if defined GPU
+int Dove::ImageProcess(cuda::GpuMat& src, Mat& dst) {
+#else
 int Dove::ImageProcess(Mat& src, Mat& dst) {
+#endif
+#if defined GPU
+    cuda::GpuMat temp;
+    if (p->scale != 1)
+        cuda::resize(src, src, Size(int((float)src.cols / p->scale), int(float(src.rows) / p->scale)), 0, 0, 1);
+    else
+        src.copyTo(temp);
+
+    if (!p->colored)
+        cuda::cvtColor(temp, temp, COLOR_BGR2GRAY);
+    temp.download(dst);
+
+#else
     Mat temp;
     if(p->scale != 1)
         resize(src, temp, Size(int((float)src.cols/p->scale), int(float(src.rows)/p->scale)), 0,0,1);
@@ -699,7 +730,7 @@ int Dove::ImageProcess(Mat& src, Mat& dst) {
         GaussianBlur(temp, dst, {p->blur_size, p->blur_size}, p->blur_sigma, p->blur_sigma);
     else
         temp.copyTo(dst);
-    
+#endif    
     if(p->has_mask)
         MakeMask();
 
@@ -966,7 +997,11 @@ void Dove::ApplyImage(Mat& src, bool scaled) {
 }
 
 void Dove::ApplyImageRef() {
+#if defined GPU
+    cuda::warpAffine(refc, refcw, smth, refc.size());
+#else
     cv::warpAffine(refc, refcw, smth, refc.size());
+#endif
 }
 
 int Dove::MakeMask() {

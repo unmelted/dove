@@ -22,6 +22,9 @@ GrayTracking::GrayTracking() {
 GrayTracking::~GrayTracking() {
 
 }
+void GrayTracking::SetBg(cuda::GpuMat& src, int frame_id) {
+
+}
 
 void GrayTracking::SetBg(Mat& src, int frame_id) {    
     int histbin = 256;

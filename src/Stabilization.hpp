@@ -23,6 +23,10 @@
 #include "ColorTracking.hpp"
 #include "GrayTracking.hpp"
 
+#if defined GPU
+#include <opencv2/cudacodec.hpp>
+#endif
+
 using namespace std;
 using namespace cv;
 using namespace dove;
@@ -75,8 +79,11 @@ public:
     int ProcessTK();
     int ProcessLK();
     void ProcessChristmas();
-
+#if defined GPU
+    int ImageProcess(cuda::GpuMat& src, Mat& dst);
+#else
     int ImageProcess(Mat& src, Mat& dst);
+#endif
     void SetRef(Mat& _src) {_src.copyTo(ref); };
     void SetRefC(Mat& _src) {_src.copyTo(refc); };
     void Initialize(bool has_mask, int* coord);
