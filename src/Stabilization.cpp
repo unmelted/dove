@@ -263,7 +263,7 @@ int Dove::ProcessTK() {
     if (compare)
         out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1930, 540));
     else
-        out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));
+        out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(p->dst_width, p->dst_height));
 #endif
 
     dl.Logger("Process TK started ");
@@ -292,7 +292,7 @@ int Dove::ProcessTK() {
 #if defined GPU
         if (!in->nextFrame(src1ocg))
             break;
-        ImageProcess(src1ocg, src1o);
+        ImageProcess(src1ocg, src1og);
 #else 
         in >> src1oc;
         if(src1oc.data == NULL)

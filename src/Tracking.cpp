@@ -116,6 +116,25 @@ int Tracking::TrackerInitFx(Mat& src, int index, int cx, int cy, TRACK_OBJ* obj,
     return ERR_NONE;
 }
 
+int Tracking::TrackerInitFx(GpuMat& src, int index, int cx, int cy, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+    Mat cur;
+    ImageProcess(src, cur);
+    int ccx = round(cx / p->track_scale);
+    int ccy = round(cy / p->track_scale);
+    obj->update(ccx - 30, ccy -30, 60 , 90);
+    obj->update();
+    roi->update(obj->sx - 10, obj->sy - 10, obj->w + 20, obj->h +20);
+    roi->update();
+    dl.Logger("[%d] obj %d %d %d %d", index, obj->sx, obj->sy ,obj->w , obj->h);
+    dl.Logger("[%d] roi %d %d %d %d", index, roi->sx, roi->sy ,roi->w , roi->h);
+    ConvertToRect(roi, &rect_roi);
+    dl.Logger("tracker init fix  rect fx roi for tracker init %d %d %d %d", rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
+    tracker->init(cur, rect_roi);
+    isfound = true;
+
+    return ERR_NONE;
+}
+
 float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
     int result = 0;
     Mat cur; Mat dst;

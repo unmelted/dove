@@ -29,6 +29,7 @@
 
 using namespace std;
 using namespace cv;
+using namespace cv::cuda;
 using namespace dove;
 
 class Dove {

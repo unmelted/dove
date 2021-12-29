@@ -12,7 +12,7 @@
     Description     : GrayTracking.cpp
     Notes           : Tracking
 */
-
+#include <opencv2/cudaimgproc.hpp>
 #include "GrayTracking.hpp"
 
 GrayTracking::GrayTracking() {
@@ -20,9 +20,6 @@ GrayTracking::GrayTracking() {
 }
 
 GrayTracking::~GrayTracking() {
-
-}
-void GrayTracking::SetBg(cuda::GpuMat& src, int frame_id) {
 
 }
 
@@ -67,6 +64,53 @@ void GrayTracking::SetBg(Mat& src, int frame_id) {
     dl.Logger("Setbg function finish %d %d ", bg.cols, bg.rows);
 }
 
+void GrayTracking::SetBg(GpuMat& src, int frame_id) {
+    int histbin = 256;
+    double minval; double maxval;
+    double cut_threshold;
+    Point minloc; Point maxloc;
+    GpuMat hist;
+    start_frame = frame_id;
+
+    if(p->track_scale != 1 ) {
+        scale_w = int(src.cols/p->track_scale);
+        scale_h = int(src.rows/p->track_scale);
+        resize(src, bgg, Size(scale_w, scale_h));
+    }    
+    cv::cuda::calcHist(&bgg, 1, 0, Mat(), hist, 1, &histbin, 0);
+    // for (int i = 0 ; i < histbin; i ++){
+    //     printf(" [%d] hist %d \n", i , (int)hist.at<float>(i));
+    // }
+
+    cv::cuda::minMaxLoc(hist, &minval, &maxval, &minloc, &maxloc, noArray());
+    printf("searched minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
+    cut_threshold = maxloc.y * 0.83;
+    lut = Mat::zeros(1, histbin, CV_8UC1);
+    for (int i = 0 ; i < histbin; i ++){
+        if(i <= cut_threshold) 
+            lut.at<unsigned char>(i) = i;
+        else 
+            lut.at<unsigned char>(i) = 255;
+//        printf(" [%d] lut--  %d \n", i , lut.at<unsigned char>(i));            
+    }
+
+    GpuMat gt; 
+    gt.upload(lut);
+    GpuMat result; GpuMat temp;
+    Ptr<LookUpTable> glut = createLookUpTable(gt);
+    glut->transform(bgg, result);
+
+    Ptr<CLAHE> clahe = createCLAHE(20);
+    clahe->apply(result, temp);
+    Ptr<Filter>gblur = createCaussianFilter(CV_8UC1, CV_8UC1, Size(3,3), 1.3);
+    gblur->apply(temp, bg);
+    gt.release();
+    result.release();
+    temp.release();
+
+    dl.Logger("Setbg function finish %d %d ", bg.cols, bg.rows);
+}
+
 void GrayTracking::ImageProcess(Mat& src, Mat& dst) {
     Mat temp;
     Mat result;
@@ -84,6 +128,19 @@ void GrayTracking::ImageProcess(Mat& src, Mat& dst) {
     clahe->setClipLimit(20);
     clahe->apply(result, temp);
     GaussianBlur(temp, dst, {5, 5}, 1.3, 1.3);
+}
+
+void GrayTracking::ImageProcess(GpuMat& src, GpuMat& dst) {
+    GpuMat temp;
+    GpuMat result;
+    src.copyTo(temp);    
+    if(p->track_scale != 1 ) {
+        scale_w = int(src.cols/p->track_scale);
+        scale_h = int(src.rows/p->track_scale);
+        resize(temp, temp, Size(scale_w, scale_h));
+//        imwrite("check2.png", dst);
+    }
+
 }
 
 int GrayTracking::TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {

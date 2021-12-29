@@ -21,6 +21,7 @@
 
 using namespace std;
 using namespace cv;
+using namespace cv::cuda;
 using namespace dove;
 
 
@@ -30,7 +31,9 @@ class ColoredTracking : public Tracking {
     ~ColoredTracking();
 
     void SetBg(Mat& src, int frame_id);
+    void SetBg(cuda::GpuMat& src, int frame_id);
+    void ImageProcess(Mat& src, Mat& dst);
+    void ImageProcess(GpuMat& src, Mat& dst);    
     int TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);    
     int TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);    
-    void ImageProcess(Mat& src, Mat& dst);
 };

@@ -35,6 +35,37 @@ void ColoredTracking::SetBg(Mat& src, int frame_id) {
     dl.Logger("Colored Setbg function finish %d %d ", bg.cols, bg.rows);    
 }
 
+void ColoredTracking::SetBg(GpuMat& src, int frame_id) {
+
+    if(p->track_scale != 1 ) {
+        scale_w = int(src.cols/p->track_scale);
+        scale_h = int(src.rows/p->track_scale);
+        resize(src, src, Size(scale_w, scale_h));
+    }
+    src.download(bg);
+    dl.Logger("Colored Setbg function finish %d %d ", bg.cols, bg.rows);    
+}
+
+
+void ColoredTracking::ImageProcess(Mat& src, Mat& dst) {
+
+    if(p->track_scale != 1 ) {
+        scale_w = int(src.cols/p->track_scale);
+        scale_h = int(src.rows/p->track_scale);
+        resize(src, dst, Size(scale_w, scale_h));
+    }
+}
+
+void ColoredTracking::ImageProcess(GpuMat& src, Mat& dst) {
+
+    if(p->track_scale != 1 ) {
+        scale_w = int(src.cols/p->track_scale);
+        scale_h = int(src.rows/p->track_scale);
+        resize(src, src, Size(scale_w, scale_h));
+    }
+    src.download(dst);
+}
+
 int ColoredTracking::TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
     int result = 0;
     double minval; double maxval;
@@ -90,13 +121,4 @@ int ColoredTracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OB
     }
 
     return ERR_NONE;
-}
-
-void ColoredTracking::ImageProcess(Mat& src, Mat& dst) {
-
-    if(p->track_scale != 1 ) {
-        scale_w = int(src.cols/p->track_scale);
-        scale_h = int(src.rows/p->track_scale);
-        resize(src, dst, Size(scale_w, scale_h));
-    }
 }

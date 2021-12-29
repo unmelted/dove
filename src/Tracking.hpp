@@ -20,6 +20,7 @@
 
 using namespace std;
 using namespace cv;
+using namespace cv::cuda;
 using namespace dove;
 
 class Tracking {
@@ -34,6 +35,7 @@ class Tracking {
     Rect rect_feature_roi;
 
     char filename[50];
+    GpuMat bgg;
     Mat bg;
     Mat prev;
     Mat diff;
@@ -55,12 +57,16 @@ class Tracking {
     float DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
     void DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin = false, int replay_stype = 0);
     void DrawObjectTracking(TRACK_OBJ* obj, TRACK_OBJ* roi, vector<Rect> rects);
-    int TrackerInitFx(Mat& src, int index, int cx, int cy, TRACK_OBJ* obj, TRACK_OBJ* roi);
 
-    virtual int TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) = 0;
+    int TrackerInitFx(Mat& src, int index, int cx, int cy, TRACK_OBJ* obj, TRACK_OBJ* roi);
+    int TrackerInitFx(GpuMat& src, int index, int cx, int cy, TRACK_OBJ* obj, TRACK_OBJ* roi);
+
     virtual void SetBg(Mat& src, int frame_id) = 0;
-    virtual int TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) = 0;
+    virtual void SetBg(cuda::GpuMat& src, int frame_id) = 0;
     virtual void ImageProcess(Mat& src, Mat& dst) = 0;
+    virtual void ImageProcess(cuda::GpuMat& src, Mat& dst) = 0;    
+    virtual int TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) = 0;
+    virtual int TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) = 0;
 
     void MakeROI(TRACK_OBJ* obj, TRACK_OBJ* roi);
     float GetIOU(Rect& r, int index, vector<Rect>& rects);
