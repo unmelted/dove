@@ -104,20 +104,24 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->swipe_end = 91; //short track
         p->roi_sx = 1160; 
         p->roi_sy = 730;
+    } else if (_in == "movie/2018_02_13_19_37_53_0.mp4") {
+        p->swipe_start = 51;
+        p->swipe_end = 84; //short track
+        p->roi_sx = 430; 
+        p->roi_sy = 850;
     }
 
     if (p->event == FIGURE) {
         p->colored = false;    
         p->mode = DETECT_TRACKING;
         p->roi_input = false;
-    } else if(p->event == HOCKEY) {
+    } else if(p->event == HOCKEY || p->event == SHORT) {
         p->colored = true;
         p->mode = DETECT_TRACKING;        
         p->roi_input = true;
-        p->roi_sx = 960;
-        p->roi_sy = 540;
+        p->roi_sx = 430;
+        p->roi_sy = 850;
     } 
-
     p->scale = 2;
 
     if (p->mode == OPTICALFLOW_LK_2DOF) {
