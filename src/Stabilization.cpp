@@ -673,11 +673,13 @@ int Dove::ProcessLK() {
         in >> src1oc;
         if(src1oc.data == NULL)
             break;
-        
+#if defined GPU        
         ImageProcess(src1ocg, src1og);
         src1ocg.download(src1oc);
         src1og.download(src1o);
-
+#else
+        ImageProcess(src1oc, src1o);
+#endif        
         if ( i == 0)
         {
             if(p->mode == OPTICALFLOW_LK_2DOF || p->mode == OPTICALFLOW_LK_6DOF) {            
@@ -1057,12 +1059,15 @@ void Dove::ProcessChristmas() {
         if(src1oc.cols > p->dst_width)
             cv::resize(src1oc, src1oc, Size(p->dst_width, p->dst_height));
 
+#if defined GPU        
+        ImageProcess(src1ocg, src1og);  
+        src1ocg.download(src1oc);
+        src1og.download(src1o);
+#else
+        ImageProcess(src1oc, src1o); 
+#endif
         if ( i == 0)
         {
-            ImageProcess(src1ocg, src1og);  
-            src1ocg.download(src1oc);
-            src1og.download(src1o);
-
             SetRef(src1o);
             SetRefC(src1oc);            
             tck->SetBg(src1o, i);
@@ -1071,19 +1076,12 @@ void Dove::ProcessChristmas() {
         }
 
         if(i < t_frame_start || i > t_frame_end) {
-            ImageProcess(src1ocg, src1og);  
-            src1ocg.download(src1oc);
-            src1og.download(src1o);
             SetRef(src1o);
             SetRefC(src1oc);
             out << refc;
             i++;
             continue;            
         }
-
-        ImageProcess(src1ocg, src1og);
-        src1ocg.download(src1oc);
-        src1og.download(src1o);
 
         if( p->tracker_type != TRACKER_NONE) {
             if (i == t_frame_start)
