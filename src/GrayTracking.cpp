@@ -162,21 +162,12 @@ int GrayTracking::TrackerInit(cuda::GpuMat& src, int index, TRACK_OBJ* obj, TRAC
     dl.Logger("PickArea minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
     diffg.download(diff);
 
-    obj->update(maxloc.x - 30, maxloc.y - 30, 60, 90);
-    obj->update();
-    roi->update(obj->sx - 10, obj->sy - 10, obj->w + 20, obj->h + 20);
-    roi->update();
-    dl.Logger("gray obj %d %d %d %d", obj->sx, obj->sy, obj->w, obj->h);
-    dl.Logger("gray roi %d %d %d %d", roi->sx, roi->sy, roi->w, roi->h);
-    ConvertToRect(roi, &rect_roi);
-    dl.Logger("gray rect roi for tracker init %d %d %d %d", rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
-    tracker->init(diff, rect_roi);
-    isfound = true;
-    //DrawObjectTracking(diff, obj, roi, false, 1);
-    return ERR_NONE;
+    result = TrackerInitPost(maxloc, obj, roi);
+    return result;    
 }
 
 int GrayTracking::TrackerUpdate(cuda::GpuMat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+    int result = -1;
     cuda::GpuMat cur;
     ImageProcess(src, cur);
     //dl.Logger("TrackerUpdate cos/row %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
@@ -205,26 +196,9 @@ int GrayTracking::TrackerUpdate(cuda::GpuMat& src, int index, TRACK_OBJ* obj, TR
 
 
     diffg.download(diff);
-    bool ret = tracker->update(diff, rect_roi);
-    dl.Logger("[%d] tracker update %d %d %d %d ", index, rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
 
-    if (ret == false) {
-        dl.Logger("tracker miss --------------------------------------------");
-        //        tracker->init(diff, rect_roi);            
-    }
-
-    ConvertToROI(rect_roi, obj, roi);
-    isfound = true;
-    //DrawObjectTracking(diff, obj, roi, false, 1);
-    //sprintf(filename, "saved\\%d_trck.png", index);
-    //imwrite(filename, diff);
-    tracker->init(diff, rect_roi);
-    if (p->mode == DETECT_TRACKING_CH) {
-        MakeROI(obj, feature_roi);
-        ConvertToRect(feature_roi, &rect_feature_roi, p->track_scale);
-    }
-
-    return ERR_NONE;
+   result = TrackerUpdatePost(obj, roi);
+   return result;
 }
 
 #endif
@@ -242,21 +216,12 @@ int GrayTracking::TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* ro
     cv::minMaxLoc(diff, &minval, &maxval, &minloc, &maxloc, Mat());
     dl.Logger("PickArea minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
 
-    obj->update(maxloc.x -30, maxloc.y -30, 60, 90);
-    obj->update();
-    roi->update(obj->sx - 10, obj->sy - 10, obj->w + 20, obj->h + 20);    
-    roi->update();
-    dl.Logger("gray obj %d %d %d %d", obj->sx, obj->sy ,obj->w , obj->h);
-    dl.Logger("gray roi %d %d %d %d", roi->sx, roi->sy ,roi->w , roi->h);
-    ConvertToRect(roi, &rect_roi);
-    dl.Logger("gray rect roi for tracker init %d %d %d %d", rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
-    tracker->init(diff, rect_roi);
-    isfound = true;
-    //DrawObjectTracking(diff, obj, roi, false, 1);
-    return ERR_NONE;
+    result = TrackerInitPost(maxloc, obj, roi);
+    return result;       
 }
 
 int GrayTracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+    int result = -1;
     Mat cur; Mat dst;
     ImageProcess(src, cur);
     //dl.Logger("TrackerUpdate cos/row %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
@@ -282,7 +247,29 @@ int GrayTracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* 
     }
         cur.copyTo(prev);
     */
-  
+   result = TrackerUpdatePost(obj, roi);
+   return result;
+
+}
+
+int GrayTracking::TrackerInitPost(Point& max, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+    dl.Logger("tracker init post.. ");
+    obj->update(max.x - 30, max.y - 30, 60, 90);
+    obj->update();
+    roi->update(obj->sx - 10, obj->sy - 10, obj->w + 20, obj->h + 20);
+    roi->update();
+    dl.Logger("gray obj %d %d %d %d", obj->sx, obj->sy, obj->w, obj->h);
+    dl.Logger("gray roi %d %d %d %d", roi->sx, roi->sy, roi->w, roi->h);
+    ConvertToRect(roi, &rect_roi);
+    dl.Logger("gray rect roi for tracker init %d %d %d %d", rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
+    tracker->init(diff, rect_roi);
+    isfound = true;
+    //DrawObjectTracking(diff, obj, roi, false, 1);
+    return ERR_NONE;
+}
+
+int GrayTracking::TrackerUpdatePost(TRACK_OBJ* obj, TRACK_OBJ* roi) {
+    dl.Logger("tracker update post.. ");
     bool ret = tracker->update(diff, rect_roi);
     dl.Logger("[%d] tracker update %d %d %d %d ",index, rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
    
