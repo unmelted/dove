@@ -35,9 +35,23 @@
 #include "common/TimeUtil.hpp"
 #if defined _MAC_
 #include "darknet/yolo_v2_class.hpp"
-#else
-#define _DEBUG
 #endif
+
+#if defined _WIN_ || _WINDOWS
+#define _IMGDEBUG
+#define _DEBUG
+#define GPU
+
+#include <opencv2/core/cuda.hpp>
+#include <opencv2/cudawarping.hpp>
+#include <opencv2/cudaimgproc.hpp>
+#include <opencv2/cudaarithm.hpp>
+#include <opencv2/cudafilters.hpp>
+#include <opencv2/cudacodec.hpp>
+#else
+//#define _DEBUG
+#endif
+
 
 using namespace std;
 using namespace cv;

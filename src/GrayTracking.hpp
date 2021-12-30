@@ -13,9 +13,6 @@
     Notes           : Tracking
 */
 #pragma once
-#include <opencv2/tracking.hpp>
-#include <opencv2/core/ocl.hpp>
-
 #include "DefData.hpp"
 #include "Tracking.hpp"
 
@@ -29,7 +26,13 @@ class GrayTracking : public Tracking {
     ~GrayTracking();
 
     void SetBg(Mat& src, int frame_id);
+    void ImageProcess(Mat& src, Mat& dst);    
     int TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);    
     int TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);    
-    void ImageProcess(Mat& src, Mat& dst);    
+#if defined GPU
+    void SetBg(cuda::GpuMat& src, int frame_id);        
+    void ImageProcess(cuda::GpuMat& src, cuda::GpuMat& dst);
+    int TrackerInit(cuda::GpuMat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
+    int TrackerUpdate(cuda::GpuMat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
+#endif
 };

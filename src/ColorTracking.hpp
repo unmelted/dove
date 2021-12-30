@@ -12,10 +12,7 @@
     Description     : ColorTracking.hpp
     Notes           : Tracking
 */
-
-#include <opencv2/tracking.hpp>
-#include <opencv2/core/ocl.hpp>
-
+#pragma once 
 #include "DefData.hpp"
 #include "Tracking.hpp"
 
@@ -30,7 +27,14 @@ class ColoredTracking : public Tracking {
     ~ColoredTracking();
 
     void SetBg(Mat& src, int frame_id);
+    void ImageProcess(Mat& src, Mat& dst);
     int TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);    
     int TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);    
-    void ImageProcess(Mat& src, Mat& dst);
+#if defined GPU    
+    void SetBg(cuda::GpuMat& src, int frame_id);    
+    void ImageProcess(cuda::GpuMat& src, cuda::GpuMat& dst);    
+    int TrackerInit(cuda::GpuMat& _src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
+    int TrackerUpdate(cuda::GpuMat& _src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
+#endif    
+
 };

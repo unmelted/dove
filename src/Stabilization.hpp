@@ -23,6 +23,7 @@
 #include "ColorTracking.hpp"
 #include "GrayTracking.hpp"
 
+
 using namespace std;
 using namespace cv;
 using namespace dove;
@@ -54,6 +55,11 @@ public:
     Mat mask;
     Mat smth;
     Mat last_smth;
+#if defined GPU
+    cuda::GpuMat refcg;
+    cuda::GpuMat refcwg;
+    cuda::GpuMat refg;
+#endif
     Mat refc;
     Mat refcw;
     Mat ref;
@@ -75,8 +81,13 @@ public:
     int ProcessTK();
     int ProcessLK();
     void ProcessChristmas();
-
+#if defined GPU
+    int ImageProcess(cuda::GpuMat& src, cuda::GpuMat& dst);
+    void SetRefG(cuda::GpuMat& _src) { _src.copyTo(refg); };
+    void SetRefCG(cuda::GpuMat& _src) { _src.copyTo(refcg); };
+#else
     int ImageProcess(Mat& src, Mat& dst);
+#endif
     void SetRef(Mat& _src) {_src.copyTo(ref); };
     void SetRefC(Mat& _src) {_src.copyTo(refc); };
     void Initialize(bool has_mask, int* coord);

@@ -29,11 +29,59 @@ void ColoredTracking::SetBg(Mat& src, int frame_id) {
     if(p->track_scale != 1 ) {
         scale_w = int(src.cols/p->track_scale);
         scale_h = int(src.rows/p->track_scale);
-        resize(src, bg, Size(scale_w, scale_h));
+        cv::resize(src, bg, Size(scale_w, scale_h));
     }
 
     dl.Logger("Colored Setbg function finish %d %d ", bg.cols, bg.rows);    
 }
+
+void ColoredTracking::ImageProcess(Mat& src, Mat& dst) {
+
+    if(p->track_scale != 1 ) {
+        scale_w = int(src.cols/p->track_scale);
+        scale_h = int(src.rows/p->track_scale);
+        cv::resize(src, dst, Size(scale_w, scale_h));
+    }
+}
+
+#if defined GPU
+void ColoredTracking::SetBg(cuda::GpuMat& src, int frame_id) {
+
+    if(p->track_scale != 1 ) {
+        scale_w = int(src.cols/p->track_scale);
+        scale_h = int(src.rows/p->track_scale);
+        cuda::resize(src, src, Size(scale_w, scale_h));
+    }
+    src.download(bg);
+    dl.Logger("Colored Setbg function finish %d %d ", bg.cols, bg.rows);    
+}
+
+void ColoredTracking::ImageProcess(cuda::GpuMat& src, cuda::GpuMat& dst) {
+
+    if(p->track_scale != 1 ) {
+        scale_w = int(src.cols/p->track_scale);
+        scale_h = int(src.rows/p->track_scale);
+        cuda::resize(src, dst, Size(scale_w, scale_h));
+    }
+}
+
+int ColoredTracking::TrackerInit(cuda::GpuMat& _src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+    int result = -1;
+    Mat src;
+    _src.download(src);
+    result = TrackerInit(src, index, obj, roi);
+    return result;
+}
+
+int ColoredTracking::TrackerUpdate(cuda::GpuMat& _src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+    int result = -1;
+    Mat src;
+    _src.download(src);
+    result = TrackerUpdate(src, index, obj, roi);
+    return result;
+}
+
+#endif
 
 int ColoredTracking::TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
     int result = 0;
@@ -42,12 +90,12 @@ int ColoredTracking::TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ*
     Mat cur; Mat cur_gray; Mat bg_gray;
     ImageProcess(src, cur);
     dl.Logger("PickArea cos/row %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
-    cvtColor(bg, bg_gray, COLOR_BGR2GRAY);
-    cvtColor(cur, cur_gray, COLOR_BGR2GRAY);
-    subtract(bg_gray, cur_gray, diff);
-    float diff_val = sum(diff)[0]/(scale_w * scale_h);
+    cv::cvtColor(bg, bg_gray, COLOR_BGR2GRAY);
+    cv::cvtColor(cur, cur_gray, COLOR_BGR2GRAY);
+    cv::subtract(bg_gray, cur_gray, diff);
+    float diff_val = cv::sum(diff)[0]/(scale_w * scale_h);
 
-    minMaxLoc(diff, &minval, &maxval, &minloc, &maxloc, Mat());
+    cv::minMaxLoc(diff, &minval, &maxval, &minloc, &maxloc, Mat());
     dl.Logger("PickArea minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
 
     obj->update(maxloc.x -30, maxloc.y -30, 60, 90);
@@ -90,13 +138,4 @@ int ColoredTracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OB
     }
 
     return ERR_NONE;
-}
-
-void ColoredTracking::ImageProcess(Mat& src, Mat& dst) {
-
-    if(p->track_scale != 1 ) {
-        scale_w = int(src.cols/p->track_scale);
-        scale_h = int(src.rows/p->track_scale);
-        resize(src, dst, Size(scale_w, scale_h));
-    }
 }
