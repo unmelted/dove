@@ -255,11 +255,15 @@ int Dove::Process() {
 int Dove::ProcessTK() {
     bool compare = false;
 #if defined GPU
-    printf("OK ? 1 \n");
-    cv::Ptr<cudacodec::VideoReader> in = cudacodec::createVideoReader(_in);
-    printf("OK ? 2 \n");
-    cv::Ptr<cudacodec::VideoWriter> out = cudacodec::createVideoWriter(_out, Size(p->dst_width, p->dst_height), 30);
-    printf("OK ? 3 \n");
+    // cv::Ptr<cudacodec::VideoReader> in = cudacodec::createVideoReader(_in);
+    // cv::Ptr<cudacodec::VideoWriter> out = cudacodec::createVideoWriter(_out, Size(p->dst_width, p->dst_height), 30);
+    VideoCapture in(_in);
+    VideoWriter out;
+    if (compare)
+        out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1930, 540));
+    else
+        out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(p->dst_width, p->dst_height));
+
 #else
     VideoCapture in(_in);
     VideoWriter out;
@@ -293,9 +297,15 @@ int Dove::ProcessTK() {
 
     while(true) {
 #if defined GPU
-        if (!in->nextFrame(src1ocg))
+        // if (!in->nextFrame(src1ocg))
+        //     break;
+        // ImageProcess(src1ocg, src1og);
+        in >> src1oc;
+        if(src1oc.data == NULL)
             break;
-        ImageProcess(src1ocg, src1og);
+        ImageProcess(src1oc, src1o);
+        src1ocg.upload(src1oc);
+        src1og.upload(src1o);
 #else 
         in >> src1oc;
         if(src1oc.data == NULL)
@@ -539,15 +549,22 @@ int Dove::ProcessTK() {
     i = 0; 
     char tx[10];    
 #if defined GPU
-    Ptr<cudacodec::VideoReader> in2 = cudacodec::createVideoReader(_in);
+    // Ptr<cudacodec::VideoReader> in2 = cudacodec::createVideoReader(_in);
+    VideoCapture in2(_in);        
 #else
     VideoCapture in2(_in);    
 #endif
     while(true) {
 #if defined GPU
-        if (!in2->nextFrame(src1ocg))
+        // if (!in2->nextFrame(src1ocg))
+        //     break;
+        // ImageProcess(src1ocg, src1og);
+        in >> src1oc;
+        if(src1oc.data == NULL)
             break;
-        ImageProcess(src1ocg, src1og);
+        ImageProcess(src1oc, src1o);
+        src1ocg.upload(src1oc);
+        src1og.upload(src1o);
 #else 
         in2 >> src1oc;
         if(src1oc.data == NULL)
@@ -627,7 +644,7 @@ int Dove::ProcessTK() {
                 smth.at<double>(0,2) = dx;
                 smth.at<double>(1,2) = dy;
             } else {
-#define MEMC                
+//#define MEMC                
 #if defined MEMC
                 double pdx = -new_prev_to_cur_transform[vi -1].dx;
                 double pdy = -new_prev_to_cur_transform[vi -1].dy;
@@ -687,7 +704,11 @@ int Dove::ProcessTK() {
         // sprintf(tx, "%d", i);
         // putText(canvas, tx, Point( 100, 100), FONT_HERSHEY_SIMPLEX, 5, (0), 3);
 #if defined GPU
-        out->write(canvas);
+        // out->write(canvas);
+        // SetRefCG(src1ocg);
+        Mat canvas_t;
+        canvas.download(canvas_t);
+        out << canvas_t;
         SetRefCG(src1ocg);
 #else
         out << canvas;        
