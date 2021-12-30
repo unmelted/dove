@@ -320,12 +320,21 @@ int Dove::ProcessTK() {
 
         if( p->tracker_type != TRACKER_NONE) {
             if (i == t_frame_start)
+#if defined GPU
+                if (p->roi_input)
+                    tck->TrackerInitFx(src1og, i, p->roi_sx, p->roi_sy, obj, roi);
+                else
+                    tck->TrackerInit(src1og, i, obj, roi);
+            else
+                tck->TrackerUpdate(src1og, i, obj, roi);
+#else
                 if(p->roi_input)
                     tck->TrackerInitFx(src1o, i, p->roi_sx, p->roi_sy, obj, roi);                
                 else 
                     tck->TrackerInit(src1o, i, obj, roi);
             else
-                tck->TrackerUpdate(src1o, i, obj, roi);            
+                tck->TrackerUpdate(src1o, i, obj, roi);     
+#endif
         } else {
             result = CalculateMove(src1o, i);
             replay_style = result;        

@@ -35,6 +35,7 @@ class Tracking {
 
     char filename[50];
     GpuMat bgg;
+    GpuMat diffg;
     Mat bg;
     Mat prev;
     Mat diff;
@@ -68,7 +69,7 @@ class Tracking {
     virtual int TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) = 0;
 #if defined GPU
     virtual void SetBg(cuda::GpuMat& src, int frame_id) = 0;    
-    virtual void ImageProcess(cuda::GpuMat& src, Mat& dst) = 0;    
+    virtual void ImageProcess(cuda::GpuMat& src, cuda::GpuMat& dst) = 0;    
     virtual int TrackerInit(cuda::GpuMat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) = 0;
     virtual int TrackerUpdate(cuda::GpuMat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) = 0;    
 #endif

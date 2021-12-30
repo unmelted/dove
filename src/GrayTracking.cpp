@@ -236,10 +236,10 @@ int GrayTracking::TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* ro
     Mat cur; Mat dst;
     ImageProcess(src, cur);
     dl.Logger("PickArea cos/row %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
-    subtract(bg, cur, diff);
-    float diff_val = sum(diff)[0]/(scale_w * scale_h);
+    cv::subtract(bg, cur, diff);
+    float diff_val = cv::sum(diff)[0]/(scale_w * scale_h);
 
-    minMaxLoc(diff, &minval, &maxval, &minloc, &maxloc, Mat());
+    cv::minMaxLoc(diff, &minval, &maxval, &minloc, &maxloc, Mat());
     dl.Logger("PickArea minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
 
     obj->update(maxloc.x -30, maxloc.y -30, 60, 90);
@@ -260,8 +260,8 @@ int GrayTracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* 
     Mat cur; Mat dst;
     ImageProcess(src, cur);
     //dl.Logger("TrackerUpdate cos/row %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
-    subtract(bg, cur, diff);
-    float diff_val = sum(diff)[0]/(scale_w * scale_h);
+    cv::subtract(bg, cur, diff);
+    float diff_val = cv::sum(diff)[0]/(scale_w * scale_h);
     /* if you need to check the same image, please uncommnet these block.
     if(index > start_frame +1 && !prev.empty()) {
         Mat same;        
