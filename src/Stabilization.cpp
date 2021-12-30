@@ -627,11 +627,31 @@ int Dove::ProcessTK() {
                 smth.at<double>(0,2) = dx;
                 smth.at<double>(1,2) = dy;
             } else {
+#define MEMC                
+#if defined MEMC
+                double pdx = -new_prev_to_cur_transform[vi -1].dx;
+                double pdy = -new_prev_to_cur_transform[vi -1].dy;
+                double ndx = pdx * 0.5 + dx * 0.1;
+                double ndy = pdy * 0.5 + dy * 0.1;
+                smth.at<double>(0,2) = ndx;
+                smth.at<double>(1,2) = ndy;
+                dl.Logger("[%d] will Apply1 %f %f ",i, smth.at<double>(0,2), smth.at<double>(1,2));
+                Mat temp;
+                cv::warpAffine(refc, temp, smth, refc.size());                
+                out << temp;
+
+                smth.at<double>(0,2) = dx;
+                smth.at<double>(1,2) = dy;
+                dl.Logger("[%d] will Apply2 %f %f ",i, smth.at<double>(0,2), smth.at<double>(1,2));
+                cv::warpAffine(refc, refcw, smth, refc.size());
+                vi++;
+#else
                 smth.at<double>(0,2) = dx;
                 smth.at<double>(1,2) = dy;
                 dl.Logger("[%d] will Apply %f %f ",i, smth.at<double>(0,2), smth.at<double>(1,2));
                 ApplyImageRef();
                 vi++;
+#endif                
             }
         }
         else {
