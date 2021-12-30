@@ -116,6 +116,7 @@ int Tracking::TrackerInitFx(Mat& src, int index, int cx, int cy, TRACK_OBJ* obj,
     return ERR_NONE;
 }
 
+#if defined GPU
 int Tracking::TrackerInitFx(GpuMat& src, int index, int cx, int cy, TRACK_OBJ* obj, TRACK_OBJ* roi) {
     Mat cur;
     ImageProcess(src, cur);
@@ -134,6 +135,7 @@ int Tracking::TrackerInitFx(GpuMat& src, int index, int cx, int cy, TRACK_OBJ* o
 
     return ERR_NONE;
 }
+#endif
 
 float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
     int result = 0;

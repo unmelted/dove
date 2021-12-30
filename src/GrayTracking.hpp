@@ -29,10 +29,11 @@ class GrayTracking : public Tracking {
     ~GrayTracking();
 
     void SetBg(Mat& src, int frame_id);
-    void SetBg(GpuMat& src, int frame_id);    
     void ImageProcess(Mat& src, Mat& dst);    
-    void ImageProcess(GpuMat& src, Mat& dst);        
     int TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);    
     int TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);    
-
+#if defined GPU
+    void SetBg(GpuMat& src, int frame_id);        
+    void ImageProcess(GpuMat& src, Mat& dst);        
+#endif
 };

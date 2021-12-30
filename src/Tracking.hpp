@@ -59,15 +59,17 @@ class Tracking {
     void DrawObjectTracking(TRACK_OBJ* obj, TRACK_OBJ* roi, vector<Rect> rects);
 
     int TrackerInitFx(Mat& src, int index, int cx, int cy, TRACK_OBJ* obj, TRACK_OBJ* roi);
+#if defined GPU    
     int TrackerInitFx(GpuMat& src, int index, int cx, int cy, TRACK_OBJ* obj, TRACK_OBJ* roi);
-
+#endif
     virtual void SetBg(Mat& src, int frame_id) = 0;
-    virtual void SetBg(cuda::GpuMat& src, int frame_id) = 0;
     virtual void ImageProcess(Mat& src, Mat& dst) = 0;
-    virtual void ImageProcess(cuda::GpuMat& src, Mat& dst) = 0;    
     virtual int TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) = 0;
     virtual int TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) = 0;
-
+#if defined GPU
+    virtual void SetBg(cuda::GpuMat& src, int frame_id) = 0;    
+    virtual void ImageProcess(cuda::GpuMat& src, Mat& dst) = 0;    
+#endif
     void MakeROI(TRACK_OBJ* obj, TRACK_OBJ* roi);
     float GetIOU(Rect& r, int index, vector<Rect>& rects);
     bool CheckWithin(Rect& r);
