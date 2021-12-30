@@ -372,7 +372,7 @@ void GodStabil::getAdjustMoveCoordination()
 	{	
 		Mat image;	
 
-		vector<Mat> testMotion = twoPassStabilizer->stabilizationMotions_;
+		vector<Mat> testMotion = 0;//twoPassStabilizer->stabilizationMotions_;
 
 		for(int i = 0; i < testImage.size(); i++)
 		{

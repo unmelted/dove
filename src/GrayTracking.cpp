@@ -161,7 +161,7 @@ int GrayTracking::TrackerInit(cuda::GpuMat& src, int index, TRACK_OBJ* obj, TRAC
     cuda::subtract(bgg, cur, diffg);
     float diff_val = cuda::sum(diffg)[0] / (scale_w * scale_h);
 
-    cuda::minMaxLoc(diffg, &minval, &maxval, &minloc, &maxloc, Mat());
+    cuda::minMaxLoc(diffg, &minval, &maxval, &minloc, &maxloc, noArray());
     dl.Logger("PickArea minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
     diffg.download(diff);
 
@@ -267,7 +267,7 @@ int GrayTracking::TrackerInitPost(Point& max, TRACK_OBJ* obj, TRACK_OBJ* roi) {
     dl.Logger("gray rect roi for tracker init %d %d %d %d", rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
     tracker->init(diff, rect_roi);
     isfound = true;
-    //DrawObjectTracking(diff, obj, roi, false, 1);
+    DrawObjectTracking(diff, obj, roi, false, 1);
     return ERR_NONE;
 }
 
