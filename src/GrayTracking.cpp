@@ -151,8 +151,6 @@ void GrayTracking::ImageProcess(cuda::GpuMat& src, cuda::GpuMat& dst) {
 
     cuda::GpuMat gt; 
     gt.upload(lut);
-    cuda::GpuMat result; 
-    cuda::GpuMat temp;
     Ptr<cuda::LookUpTable> glut = cuda::createLookUpTable(lut);
     glut->transform(temp, result);
 

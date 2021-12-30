@@ -559,21 +559,23 @@ int Dove::ProcessTK() {
         // if (!in2->nextFrame(src1ocg))
         //     break;
         // ImageProcess(src1ocg, src1og);
-        in >> src1oc;
+        in2 >> src1oc;
         if(src1oc.data == NULL)
             break;
+
         src1ocg.upload(src1oc);
         ImageProcess(src1ocg, src1og);
+        if (src1ocg.cols > p->dst_width)
+            cuda::resize(src1ocg, src1ocg, Size(p->dst_width, p->dst_height));
 
 #else 
         in2 >> src1oc;
         if(src1oc.data == NULL)
             break;
         ImageProcess(src1oc, src1o);
-#endif
-
-        if(src1oc.cols > p->dst_width)
+        if (src1oc.cols > p->dst_width)
             cv::resize(src1oc, src1oc, Size(p->dst_width, p->dst_height));
+#endif
 
         if (i == 0)
         {
@@ -708,6 +710,9 @@ int Dove::ProcessTK() {
         // SetRefCG(src1ocg);
         Mat canvas_t;
         canvas.download(canvas_t);
+        sprintf(filename, "%d_canvas_t.png", i);
+        imwrite(filename, canvas_t);
+
         out << canvas_t;
         SetRefCG(src1ocg);
 #else
