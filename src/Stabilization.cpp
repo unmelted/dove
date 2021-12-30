@@ -253,9 +253,13 @@ int Dove::Process() {
 }   
 
 int Dove::ProcessTK() {
+    bool compare = false;
 #if defined GPU
-    Ptr<cudacodec::VideoReader> in = cudacodec::createVideoReader(_in);
-    Ptr<cudacodec::VideoWriter> out = cudacodec::createVideoWriter(_out, Size(p->dst_width, p->dst_height), 30);
+    printf("OK ? 1 \n");
+    cv::Ptr<cudacodec::VideoReader> in = cudacodec::createVideoReader(_in);
+    printf("OK ? 2 \n");
+    cv::Ptr<cudacodec::VideoWriter> out = cudacodec::createVideoWriter(_out, Size(p->dst_width, p->dst_height), 30);
+    printf("OK ? 3 \n");
 #else
     VideoCapture in(_in);
     VideoWriter out;
@@ -270,7 +274,7 @@ int Dove::ProcessTK() {
     cuda::GpuMat src1ocg; 
     cuda::GpuMat src1og;
 #endif
-    bool compare = false;
+
     Mat src1oc; Mat src1o;
     int i = 0;
     int result = 0;
@@ -317,7 +321,7 @@ int Dove::ProcessTK() {
             i++;
             continue;            
         }
-
+        printf("OK ? %d \n", i);
         if( p->tracker_type != TRACKER_NONE) {
             if (i == t_frame_start)
 #if defined GPU
@@ -534,27 +538,50 @@ int Dove::ProcessTK() {
     int m = 0;    
     i = 0; 
     char tx[10];    
+#if defined GPU
+    Ptr<cudacodec::VideoReader> in2 = cudacodec::createVideoReader(_in);
+#else
     VideoCapture in2(_in);    
+#endif
     while(true) {
+#if defined GPU
+        if (!in2->nextFrame(src1ocg))
+            break;
+        ImageProcess(src1ocg, src1og);
+#else 
         in2 >> src1oc;
         if(src1oc.data == NULL)
             break;
+        ImageProcess(src1oc, src1o);
+#endif
 
         if(src1oc.cols > p->dst_width)
             cv::resize(src1oc, src1oc, Size(p->dst_width, p->dst_height));
 
-        if ( i == 0)
+        if (i == 0)
         {
+#if defined GPU
+            SetRefCG(src1ocg);
+#else
             SetRefC(src1oc);
+#endif
             i++;
             continue;
         }
         //sprintf(filename, "saved/%d_apply.png", i);
+#if defined GPU
+        cuda::GpuMat canvas;
+        if (compare)
+            canvas = cuda::GpuMat(540, 1930, CV_8UC3);
+        else
+            canvas = cuda::GpuMat(1080, 1920, CV_8UC3);
+#else
         Mat canvas;
-        if(compare) 
+        if (compare)
             canvas = Mat::zeros(540, 1930, CV_8UC3);
-        else 
+        else
             canvas = Mat::zeros(1080, 1920, CV_8UC3);
+#endif
 
         if (i > t_frame_start && i <= t_frame_end) {
             smth.at<double>(0,0) = 1; 
@@ -608,27 +635,44 @@ int Dove::ProcessTK() {
             }
         }
         else {
+#if defined GPU
+            refcg.copyTo(refcwg);
+#else
             refc.copyTo(refcw);
+#endif
         }
 
+#if defined GPU
+        if (compare) {
+            cv::resize(refcg, refcg, Size(960, 540));
+            cv::resize(refcwg, refcwg, Size(960, 540));
+            refcg.copyTo(canvas(Range::all(), Range(0, 960)));
+            refcwg.copyTo(canvas(Range::all(), Range(970, 1930)));
+#else
         if(compare) {
             cv::resize(refc, refc, Size(960, 540));        
             cv::resize(refcw, refcw, Size(960, 540));
             refc.copyTo(canvas(Range::all(), Range(0, 960)));
             refcw.copyTo(canvas(Range::all(), Range(970, 1930)));
+#endif
         }
         else {
+#if defined GPU
+            refcwg.copyTo(canvas);
+#else
             refcw.copyTo(canvas);
+#endif
         }
 
         // sprintf(tx, "%d", i);
         // putText(canvas, tx, Point( 100, 100), FONT_HERSHEY_SIMPLEX, 5, (0), 3);
 #if defined GPU
         out->write(canvas);
+        SetRefCG(src1ocg);
 #else
         out << canvas;        
-#endif
         SetRefC(src1oc);
+#endif
         i++;
     }
     dl.Logger(".. %f", LapTimer(all));
@@ -1015,7 +1059,7 @@ void Dove::ApplyImage(Mat& src, bool scaled) {
 
 void Dove::ApplyImageRef() {
 #if defined GPU
-    cuda::warpAffine(refc, refcw, smth, refc.size());
+    cuda::warpAffine(refcg, refcwg, smth, refcg.size());
 #else
     cv::warpAffine(refc, refcw, smth, refc.size());
 #endif

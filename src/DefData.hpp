@@ -47,6 +47,7 @@
 #include <opencv2/cudaimgproc.hpp>
 #include <opencv2/cudaarithm.hpp>
 #include <opencv2/cudafilters.hpp>
+#include <opencv2/cudacodec.hpp>
 #else
 //#define _DEBUG
 #endif

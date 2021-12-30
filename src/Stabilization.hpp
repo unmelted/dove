@@ -23,9 +23,6 @@
 #include "ColorTracking.hpp"
 #include "GrayTracking.hpp"
 
-#if defined GPU
-#include <opencv2/cudacodec.hpp>
-#endif
 
 using namespace std;
 using namespace cv;
@@ -58,6 +55,11 @@ public:
     Mat mask;
     Mat smth;
     Mat last_smth;
+#if defined GPU
+    cuda::GpuMat refcg;
+    cuda::GpuMat refcwg;
+    cuda::GpuMat refg;
+#endif
     Mat refc;
     Mat refcw;
     Mat ref;
@@ -81,6 +83,8 @@ public:
     void ProcessChristmas();
 #if defined GPU
     int ImageProcess(cuda::GpuMat& src, cuda::GpuMat& dst);
+    void SetRefG(cuda::GpuMat& _src) { _src.copyTo(refg); };
+    void SetRefCG(cuda::GpuMat& _src) { _src.copyTo(refcg); };
 #else
     int ImageProcess(Mat& src, Mat& dst);
 #endif
