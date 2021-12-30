@@ -117,9 +117,10 @@ int Tracking::TrackerInitFx(Mat& src, int index, int cx, int cy, TRACK_OBJ* obj,
 }
 
 #if defined GPU
-int Tracking::TrackerInitFx(GpuMat& src, int index, int cx, int cy, TRACK_OBJ* obj, TRACK_OBJ* roi) {
-    Mat cur;
-    ImageProcess(src, cur);
+int Tracking::TrackerInitFx(cuda::GpuMat& src, int index, int cx, int cy, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+    cuda::GpuMat gcur; Mat cur;
+    ImageProcess(src, gcur);
+    gcur.download(cur);
     int ccx = round(cx / p->track_scale);
     int ccy = round(cy / p->track_scale);
     obj->update(ccx - 30, ccy -30, 60 , 90);
@@ -142,15 +143,15 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
     Mat cur; Mat dst;
     ImageProcess(src, cur);
     dl.Logger("DetectAndTrack function start %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
-    subtract(bg, cur, diff);
-    float diff_val = sum(diff)[0]/(scale_w * scale_h);
+    cv::subtract(bg, cur, diff);
+    float diff_val = cv::sum(diff)[0]/(scale_w * scale_h);
 
     if(index > start_frame +1 && !prev.empty()) {
         Mat same;        
-        subtract(prev, cur, same);
+        cv::subtract(prev, cur, same);
         // sprintf(filename, "saved/%d_samecheck.png", index);
         // imwrite(filename, same);
-        float same_check = sum(same)[0]/(scale_w * scale_h);
+        float same_check = cv::sum(same)[0]/(scale_w * scale_h);
         dl.Logger("same check %f ", same_check);
         if (same_check < 0.2) {
             dl.Logger("Current image is same as previous.. ");
@@ -169,7 +170,7 @@ float Tracking::DetectAndTrack(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* r
     if(isfound == true) {
         Mat mask = Mat::zeros(scale_h, scale_w, CV_8UC1);
         rectangle(mask, Point(roi->sx, roi->sy), Point(roi->ex, roi->ey), Scalar(255), -1);
-        bitwise_and(mask, diff, dst);
+        cv::bitwise_and(mask, diff, dst);
     }
     else 
         dst = diff;

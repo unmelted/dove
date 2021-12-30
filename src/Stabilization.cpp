@@ -259,7 +259,6 @@ int Dove::ProcessTK() {
 #else
     VideoCapture in(_in);
     VideoWriter out;
-    bool compare = false;
     if (compare)
         out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1930, 540));
     else
@@ -271,7 +270,7 @@ int Dove::ProcessTK() {
     cuda::GpuMat src1ocg; 
     cuda::GpuMat src1og;
 #endif
-
+    bool compare = false;
     Mat src1oc; Mat src1o;
     int i = 0;
     int result = 0;
@@ -533,7 +532,7 @@ int Dove::ProcessTK() {
             break;
 
         if(src1oc.cols > p->dst_width)
-            resize(src1oc, src1oc, Size(p->dst_width, p->dst_height));
+            cv::resize(src1oc, src1oc, Size(p->dst_width, p->dst_height));
 
         if ( i == 0)
         {
@@ -604,8 +603,8 @@ int Dove::ProcessTK() {
         }
 
         if(compare) {
-            resize(refc, refc, Size(960, 540));        
-            resize(refcw, refcw, Size(960, 540));
+            cv::resize(refc, refc, Size(960, 540));        
+            cv::resize(refcw, refcw, Size(960, 540));
             refc.copyTo(canvas(Range::all(), Range(0, 960)));
             refcw.copyTo(canvas(Range::all(), Range(970, 1930)));
         }
@@ -660,6 +659,11 @@ int Dove::ProcessLK() {
     VideoWriter out;    
     out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(p->dst_width, p->dst_height));
 
+#if defined GPU
+    cuda::GpuMat src1ocg;
+    cuda::GpuMat src1og;
+#endif
+
     Mat src1oc; Mat src1o;
     int i = 0;
     int result = 0;
@@ -670,7 +674,9 @@ int Dove::ProcessLK() {
         if(src1oc.data == NULL)
             break;
         
-        ImageProcess(src1oc, src1o);
+        ImageProcess(src1ocg, src1og);
+        src1ocg.download(src1oc);
+        src1og.download(src1o);
 
         if ( i == 0)
         {
@@ -685,7 +691,7 @@ int Dove::ProcessLK() {
         result = CalculateMove(src1o, i);
         ApplyImageRef();        
         if(refcw.cols > p->dst_width)
-            resize(refcw, refcw, Size(p->dst_width, p->dst_height));
+            cv::resize(refcw, refcw, Size(p->dst_width, p->dst_height));
 
         out << refcw;        
         sprintf(filename, "saved/%d_.png", i);
@@ -701,7 +707,7 @@ int Dove::ProcessLK() {
     return ERR_NONE;
 };
 #if defined GPU
-int Dove::ImageProcess(cuda::GpuMat& src, Mat& dst) {
+int Dove::ImageProcess(cuda::GpuMat& src, cuda::GpuMat& dst) {
 #else
 int Dove::ImageProcess(Mat& src, Mat& dst) {
 #endif
@@ -713,26 +719,26 @@ int Dove::ImageProcess(Mat& src, Mat& dst) {
         src.copyTo(temp);
 
     if (!p->colored)
-        cuda::cvtColor(temp, temp, COLOR_BGR2GRAY);
-    temp.download(dst);
+        cuda::cvtColor(temp, dst, COLOR_BGR2GRAY);
 
 #else
     Mat temp;
     if(p->scale != 1)
-        resize(src, temp, Size(int((float)src.cols/p->scale), int(float(src.rows)/p->scale)), 0,0,1);
+        cv::resize(src, temp, Size(int((float)src.cols/p->scale), int(float(src.rows)/p->scale)), 0,0,1);
     else 
         src.copyTo(temp);
 
     if(!p->colored)
-        cvtColor(temp, temp, COLOR_BGR2GRAY);
+        cv::cvtColor(temp, temp, COLOR_BGR2GRAY);
     //if tk on? 
     if(!p->run_tracking)
-        GaussianBlur(temp, dst, {p->blur_size, p->blur_size}, p->blur_sigma, p->blur_sigma);
+        cv::GaussianBlur(temp, dst, {p->blur_size, p->blur_size}, p->blur_sigma, p->blur_sigma);
     else
         temp.copyTo(dst);
-#endif    
-    if(p->has_mask)
+
+    if (p->has_mask)
         MakeMask();
+#endif    
 
     return ERR_NONE;
 }
@@ -1023,6 +1029,10 @@ void Dove::ProcessChristmas() {
     else 
         out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1920, 1080));
     dl.Logger("Process TK started ");
+#if defined GPU
+    cuda::GpuMat src1ocg;
+    cuda::GpuMat src1og;
+#endif
     Mat src1oc; Mat src1o;
     int i = 0;
     int result = 0;
@@ -1045,11 +1055,14 @@ void Dove::ProcessChristmas() {
             break;            
 
         if(src1oc.cols > p->dst_width)
-            resize(src1oc, src1oc, Size(p->dst_width, p->dst_height));
+            cv::resize(src1oc, src1oc, Size(p->dst_width, p->dst_height));
 
         if ( i == 0)
         {
-            ImageProcess(src1oc, src1o);            
+            ImageProcess(src1ocg, src1og);  
+            src1ocg.download(src1oc);
+            src1og.download(src1o);
+
             SetRef(src1o);
             SetRefC(src1oc);            
             tck->SetBg(src1o, i);
@@ -1058,7 +1071,9 @@ void Dove::ProcessChristmas() {
         }
 
         if(i < t_frame_start || i > t_frame_end) {
-            ImageProcess(src1oc, src1o);     
+            ImageProcess(src1ocg, src1og);  
+            src1ocg.download(src1oc);
+            src1og.download(src1o);
             SetRef(src1o);
             SetRefC(src1oc);
             out << refc;
@@ -1066,7 +1081,10 @@ void Dove::ProcessChristmas() {
             continue;            
         }
 
-        ImageProcess(src1oc, src1o);
+        ImageProcess(src1ocg, src1og);
+        src1ocg.download(src1oc);
+        src1og.download(src1o);
+
         if( p->tracker_type != TRACKER_NONE) {
             if (i == t_frame_start)
                 tck->TrackerInit(src1o, i, obj, roi);

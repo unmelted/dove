@@ -29,7 +29,6 @@
 
 using namespace std;
 using namespace cv;
-using namespace cv::cuda;
 using namespace dove;
 
 class Dove {
@@ -81,7 +80,7 @@ public:
     int ProcessLK();
     void ProcessChristmas();
 #if defined GPU
-    int ImageProcess(cuda::GpuMat& src, Mat& dst);
+    int ImageProcess(cuda::GpuMat& src, cuda::GpuMat& dst);
 #else
     int ImageProcess(Mat& src, Mat& dst);
 #endif

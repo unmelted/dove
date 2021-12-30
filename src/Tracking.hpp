@@ -16,11 +16,9 @@
 #pragma once
 #include "DefData.hpp"
 #include <opencv2/tracking.hpp>
-#include <opencv2/core/ocl.hpp>
 
 using namespace std;
 using namespace cv;
-using namespace cv::cuda;
 using namespace dove;
 
 class Tracking {
@@ -35,7 +33,10 @@ class Tracking {
     Rect rect_feature_roi;
 
     char filename[50];
-    GpuMat bgg;
+#if defined GPU   
+    cuda::GpuMat bgg;
+    cuda::GpuMat diffg;
+#endif
     Mat bg;
     Mat prev;
     Mat diff;
@@ -60,7 +61,7 @@ class Tracking {
 
     int TrackerInitFx(Mat& src, int index, int cx, int cy, TRACK_OBJ* obj, TRACK_OBJ* roi);
 #if defined GPU    
-    int TrackerInitFx(GpuMat& src, int index, int cx, int cy, TRACK_OBJ* obj, TRACK_OBJ* roi);
+    int TrackerInitFx(cuda::GpuMat& src, int index, int cx, int cy, TRACK_OBJ* obj, TRACK_OBJ* roi);
 #endif
     virtual void SetBg(Mat& src, int frame_id) = 0;
     virtual void ImageProcess(Mat& src, Mat& dst) = 0;
@@ -68,7 +69,7 @@ class Tracking {
     virtual int TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) = 0;
 #if defined GPU
     virtual void SetBg(cuda::GpuMat& src, int frame_id) = 0;    
-    virtual void ImageProcess(cuda::GpuMat& src, Mat& dst) = 0;    
+    virtual void ImageProcess(cuda::GpuMat& src, cuda::GpuMat& dst) = 0;    
 #endif
     void MakeROI(TRACK_OBJ* obj, TRACK_OBJ* roi);
     float GetIOU(Rect& r, int index, vector<Rect>& rects);
