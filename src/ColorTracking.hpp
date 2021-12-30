@@ -33,6 +33,8 @@ class ColoredTracking : public Tracking {
 #if defined GPU    
     void SetBg(cuda::GpuMat& src, int frame_id);    
     void ImageProcess(cuda::GpuMat& src, cuda::GpuMat& dst);    
+    int TrackerInit(cuda::GpuMat& _src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
+    int TrackerUpdate(cuda::GpuMat& _src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi);
 #endif    
 
 };

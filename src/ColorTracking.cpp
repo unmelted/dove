@@ -64,6 +64,23 @@ void ColoredTracking::ImageProcess(cuda::GpuMat& src, cuda::GpuMat& dst) {
         cuda::resize(src, dst, Size(scale_w, scale_h));
     }
 }
+
+int ColoredTracking::TrackerInit(cuda::GpuMat& _src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+    int result = -1;
+    Mat src;
+    _src.download(src);
+    result = TrackerInit(src, index, obj, roi);
+    return result;
+}
+
+int ColoredTracking::TrackerUpdate(cuda::GpuMat& _src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
+    int result = -1;
+    Mat src;
+    _src.download(src);
+    result = TrackerUpdate(src, index, obj, roi);
+    return result;
+}
+
 #endif
 
 int ColoredTracking::TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
