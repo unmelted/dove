@@ -145,10 +145,24 @@ void GrayTracking::ImageProcess(cuda::GpuMat& src, cuda::GpuMat& dst) {
     if(p->track_scale != 1 ) {
         scale_w = int(src.cols/p->track_scale);
         scale_h = int(src.rows/p->track_scale);
-        cuda::resize(temp, dst, Size(scale_w, scale_h));
+        cuda::resize(temp, temp, Size(scale_w, scale_h));
 //        imwrite("check2.png", dst);
     }
 
+    cuda::GpuMat gt; 
+    gt.upload(lut);
+    cuda::GpuMat result; 
+    cuda::GpuMat temp;
+    Ptr<cuda::LookUpTable> glut = cuda::createLookUpTable(lut);
+    glut->transform(temp, result);
+
+    Ptr<cuda::CLAHE> clahe = cuda::createCLAHE(20);
+    clahe->apply(result, temp);
+    Ptr<cuda::Filter>gblur = cuda::createGaussianFilter(CV_8UC1, CV_8UC1, Size(3, 3), 1.3);
+    gblur->apply(temp, dst);
+    gt.release();
+    result.release();
+    temp.release();    
 }
 
 int GrayTracking::TrackerInit(cuda::GpuMat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* roi) {
