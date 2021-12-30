@@ -303,9 +303,9 @@ int Dove::ProcessTK() {
         in >> src1oc;
         if(src1oc.data == NULL)
             break;
-        ImageProcess(src1oc, src1o);
         src1ocg.upload(src1oc);
-        src1og.upload(src1o);
+        ImageProcess(src1ocg, src1og);
+
 #else 
         in >> src1oc;
         if(src1oc.data == NULL)
@@ -562,9 +562,9 @@ int Dove::ProcessTK() {
         in >> src1oc;
         if(src1oc.data == NULL)
             break;
-        ImageProcess(src1oc, src1o);
         src1ocg.upload(src1oc);
-        src1og.upload(src1o);
+        ImageProcess(src1ocg, src1og);
+
 #else 
         in2 >> src1oc;
         if(src1oc.data == NULL)
@@ -810,7 +810,7 @@ int Dove::ImageProcess(Mat& src, Mat& dst) {
 #if defined GPU
     cuda::GpuMat temp;
     if (p->scale != 1)
-        cuda::resize(src, src, Size(int((float)src.cols / p->scale), int(float(src.rows) / p->scale)), 0, 0, 1);
+        cuda::resize(src, temp, Size(int((float)src.cols / p->scale), int(float(src.rows) / p->scale)), 0, 0, 1);
     else
         src.copyTo(temp);
 

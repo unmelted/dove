@@ -61,6 +61,7 @@ void GrayTracking::SetBg(Mat& src, int frame_id) {
     clahe->setClipLimit(20);
     clahe->apply(result, temp);
     GaussianBlur(temp, bg, {3, 3}, 1.3, 1.3);
+    //imwrite("cpu_bg.png", bg);
     dl.Logger("Setbg function finish %d %d ", bg.cols, bg.rows);
 }
 
@@ -89,29 +90,32 @@ void GrayTracking::SetBg(cuda::GpuMat& src, int frame_id) {
     double minval; double maxval;
     double cut_threshold;
     Point minloc; Point maxloc;
-    Mat hist;// = Mat::zeros(Size(256, 1), CV_32SC1);
+    cuda::GpuMat hist = cuda::GpuMat(Size(256, 1), CV_32SC1, Scalar(0));
     start_frame = frame_id;
 
     if(p->track_scale != 1 ) {
         scale_w = int(src.cols/p->track_scale);
         scale_h = int(src.rows/p->track_scale);
         cuda::resize(src, bgg, Size(scale_w, scale_h));
-    }    
-    cuda::calcHist(bg, hist, cuda::Stream::Null());
-    // for (int i = 0 ; i < histbin; i ++){
-    //     printf(" [%d] hist %d \n", i , (int)hist.at<float>(i));
-    // }
+    }
+
+    cuda::calcHist(bgg, hist, cuda::Stream::Null());
+    Mat check;
+    hist.download(check);
+    //for (int i = 0 ; i < histbin; i ++){
+    //    printf(" [%d] hist %d \n", i , (int)check.at<int>(i));
+    //}
 
     cuda::minMaxLoc(hist, &minval, &maxval, &minloc, &maxloc, noArray());
-    printf("searched minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
-    cut_threshold = maxloc.y * 0.83;
+    dl.Logger("searched minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
+    cut_threshold = maxloc.x * 0.83;
     lut = Mat::zeros(1, histbin, CV_8UC1);
     for (int i = 0 ; i < histbin; i ++){
         if(i <= cut_threshold) 
             lut.at<unsigned char>(i) = i;
         else 
             lut.at<unsigned char>(i) = 255;
-        printf(" [%d] lut--  %d \n", i , lut.at<unsigned char>(i));            
+        //printf(" [%d] lut--  %d \n", i , lut.at<unsigned char>(i));            
     }
 
     cuda::GpuMat gt; 
@@ -129,9 +133,8 @@ void GrayTracking::SetBg(cuda::GpuMat& src, int frame_id) {
     result.release();
     temp.release();
 
-    Mat check;
-    bgg.download(check);
-    imwrite("gpu_bg.png", check);
+    //bgg.download(check);
+    //imwrite("gpu_bg2.png", check);
     dl.Logger("Setbg function finish %d %d ", bg.cols, bg.rows);
 }
 
