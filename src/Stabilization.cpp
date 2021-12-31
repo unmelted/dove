@@ -442,7 +442,7 @@ int Dove::ProcessTK() {
 
     }
 
-    dl.Logger("[%d] Image Analysis  %f ", i, LapTimer(all));        
+    //dl.Logger("[%d] Image Analysis  %f ", i, LapTimer(all));        
     //return ERR_NONE;	
 
     dl.Logger("PostPrcess start ... ");
@@ -710,8 +710,8 @@ int Dove::ProcessTK() {
         // SetRefCG(src1ocg);
         Mat canvas_t;
         canvas.download(canvas_t);
-        sprintf(filename, "%d_canvas_t.png", i);
-        imwrite(filename, canvas_t);
+        //sprintf(filename, "%d_canvas_t.png", i);
+        //imwrite(filename, canvas_t);
 
         out << canvas_t;
         SetRefCG(src1ocg);

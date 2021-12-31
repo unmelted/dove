@@ -279,7 +279,7 @@ int GrayTracking::TrackerInitPost(Point& max, TRACK_OBJ* obj, TRACK_OBJ* roi) {
     dl.Logger("gray rect roi for tracker init %d %d %d %d", rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
     tracker->init(diff, rect_roi);
     isfound = true;
-    DrawObjectTracking(diff, obj, roi, false, 1);
+    //DrawObjectTracking(diff, obj, roi, false, 1);
     return ERR_NONE;
 }
 
