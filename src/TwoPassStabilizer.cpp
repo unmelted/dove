@@ -149,7 +149,7 @@ int TwoPass::MakeStabilizedVideo(Ptr<ImageSetForStabilization> stabilizedFrames)
 		nStartWarpFrame++;
 	}		
 
-	vector<Mat> testMotion =  tp->stabilizationMotions_;
+	vector<Mat> testMotion =  0;//tp->stabilizationMotions_;
 	for(int i = 0; i < frontframe.size(); i++)
 	{			
 		TranslationAndWarpPerspective(frontframe[i], frontframe[i], testMotion[0], stabilizedSize);
