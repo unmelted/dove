@@ -683,23 +683,27 @@ int Dove::ProcessTK() {
 
 #if defined GPU
         if (compare) {
-            cv::resize(refcg, refcg, Size(960, 540));
-            cv::resize(refcwg, refcwg, Size(960, 540));
+            cuda::resize(refcg, refcg, Size(960, 540));
+            cuda::resize(refcwg, refcwg, Size(960, 540));
             refcg.copyTo(canvas(Range::all(), Range(0, 960)));
             refcwg.copyTo(canvas(Range::all(), Range(970, 1930)));
 #else
         if(compare) {
-            cv::resize(refc, refc, Size(960, 540));        
-            cv::resize(refcw, refcw, Size(960, 540));
+            resize(refc, refc, Size(960, 540));        
+            resize(refcw, refcw, Size(960, 540));
             refc.copyTo(canvas(Range::all(), Range(0, 960)));
             refcw.copyTo(canvas(Range::all(), Range(970, 1930)));
 #endif
         }
         else {
 #if defined GPU
-            refcwg.copyTo(canvas);
+            canvas = refcw(mg);
+            cuda::resize(canvas, canvas, Size(p->dst_width, p->dst_height));
+            //refcwg.copyTo(canvas);
 #else
-            refcw.copyTo(canvas);
+            canvas = refcw(mg);
+            resize(canvas, canvas, Size(p->dst_width, p->dst_height));
+            //refcw.copyTo(canvas);
 #endif
         }
 
@@ -727,28 +731,28 @@ int Dove::ProcessTK() {
 }
 
 void Dove::CalculcateMargin(double minx, double maxx, double miny, double maxy, Rect* mg) {
-    int c_lx = 0;
-    int c_ly = 0;
-    int c_bx = 0;
-    int c_by = 0;
-    int ww = 0;
-    int wh = 0;
-    if(abs(int(minx)) > maxx)
-        ww = abs(int(minx));
-    else 
-        ww = maxx;
+    int mintop = abs(miny);
+    int minleft = abs(minx);
+    int minright = 1920 - maxx;
+    int minbottom = 1080 - maxy;
+    dl.Logger("top %d left %d right %d bottom %d", mintop, minleft, minright, minbottom);
 
-    if (abs(int(miny)) > maxy)
-        wh = abs(int(miny));
-    else 
-        wh = maxy;
+    if (minleft > mintop * p->dst_width / p->dst_height)
+        mintop = minleft * p->dst_height / p->dst_width;
+    else
+        minleft = mintop * p->dst_width / p->dst_height;
+    
+    if (minright < minbottom * p->dst_width / p->dst_height)
+        minbottom = minright * p->dst_height / p->dst_width;
+    else
+        minright = minbottom * p->dst_width / p->dst_height;
 
-    mg->x = ww;
-    mg->y = wh;
-    mg->width = p->dst_width - ww*2;
-    mg->height = p->dst_height - wh*2;
+    mg->x = minleft;
+    mg->y = mintop;
+    mg->width = minright - minleft;
+    mg->height = minbottom - mintop;
 
-    dl.Logger("Rect Margin %d %d %d %d", ww, wh, mg->width, mg->height);
+    dl.Logger("Rect Margin %d %d %d %d", mg->x, mg->y, mg->width, mg->height);
 }
 
 int Dove::ProcessLK() {
