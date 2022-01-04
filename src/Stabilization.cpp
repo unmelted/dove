@@ -314,10 +314,12 @@ int Dove::ProcessTK() {
 #if defined GPU
             Mat temp;
             src1og.download(temp);
-            sprintf(filename, "image_%d.png", i);
+            sprintf(filename, "gpuimage_%d.png", i);
             imwrite(filename, temp);
             tck->SetBg(src1og, i);
 #else
+            sprintf(filename, "cpuimage_%d.png", i);
+            imwrite(filename, src1o);
             tck->SetBg(src1o, i);
 #endif
             i++;
@@ -842,9 +844,7 @@ int Dove::ImageProcess(Mat& src, Mat& dst) {
         //cuda::cvtColor(temp, temp, cv::COLOR_BGRA2BGR);
         cuda::cvtColor(temp, dst, cv::COLOR_BGRA2GRAY);
     }
-    Mat dst_t;
-    dst.download(dst_t);
-    imwrite("gpu_initial_bg.png", dst_t);
+
 #else
     Mat temp;
     if(p->scale != 1)
@@ -862,7 +862,7 @@ int Dove::ImageProcess(Mat& src, Mat& dst) {
 
     if (p->has_mask)
         MakeMask();
-    imwrite("cpu_initial_bg.png", dst);
+
 #endif    
     return ERR_NONE;
 }
