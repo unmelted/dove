@@ -40,7 +40,7 @@
 #if defined _WIN_ || _WINDOWS
 #define _IMGDEBUG
 #define _DEBUG
-//#define GPU
+#define GPU
 
 #include <opencv2/core/cuda.hpp>
 #include <opencv2/cudawarping.hpp>
