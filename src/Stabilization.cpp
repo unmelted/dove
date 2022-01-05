@@ -126,7 +126,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
         // p->roi_sx = 430;
         // p->roi_sy = 850;
     } 
-    p->scale = 1;
+    p->scale = 2;
 
     if (p->mode == OPTICALFLOW_LK_2DOF) {
         p->scale = 2;
@@ -259,12 +259,9 @@ int Dove::Process() {
 int Dove::ProcessTK() {
     bool compare = false;
 #if defined GPU
-    printf("filename %s \n", _in.c_str());
     cv::Ptr<cudacodec::VideoReader> in = cudacodec::createVideoReader(_in);
-    printf("OK2 \n");
-    //cv::Ptr<cudacodec::VideoWriter> out = cudacodec::createVideoWriter(_out, Size(p->dst_width, p->dst_height), 30);
     //VideoCapture in(_in);
-
+    cv::Ptr<cudacodec::VideoWriter> out = cudacodec::createVideoWriter(_out, Size(p->dst_width, p->dst_height), 30);
 #else
     VideoCapture in(_in);
 #endif
@@ -296,6 +293,7 @@ int Dove::ProcessTK() {
          if (!in->nextFrame(src1ocg))
              break;
          ImageProcess(src1ocg, src1og);
+
         //in >> src1oc;
         //if(src1oc.data == NULL)
         //    break;
@@ -312,14 +310,8 @@ int Dove::ProcessTK() {
         if ( i == 0)
         {                     
 #if defined GPU
-            Mat temp;
-            src1og.download(temp);
-            sprintf(filename, "gpuimage_%d.png", i);
-            imwrite(filename, temp);
             tck->SetBg(src1og, i);
 #else
-            sprintf(filename, "cpuimage_%d.png", i);
-            imwrite(filename, src1o);
             tck->SetBg(src1o, i);
 #endif
             i++;
@@ -552,12 +544,12 @@ int Dove::ProcessTK() {
     char tx[10];    
 #if defined GPU
     Ptr<cudacodec::VideoReader> in2 = cudacodec::createVideoReader(_in);
-    //VideoCapture in2(_in);   
-    cv::VideoWriter out;
-    if (compare)
-        out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1930, 540));
-    else
-        out.open(_out, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(p->dst_width, p->dst_height));
+
+    //cv::VideoWriter out;
+    //if (compare)
+    //    out.open(_out, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(1930, 540));
+    //else
+    //    out.open(_out, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(p->dst_width, p->dst_height));
 #else
     VideoCapture in2(_in);
     cv::VideoWriter out;
@@ -707,34 +699,28 @@ int Dove::ProcessTK() {
         cuda::resize(canvas, canvas, Size(p->dst_width, p->dst_height));
 #else
         if(compare) {
-            resize(refc, refc, Size(960, 540));        
-            resize(refcw, refcw, Size(960, 540));
+            cv::resize(refc, refc, Size(960, 540));        
+            cv::resize(refcw, refcw, Size(960, 540));
             refc.copyTo(canvas(Range::all(), Range(0, 960)));
             refcw.copyTo(canvas(Range::all(), Range(970, 1930)));
         }
         else {
             canvas = refcw(mg);
-            resize(canvas, canvas, Size(p->dst_width, p->dst_height));
+            cv::resize(canvas, canvas, Size(p->dst_width, p->dst_height));
         }
 
         canvas = refcw(mg);
-        resize(canvas, canvas, Size(p->dst_width, p->dst_height));
-        //refcw.copyTo(canvas);
+        cv::resize(canvas, canvas, Size(p->dst_width, p->dst_height));
 #endif
 
-        // sprintf(tx, "%d", i);
-        // putText(canvas, tx, Point( 100, 100), FONT_HERSHEY_SIMPLEX, 5, (0), 3);
+
 #if defined GPU
-         //out->write(canvas);
-         //SetRefCG(src1ocg);
-        Mat canvas_t;
-        canvas.download(canvas_t);
-        if (i < 10) {
-            sprintf(filename, "%d_canvas_t.png", i);
-            imwrite(filename, canvas_t);
-        }
-        out << canvas_t;
+        out->write(canvas);
         SetRefCG(src1ocg);
+        //Mat canvas_t;
+        //canvas.download(canvas_t);
+        //out << canvas_t;
+        //SetRefCG(src1ocg);
 #else
         out << canvas;        
         SetRefC(src1oc);
@@ -841,8 +827,9 @@ int Dove::ImageProcess(Mat& src, Mat& dst) {
         src.copyTo(temp);
 
     if (!p->colored) {
-        //cuda::cvtColor(temp, temp, cv::COLOR_BGRA2BGR);
-        cuda::cvtColor(temp, dst, cv::COLOR_BGRA2GRAY);
+        cuda::GpuMat sub = cuda::GpuMat(Size(temp.cols, temp.rows), CV_8UC1, Scalar(19));
+        cuda::cvtColor(temp, temp, cv::COLOR_BGRA2GRAY);
+        cuda::subtract(temp, sub, dst);
     }
 
 #else
