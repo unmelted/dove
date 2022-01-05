@@ -160,7 +160,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->center_threshold  = 60;
 
         p->run_path_smoothing = true;
-        p->smoothing_radius = 30;
+        p->smoothing_radius = 40;
         p->run_kalman = false;
         p->run_kalman_pre = false;
         p->run_kalman_post = false;        
@@ -429,30 +429,12 @@ int Dove::ProcessTK() {
     vector <dove::Trajectory> trajectory; // trajectory at all frames
 
     for(size_t i = 0; i < prev_to_cur_transform.size(); i++) {
-        if(oversampling ) {
-            if(prev_to_cur_transform[i+1].dx == 0 && prev_to_cur_transform[i+1].dy == 0) {
-                x += prev_to_cur_transform[i].dx/2;
-                y += prev_to_cur_transform[i].dy/2;
-                a += 0;
+        x += prev_to_cur_transform[i].dx;
+        y += prev_to_cur_transform[i].dy;
+        a += prev_to_cur_transform[i].da;
 
-                trajectory.push_back(dove::Trajectory(x,y,a));
-                k->out_trajectory << (i) << " " << x << " " << y << " " << a << endl;
-                x += prev_to_cur_transform[i].dx/2;
-                y += prev_to_cur_transform[i].dy/2;
-                a += 0;
-
-                trajectory.push_back(dove::Trajectory(x,y,a));
-                k->out_trajectory << (i) << " " << x << " " << y << " " << a << endl;
-            }
-
-        } else {
-            x += prev_to_cur_transform[i].dx;
-            y += prev_to_cur_transform[i].dy;
-            a += prev_to_cur_transform[i].da;
-
-            trajectory.push_back(dove::Trajectory(x,y,a));
-            k->out_trajectory << (i+1) << " " << x << " " << y << " " << a << endl;
-        }
+        trajectory.push_back(dove::Trajectory(x,y,a));
+        k->out_trajectory << (i+1) << " " << x << " " << y << " " << a << endl;
     }
 
     // Step 3 - Smooth out the trajectory using an averaging window

@@ -12,9 +12,9 @@ filelist = [
  prj_path+"/analysis/smoothed_trajectory.txt" , #smoothe
  prj_path+"/analysis/new_prev_to_cur_transformation.txt", #new_tran
 
- prj_path+"/analysis/trajectory2.txt", #trajectory
- prj_path+"/analysis/smoothed_trajectory2.txt" , #smoothe
- prj_path+"/analysis/new_prev_to_cur_transformation2.txt", #new_tran
+# prj_path+"/analysis/trajectory2.txt", #trajectory
+# prj_path+"/analysis/smoothed_trajectory2.txt" , #smoothe
+ #prj_path+"/analysis/new_prev_to_cur_transformation2.txt", #new_tran
 
 # "/Users/4dreplay/work/dove/prev_to_cur_transformation.txt", #prev
 # "/Users/4dreplay/work/dove/trajectory.txt", #trajectory
