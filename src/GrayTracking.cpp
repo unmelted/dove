@@ -38,11 +38,11 @@ void GrayTracking::SetBg(Mat& src, int frame_id) {
     }    
     calcHist(&bg, 1, 0, Mat(), hist, 1, &histbin, 0);
     // for (int i = 0 ; i < histbin; i ++){
-    //     printf(" [%d] hist %d \n", i , (int)hist.at<float>(i));
+    //      dl.Logger(" [%d] hist %d \n", i , (int)hist.at<float>(i));
     // }
 
     cv::minMaxLoc(hist, &minval, &maxval, &minloc, &maxloc, Mat());
-    printf("searched minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
+    dl.Logger("searched minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
     cut_threshold = maxloc.y * 0.83;
     lut = Mat::zeros(1, histbin, CV_8UC1);
     for (int i = 0 ; i < histbin; i ++){
@@ -61,7 +61,7 @@ void GrayTracking::SetBg(Mat& src, int frame_id) {
     clahe->setClipLimit(20);
     clahe->apply(result, temp);
     GaussianBlur(temp, bg, {3, 3}, 1.3, 1.3);
-    //imwrite("cpu_bg.png", bg);
+    imwrite("cpu_bg.png", bg);
     dl.Logger("Setbg function finish %d %d ", bg.cols, bg.rows);
 }
 
@@ -99,13 +99,15 @@ void GrayTracking::SetBg(cuda::GpuMat& src, int frame_id) {
         cuda::resize(src, bgg, Size(scale_w, scale_h));
     }
 
-    cuda::calcHist(bgg, hist, cuda::Stream::Null());
     Mat check;
-    hist.download(check);
-    //for (int i = 0 ; i < histbin; i ++){
-    //    printf(" [%d] hist %d \n", i , (int)check.at<int>(i));
-    //}
+    Mat hist_t;
+    bgg.download(check);
+    calcHist(&check, 1, 0, Mat(), hist_t, 1, &histbin, 0);
+    for (int i = 0 ; i < histbin; i ++){
+        dl.Logger(" [%d] hist_t %d \n", i , (int)hist_t.at<float>(i));
+    }
 
+    cuda::calcHist(bgg, hist, cuda::Stream::Null());
     cuda::minMaxLoc(hist, &minval, &maxval, &minloc, &maxloc, noArray());
     dl.Logger("searched minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
     cut_threshold = maxloc.x * 0.83;
@@ -132,9 +134,9 @@ void GrayTracking::SetBg(cuda::GpuMat& src, int frame_id) {
     gt.release();
     result.release();
     temp.release();
-
-    //bgg.download(check);
-    //imwrite("gpu_bg2.png", check);
+    
+    bgg.download(check);
+    imwrite("gpu_bg2.png", check);
     dl.Logger("Setbg function finish %d %d ", bg.cols, bg.rows);
 }
 
@@ -169,14 +171,17 @@ int GrayTracking::TrackerInit(cuda::GpuMat& src, int index, TRACK_OBJ* obj, TRAC
     Point minloc; Point maxloc;
     cuda::GpuMat cur;
     ImageProcess(src, cur);
+    Mat cur_check;
+    cur.download(cur_check);
+    imwrite("tracker_init.png", cur_check);
     dl.Logger("PickArea cos/row %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
     cuda::subtract(bgg, cur, diffg);
-    float diff_val = cuda::sum(diffg)[0] / (scale_w * scale_h);
+    //float diff_val = cuda::sum(diffg)[0] / (scale_w * scale_h);
 
     cuda::minMaxLoc(diffg, &minval, &maxval, &minloc, &maxloc, noArray());
     dl.Logger("PickArea minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
     diffg.download(diff);
-
+    imwrite("gpu_diff.png", diff);
     result = TrackerInitPost(maxloc, obj, roi);
     return result;    
 }
@@ -187,7 +192,7 @@ int GrayTracking::TrackerUpdate(cuda::GpuMat& src, int index, TRACK_OBJ* obj, TR
     ImageProcess(src, cur);
     //dl.Logger("TrackerUpdate cos/row %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
     cuda::subtract(bgg, cur, diffg);
-    float diff_val = cuda::sum(diff)[0] / (scale_w * scale_h);
+    //float diff_val = cuda::sum(diff)[0] / (scale_w * scale_h);
     /* if you need to check the same image, please uncommnet these block.
     if(index > start_frame +1 && !prev.empty()) {
         Mat same;
@@ -224,13 +229,14 @@ int GrayTracking::TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ* ro
     Point minloc; Point maxloc;
     Mat cur; Mat dst;
     ImageProcess(src, cur);
+    imwrite("tracker_init_cpu.png", cur);
     dl.Logger("PickArea cos/row %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
     cv::subtract(bg, cur, diff);
-    float diff_val = cv::sum(diff)[0]/(scale_w * scale_h);
+    //float diff_val = cv::sum(diff)[0]/(scale_w * scale_h);
 
     cv::minMaxLoc(diff, &minval, &maxval, &minloc, &maxloc, Mat());
     dl.Logger("PickArea minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
-
+    imwrite("cpu_diff.png", diff);
     result = TrackerInitPost(maxloc, obj, roi);
     return result;       
 }
@@ -284,7 +290,7 @@ int GrayTracking::TrackerInitPost(Point& max, TRACK_OBJ* obj, TRACK_OBJ* roi) {
 }
 
 int GrayTracking::TrackerUpdatePost(TRACK_OBJ* obj, TRACK_OBJ* roi) {
-    dl.Logger("tracker update post.. ");
+//    dl.Logger("tracker update post.. ");
     bool ret = tracker->update(diff, rect_roi);
     dl.Logger("tracker update %d %d %d %d ", rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
    

@@ -1,7 +1,7 @@
 rm dove 
 rm -rf generated/CMakeFiles
 rm generated/cmake_install.cmake
-#rm generated/CMakeCache.txt
+#rm ㅇgenerated/CMakeCache.txt
 
 make -j4
 
