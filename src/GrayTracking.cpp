@@ -37,9 +37,9 @@ void GrayTracking::SetBg(Mat& src, int frame_id) {
         cv::resize(src, bg, Size(scale_w, scale_h));
     }    
     calcHist(&bg, 1, 0, Mat(), hist, 1, &histbin, 0);
-    for (int i = 0 ; i < histbin; i ++){
-         dl.Logger(" [%d] hist %d \n", i , (int)hist.at<float>(i));
-    }
+    // for (int i = 0 ; i < histbin; i ++){
+    //      dl.Logger(" [%d] hist %d \n", i , (int)hist.at<float>(i));
+    // }
 
     cv::minMaxLoc(hist, &minval, &maxval, &minloc, &maxloc, Mat());
     dl.Logger("searched minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
@@ -192,7 +192,7 @@ int GrayTracking::TrackerUpdate(cuda::GpuMat& src, int index, TRACK_OBJ* obj, TR
     ImageProcess(src, cur);
     //dl.Logger("TrackerUpdate cos/row %d %d st_frame %d index %d", cur.cols, cur.rows, start_frame, index);
     cuda::subtract(bgg, cur, diffg);
-    float diff_val = cuda::sum(diff)[0] / (scale_w * scale_h);
+    //float diff_val = cuda::sum(diff)[0] / (scale_w * scale_h);
     /* if you need to check the same image, please uncommnet these block.
     if(index > start_frame +1 && !prev.empty()) {
         Mat same;
@@ -290,7 +290,7 @@ int GrayTracking::TrackerInitPost(Point& max, TRACK_OBJ* obj, TRACK_OBJ* roi) {
 }
 
 int GrayTracking::TrackerUpdatePost(TRACK_OBJ* obj, TRACK_OBJ* roi) {
-    dl.Logger("tracker update post.. ");
+//    dl.Logger("tracker update post.. ");
     bool ret = tracker->update(diff, rect_roi);
     dl.Logger("tracker update %d %d %d %d ", rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
    

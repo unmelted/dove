@@ -66,8 +66,8 @@ void Dove::Initialize(bool has_mask, int* coord) {
     if (_in == "movie\\4dmaker_600f.mp4" || _in == "movie\\600.mp4") {
 #endif
         printf(" ------------ 600 !\n");        
-        p->swipe_start = 80; //600 OK        
-        p->swipe_end = 198;     
+        p->swipe_start = 79; //600 OK        
+        p->swipe_end = 180;     
     } else if (_in == "movie/4dmaker_603.mp4") {
         printf(" ------------ 603 !\n");
         p->swipe_start = 79;
@@ -325,7 +325,7 @@ int Dove::ProcessTK() {
             i++;
             continue;            
         }
-        printf("OK ? %d \n", i);
+
         if( p->tracker_type != TRACKER_NONE) {
             if (i == t_frame_start)
 #if defined GPU
@@ -417,23 +417,6 @@ int Dove::ProcessTK() {
             obj->copy(pre_obj);
         }
         i++;
-
-        //direct apply
-        // {
-        //     smth.at<double>(0,0) = 1; 
-        //     smth.at<double>(0,1) = 0; 
-        //     smth.at<double>(1,0) = 0; 
-        //     smth.at<double>(1,1) = 1;         
-        //     smth.at<double>(0,2) = -dx;
-        //     smth.at<double>(1,2) = -dy;
-        //     resize(refc, refc, Size(1920, 1080));               
-        //     ApplyImageRef();    
-        //     printf("refcw apply %f %f \n", smth.at<double>(0,2), smth.at<double>(1,2));
-        // }
-        // out << refcw;
-        // if(i == 50)
-        //      break;
-
     }
 
     //dl.Logger("[%d] Image Analysis  %f ", i, LapTimer(all));        
@@ -527,11 +510,11 @@ int Dove::ProcessTK() {
         k->out_new << (i+1) << " " << dx << " " << dy << " " << da << endl;
         if(dx < minx)
             minx = dx;
-        else if(dx > maxx)
+        if(dx > maxx)
             maxx = dx;
         if(dy < miny)
             miny = dy;
-        else if (dy > maxy)
+        if (dy > maxy)
             maxy = dy;
     }
     dl.Logger("minx %f maxx %f miny %f maxy %f", minx, maxx, miny, maxy);
@@ -618,7 +601,7 @@ int Dove::ProcessTK() {
                 k->x += dx;
                 k->y += dy;
                 k->a += 0;
-                dl.Logger("post origin %f %f ", dx, dy);                
+                dl.Logger("post origin %f %f -- %f %f ", dx, dy, new_prev_to_cur_transform[vi].dx, new_prev_to_cur_transform[vi].dy);
                 k->out_transform << i << " " << dx << " " << dy << " " << 0 << endl;
 
                 k->z = dove::Trajectory(k->x, k->y, k->a);                
@@ -734,10 +717,14 @@ int Dove::ProcessTK() {
 }
 
 void Dove::CalculcateMargin(double minx, double maxx, double miny, double maxy, Rect* mg) {
-    int mintop = abs(miny);
-    int minleft = abs(minx);
-    int minright = 1920 - maxx;
-    int minbottom = 1080 - maxy;
+    // int mintop = abs(miny);
+    // int minleft = abs(minx);
+    int mx = max( abs(minx), maxx);
+    int my = max( abs(miny), maxy);
+    int mintop = my;
+    int minleft = mx;
+    int minright = 1920 - mx;
+    int minbottom = 1080 - my;
     dl.Logger("top %d left %d right %d bottom %d", mintop, minleft, minright, minbottom);
 
     if (minleft > mintop * p->dst_width / p->dst_height)
