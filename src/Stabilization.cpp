@@ -420,7 +420,7 @@ int Dove::ProcessTK() {
     }
 
     //dl.Logger("[%d] Image Analysis  %f ", i, LapTimer(all));        
-//    return ERR_NONE;	
+    return ERR_NONE;	
 
     dl.Logger("PostPrcess start ... ");
     double a = 0;

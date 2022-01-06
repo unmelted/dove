@@ -14,7 +14,7 @@ find_package( OpenCV REQUIRED )
 set(CMAKE_CXX_FLAGS "-Wno-invalid-source-encoding -Wno-deprecated-register -Wno-writable-strings -Wno-parentheses -O2 -g")
 
 set(LC_INCLUDE_DIR "/usr/local/include")
-set(LC_LIB_DIR "/usr/local/lib")
+set(LC_LIB_DIR "/usr/local/lib/libgsl.dylib")
 
 add_definitions(-D_DEBUG)
 add_definitions(-D_IMGDEBUG)
