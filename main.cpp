@@ -65,7 +65,24 @@ int main(int argc, char* argv[]) {
     bool has_mask = false;
     int event = dove::FIGURE; 
     Dove stblz(event, has_mask, coord, infile, outfile);
-    stblz.Process();
+    //stblz.Process();
+
+    Mat smth;
+    Mat src(Size(1920, 1080), CV_32SC3);
+    Mat ref(Size(1920, 1080), CV_32SC3);
+    smth.create(3, 3, CV_64F);
+    smth.at<double>(0,0) = 1; 
+    smth.at<double>(0,1) = 0; 
+    smth.at<double>(1,0) = 0; 
+    smth.at<double>(1,1) = 1; 
+    smth.at<double>(0,2) = 3; 
+    smth.at<double>(1,2) = 3; 
+    smth.at<double>(2,0) = 0; 
+    smth.at<double>(2,1) = 0; 
+    smth.at<double>(2,2) = 1; 
+    warpPerspective(src, ref, smth, Size(1920,1080), 0);
+
+
 
 }
 #else

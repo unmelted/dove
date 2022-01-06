@@ -160,7 +160,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->center_threshold  = 60;
 
         p->run_path_smoothing = true;
-        p->smoothing_radius = 40;
+        p->smoothing_radius = 20;
         p->run_kalman = false;
         p->run_kalman_pre = false;
         p->run_kalman_post = false;        
@@ -420,7 +420,7 @@ int Dove::ProcessTK() {
     }
 
     //dl.Logger("[%d] Image Analysis  %f ", i, LapTimer(all));        
-    //return ERR_NONE;	
+//    return ERR_NONE;	
 
     dl.Logger("PostPrcess start ... ");
     double a = 0;
