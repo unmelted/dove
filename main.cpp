@@ -66,7 +66,6 @@ int main(int argc, char* argv[]) {
     int event = dove::FIGURE; 
     Dove stblz(event, has_mask, coord, infile, outfile);
     stblz.Process();
-
 }
 #else
 

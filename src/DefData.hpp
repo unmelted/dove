@@ -66,6 +66,7 @@ typedef enum _event {
     FIGURE          = 1,
     HOCKEY          = 2,
     SHORT           = 3,
+    ETC             = 4,
 }EVENT;
 
 typedef enum _calmode {
@@ -82,6 +83,13 @@ typedef enum _calmode {
     DETECT_TRACKING_CH      = 10,
 
 }CALMODE;
+
+typedef enum _intermode {
+    NONE                  = 0,
+    KALMAN_FILTER         = 1,
+    MEDIAN_KERNEL         = 2,
+    SPLINE_LSF            = 3,
+} INTERPOLATION_MODE;
 
 typedef enum _track_return {
     TRACK_NONE          = 0,
@@ -209,11 +217,12 @@ typedef struct _param {
     int blur_size;
     float blur_sigma;
 
+    int interpolation_mode;
     bool run_kalman;
     bool run_kalman_pre;
     bool run_kalman_post;
-    bool run_path_smoothing;    
     int smoothing_radius;
+
     //detection
     bool run_detection;
     int detector_type;
@@ -355,6 +364,18 @@ typedef struct traj
     double a; // angle
 } Trajectory;
 
+typedef struct _analysis {
+    ofstream out_transform;
+    ofstream out_trajectory;
+    ofstream out_smoothed;
+    ofstream out_new;
+    ofstream out_transform2;    
+    ofstream out_trajectory2;
+    ofstream out_smoothed2;
+    ofstream out_new2;
+
+}ANALYSIS;
+
 typedef struct _kalman {
     double a = 0;
     double x = 0;
@@ -377,15 +398,6 @@ typedef struct _kalman {
 	Trajectory	z;//actual measurement
 	Trajectory Q;// process noise covariance
 	Trajectory R;// measurement noise covariance 
-
-    ofstream out_transform;
-    ofstream out_trajectory;
-    ofstream out_smoothed;
-    ofstream out_new;
-    ofstream out_transform2;    
-    ofstream out_trajectory2;
-    ofstream out_smoothed2;
-    ofstream out_new2;
 
 } KALMAN;
 

@@ -67,7 +67,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
 #endif
         printf(" ------------ 600 !\n");        
         p->swipe_start = 79; //600 OK        
-        p->swipe_end = 180;     
+        p->swipe_end = 179;     
     } else if (_in == "movie/4dmaker_603.mp4") {
         printf(" ------------ 603 !\n");
         p->swipe_start = 79;
@@ -127,6 +127,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
         // p->roi_sy = 850;
     } 
     p->scale = 2;
+    p->interpolation_mode = SPLINE_LSF;
 
     if (p->mode == OPTICALFLOW_LK_2DOF) {
         p->scale = 2;
@@ -159,8 +160,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
         p->iou_threshold = 0.3;
         p->center_threshold  = 60;
 
-        p->run_path_smoothing = true;
-        p->smoothing_radius = 30;
+        p->smoothing_radius = 20;
         p->run_kalman = false;
         p->run_kalman_pre = false;
         p->run_kalman_post = false;        
@@ -210,29 +210,21 @@ void Dove::Initialize(bool has_mask, int* coord) {
     }
 
     k = new KALMAN();
-    k->pstd = (double)coord[0]/10000;
-    k->cstd = (double)coord[1]/10000;
-    //dl.Logger("pstd %f cstd %f ", k->pstd, k->cstd);
+    a = new ANALYSIS();
 
-    if(p->run_path_smoothing == true || p->run_kalman == true)  {
-        k->out_transform.open("analysis/prev_to_cur_transformation.txt");
-        k->out_trajectory.open("analysis/trajectory.txt");
-        k->out_smoothed.open("analysis/smoothed_trajectory.txt");
-        k->out_new.open("analysis/new_prev_to_cur_transformation.txt");        
-    }
+    a->out_transform.open("analysis/prev_to_cur_transformation.txt");
+    a->out_trajectory.open("analysis/trajectory.txt");
+    a->out_smoothed.open("analysis/smoothed_trajectory.txt");
+    a->out_new.open("analysis/new_prev_to_cur_transformation.txt");        
 
-    if(p->run_kalman == true || 
-        p->run_kalman_pre == true || p->run_kalman_post == true) {    
+    if(p->interpolation_mode == KALMAN_FILTER) {
+        k->pstd = (double)coord[0]/10000;
+        k->cstd = (double)coord[1]/10000;
         k->Q.set(k->pstd, k->pstd, k->pstd);
         k->R.set(k->cstd, k->cstd, k->cstd);      
-        k->out_transform2.open("analysis/prev_to_cur_transformation2.txt");
-        k->out_trajectory2.open("analysis/trajectory2.txt");
-        k->out_smoothed2.open("analysis/smoothed_trajectory2.txt");
-        k->out_new2.open("analysis/new_prev_to_cur_transformation2.txt");        
     }
 
     smth.create(2 , 3 , CV_64F);        
-
     dl.Logger("Initialized compelete.");    
 }
 
@@ -363,7 +355,7 @@ int Dove::ProcessTK() {
                     k->x += dx;
                     k->y += dy;
                     k->a += da;
-                    k->out_transform2 << i << " " << dx << " " << dy << " " << da << endl;
+                    a->out_transform2 << i << " " << dx << " " << dy << " " << da << endl;
 
                     k->z = dove::Trajectory(k->x, k->y, k->a);
                     if( i == p->swipe_start ){
@@ -381,7 +373,7 @@ int Dove::ProcessTK() {
                         k->P = (dove::Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
                     }
                     //smoothed_trajectory.push_back(X);
-                    k->out_smoothed2 << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
+                    a->out_smoothed2 << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
 
                     // target - current
                     double diff_x = k->X.x - k->x;//
@@ -394,21 +386,18 @@ int Dove::ProcessTK() {
                     dl.Logger("pre from kalman %f %f ", dx, dy);
                     //new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
                     //
-                    k->out_new2 << i << " " << dx << " " << dy << " " << da << endl;     
+                    a->out_new2 << i << " " << dx << " " << dy << " " << da << endl;     
                     prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));                    
                 } 
-                else if (p->run_path_smoothing == true) {      
+                else if (p->interpolation_mode == MEDIAN_KERNEL || p->interpolation_mode == SPLINE_LSF) {
                     printf("[%d] not same. out_transform without kalman", i);                    
-                    k->out_transform << i << " "<< dx << " "<< dy << " " << da << endl;            
+                    a->out_transform << i << " "<< dx << " "<< dy << " " << da << endl;            
                     prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));
-                } else {
-                    k->out_transform << i << " "<< dx << " "<< dy << " " << da << endl;            
-                    prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));                    
-                }
+                } 
             } else {
                 same.push_back(i);
                 printf("[%d] same. out_transform without kalman", i);
-                k->out_transform << i << " "<< dx << " "<< dy << " " << da << endl;            
+                a->out_transform << i << " "<< dx << " "<< dy << " " << da << endl;            
                 prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));
             }
         }
@@ -420,71 +409,64 @@ int Dove::ProcessTK() {
     }
 
     //dl.Logger("[%d] Image Analysis  %f ", i, LapTimer(all));        
-    //return ERR_NONE;	
 
     dl.Logger("PostPrcess start ... ");
-    double a = 0;
+    double aa = 0;
     double x = 0;
     double y = 0;
     vector <dove::Trajectory> trajectory; // trajectory at all frames
 
     for(size_t i = 0; i < prev_to_cur_transform.size(); i++) {
-        if(oversampling ) {
-            if(prev_to_cur_transform[i+1].dx == 0 && prev_to_cur_transform[i+1].dy == 0) {
-                x += prev_to_cur_transform[i].dx/2;
-                y += prev_to_cur_transform[i].dy/2;
-                a += 0;
+        x += prev_to_cur_transform[i].dx;
+        y += prev_to_cur_transform[i].dy;
+        aa += prev_to_cur_transform[i].da;
 
-                trajectory.push_back(dove::Trajectory(x,y,a));
-                k->out_trajectory << (i) << " " << x << " " << y << " " << a << endl;
-                x += prev_to_cur_transform[i].dx/2;
-                y += prev_to_cur_transform[i].dy/2;
-                a += 0;
-
-                trajectory.push_back(dove::Trajectory(x,y,a));
-                k->out_trajectory << (i) << " " << x << " " << y << " " << a << endl;
-            }
-
-        } else {
-            x += prev_to_cur_transform[i].dx;
-            y += prev_to_cur_transform[i].dy;
-            a += prev_to_cur_transform[i].da;
-
-            trajectory.push_back(dove::Trajectory(x,y,a));
-            k->out_trajectory << (i+1) << " " << x << " " << y << " " << a << endl;
-        }
+        trajectory.push_back(dove::Trajectory(x,y,aa));
+        a->out_trajectory << (i+1) << " " << x << " " << y << " " << aa << endl;
     }
 
-    // Step 3 - Smooth out the trajectory using an averaging window
-    vector <dove::Trajectory> smoothed_trajectory; // trajectory at all frames
-    for(size_t i = 0; i < trajectory.size(); i++) {
-        double sum_x = 0;
-        double sum_y = 0;
-        double sum_a = 0;
-        int count = 0;
-
-        for(int j = -p->smoothing_radius; j <= p->smoothing_radius; j++) {
-            if(i+j >= 0 && i+j < trajectory.size()) {
-                sum_x += trajectory[i+j].x;
-                sum_y += trajectory[i+j].y;
-                sum_a += trajectory[i+j].a;
-
-                count++;
-            }
+    vector <dove::Trajectory> smoothed_trajectory;    
+    if(p->interpolation_mode == SPLINE_LSF) {
+        Algebra al;
+        vector<dove::Trajectory> test_xout;
+        vector<dove::Trajectory> test_yout;    
+        al.BSplineTrajectory(trajectory, &test_xout, 0);
+        al.BSplineTrajectory(trajectory, &test_yout, 1);    
+        vector <dove::Trajectory> smoothed_trajectory;
+        for(size_t i = 0; i < trajectory.size(); i++) {
+            dl.Logger("spline output %f %f ", test_xout[i].y, test_yout[i].y);
+            smoothed_trajectory.push_back(dove::Trajectory(test_xout[i].y, test_yout[i].y, 0));
+            a->out_smoothed << (i+1) << " " << test_xout[i].y << " " << test_yout[i].y << " " << "0" << endl;
         }
+    }
+    else if (p->interpolation_mode == MEDIAN_KERNEL) {
+        for(size_t i = 0; i < trajectory.size(); i++) {
+            double sum_x = 0;
+            double sum_y = 0;
+            double sum_a = 0;
+            int count = 0;
 
-        double avg_a = sum_a / count;
-        double avg_x = sum_x / count;
-        double avg_y = sum_y / count;
+            for(int j = -p->smoothing_radius; j <= p->smoothing_radius; j++) {
+                if(i+j >= 0 && i+j < trajectory.size()) {
+                    sum_x += trajectory[i+j].x;
+                    sum_y += trajectory[i+j].y;
+                    sum_a += trajectory[i+j].a;
 
-        smoothed_trajectory.push_back(dove::Trajectory(avg_x, avg_y, avg_a));
-        k->out_smoothed << (i+1) << " " << avg_x << " " << avg_y << " " << avg_a << endl;
+                    count++;
+                }
+            }
+            double avg_a = sum_a / count;
+            double avg_x = sum_x / count;
+            double avg_y = sum_y / count;
+            smoothed_trajectory.push_back(dove::Trajectory(avg_x, avg_y, avg_a));
+            a->out_smoothed << (i+1) << " " << avg_x << " " << avg_y << " " << "0" << endl;
+        }
     }
 
     // Step 4 - Generate new set of previous to current transform, such that the trajectory ends up being the same as the smoothed trajectory
     vector <TransformParam> new_prev_to_cur_transform;
     // Accumulated frame to frame transform
-    a = 0;
+    aa = 0;
     x = 0;
     y = 0;
     double minx = 2000;
@@ -495,19 +477,19 @@ int Dove::ProcessTK() {
     for(size_t i = 0; i < smoothed_trajectory.size(); i++) {
         x += prev_to_cur_transform[i].dx;
         y += prev_to_cur_transform[i].dy;
-        a += prev_to_cur_transform[i].da;
+        aa += prev_to_cur_transform[i].da;
 
         // target - current
         double diff_x = smoothed_trajectory[i].x - x;
         double diff_y = smoothed_trajectory[i].y - y;
-        double diff_a = smoothed_trajectory[i].a - a;
+        double diff_a = smoothed_trajectory[i].a - aa;
 
         double dx = prev_to_cur_transform[i].dx + diff_x;
         double dy = prev_to_cur_transform[i].dy + diff_y;
         double da = prev_to_cur_transform[i].da + diff_a;
 
         new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
-        k->out_new << (i+1) << " " << dx << " " << dy << " " << da << endl;
+        a->out_new << (i+1) << " " << dx << " " << dy << " " << da << endl;
         if(dx < minx)
             minx = dx;
         if(dx > maxx)
@@ -602,7 +584,7 @@ int Dove::ProcessTK() {
                 k->y += dy;
                 k->a += 0;
                 dl.Logger("post origin %f %f -- %f %f ", dx, dy, new_prev_to_cur_transform[vi].dx, new_prev_to_cur_transform[vi].dy);
-                k->out_transform << i << " " << dx << " " << dy << " " << 0 << endl;
+                a->out_transform << i << " " << dx << " " << dy << " " << 0 << endl;
 
                 k->z = dove::Trajectory(k->x, k->y, k->a);                
                 if( i == p->swipe_start ){
@@ -620,7 +602,7 @@ int Dove::ProcessTK() {
                     k->P = (dove::Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
                 }
                 //smoothed_trajectory.push_back(X);
-                k->out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
+                a->out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
 
                 // target - current
                 double diff_x = k->X.x - k->x;//
@@ -1012,13 +994,13 @@ int Dove::CalculateMove_LK(Mat& cur, int frame_id) {
     dl.Logger("origin dx %f dy %f", dx ,dy);
 
     if(p->run_kalman) {
-        k->out_transform << i << " " << dx << " " << dy << " " << da << endl;        
+        a->out_transform << i << " " << dx << " " << dy << " " << da << endl;        
 		k->x += dx;
 		k->y += dy;
 		k->a += da;
 		//trajectory.push_back(Trajectory(x,y,a));
 		//
-		k->out_trajectory << i << " " << k->x << " " << k->y << " " << k->a << endl;
+		a->out_trajectory << i << " " << k->x << " " << k->y << " " << k->a << endl;
 		k->z = dove::Trajectory(k->x, k->y, k->a);
 
 		if(i == 1){
@@ -1036,7 +1018,7 @@ int Dove::CalculateMove_LK(Mat& cur, int frame_id) {
 			k->P = (dove::Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
 		}
 		//smoothed_trajectory.push_back(X);
-		k->out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
+		a->out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
 
 		// target - current
 		double diff_x = k->X.x - k->x;//
@@ -1049,7 +1031,7 @@ int Dove::CalculateMove_LK(Mat& cur, int frame_id) {
         dl.Logger("from kalman %f %f ", dx, dy);
 		//new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
 		//
-		k->out_new << i << " " << dx << " " << dy << " " << da << endl;        
+		a->out_new << i << " " << dx << " " << dy << " " << da << endl;        
     }
 
     if(p->mode == OPTICALFLOW_LK_2DOF){
@@ -1232,13 +1214,13 @@ void Dove::ProcessChristmas() {
             dl.Logger("origin dx %f dy %f", dx ,dy);
 
             if(p->run_kalman) {
-                k->out_transform << i << " " << dx << " " << dy << " " << da << endl;        
+                a->out_transform << i << " " << dx << " " << dy << " " << da << endl;        
                 k->x += dx;
                 k->y += dy;
                 k->a += 0;
                 //trajectory.push_back(Trajectory(x,y,a));
                 //
-                k->out_trajectory << i << " " << k->x << " " << k->y << " " << k->a << endl;
+                a->out_trajectory << i << " " << k->x << " " << k->y << " " << k->a << endl;
                 k->z = dove::Trajectory(k->x, k->y, k->a);
 
                 if(i == 1){
@@ -1256,7 +1238,7 @@ void Dove::ProcessChristmas() {
                     k->P = (dove::Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
                 }
                 //smoothed_trajectory.push_back(X);
-                k->out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
+                a->out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
 
                 // target - current
                 double diff_x = k->X.x - k->x;//
@@ -1269,7 +1251,7 @@ void Dove::ProcessChristmas() {
                 dl.Logger("from kalman %f %f ", dx, dy);
                 //new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
                 //
-                k->out_new << i << " " << dx << " " << dy << " " << da << endl;        
+                a->out_new << i << " " << dx << " " << dy << " " << da << endl;        
             }
 
             smth.at<double>(0,0) = 1; 

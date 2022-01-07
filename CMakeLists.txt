@@ -12,8 +12,10 @@ set(CMAKE_CXX_STANDARD 14)
 find_package( OpenCV REQUIRED )
 
 set(CMAKE_CXX_FLAGS "-Wno-invalid-source-encoding -Wno-deprecated-register -Wno-writable-strings -Wno-parentheses -O2 -g")
-#set(LIB_INCLUDE_DIR "/usr/local/include")
-#set(OPENCV_INCLUDE_DIRS "/usr/local/include/opencv4/opencv2/")
+
+set(LC_INCLUDE_DIR "/usr/local/include")
+set(LC_LIB_DIR "/usr/local/lib/libgsl.dylib")
+
 add_definitions(-D_DEBUG)
 add_definitions(-D_IMGDEBUG)
 add_definitions(-DOPENCV)
@@ -45,8 +47,8 @@ file(GLOB PRJ_INC      ${PRJ_PATH}/src/*.hpp
                        ${DARKNET_PATH}/yolo_v2_class.hpp)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-include_directories(${PRJ_INC} ${OpenCV_INCLUDE_DIRS})
+include_directories(${LC_INCLUDE_DIR} ${PRJ_INC} ${OpenCV_INCLUDE_DIRS})
 #message(${PRJ_INC})
 message(${OpenCV_INCLUDE_DIRS})
 add_executable(dove ${PRJ_SRC})
-target_link_libraries(dove ${OpenCV_LIBS} ${DARKNET_LIB})
+target_link_libraries(dove ${LC_LIB_DIR} ${OpenCV_LIBS} ${DARKNET_LIB})
