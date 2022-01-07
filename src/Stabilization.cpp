@@ -67,7 +67,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
 #endif
         printf(" ------------ 600 !\n");        
         p->swipe_start = 79; //600 OK        
-        p->swipe_end = 180;     
+        p->swipe_end = 179;     
     } else if (_in == "movie/4dmaker_603.mp4") {
         printf(" ------------ 603 !\n");
         p->swipe_start = 79;
@@ -420,7 +420,6 @@ int Dove::ProcessTK() {
     }
 
     //dl.Logger("[%d] Image Analysis  %f ", i, LapTimer(all));        
-    return ERR_NONE;	
 
     dl.Logger("PostPrcess start ... ");
     double a = 0;
@@ -436,6 +435,12 @@ int Dove::ProcessTK() {
         trajectory.push_back(dove::Trajectory(x,y,a));
         k->out_trajectory << (i+1) << " " << x << " " << y << " " << a << endl;
     }
+    
+    Algebra al;
+    vector<dove::Trajectory> test_xout;
+    al.BSplineTrajectory(trajectory, &test_xout, 0);
+    al.BSplineTrajectory(trajectory, &test_xout, 1);    
+    //return ERR_NONE;	
 
     // Step 3 - Smooth out the trajectory using an averaging window
     vector <dove::Trajectory> smoothed_trajectory; // trajectory at all frames

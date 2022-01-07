@@ -27,7 +27,8 @@ class Algebra {
     Algebra();
     ~Algebra();    
 
-    int BSpline();
+    int BSplineExample();
+    int BSplineTrajectory(vector<dove::Trajectory>& traj, vector<dove::Trajectory>* out, int index);
 
 };
 

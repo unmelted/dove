@@ -22,7 +22,7 @@
 #endif
 #include "ColorTracking.hpp"
 #include "GrayTracking.hpp"
-
+#include "Algebra.hpp"
 
 using namespace std;
 using namespace cv;

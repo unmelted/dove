@@ -27,7 +27,6 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
-#include "src/Algebra.hpp"
 
 using namespace std;
 using namespace cv;
@@ -66,9 +65,7 @@ int main(int argc, char* argv[]) {
     bool has_mask = false;
     int event = dove::FIGURE; 
     Dove stblz(event, has_mask, coord, infile, outfile);
-    //stblz.Process();
-    Algebra ab;
-    ab.BSpline();
+    stblz.Process();
 }
 #else
 

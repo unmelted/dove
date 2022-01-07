@@ -18,10 +18,8 @@
 
 /* number of data points to fit */
 #define N        200
-
 /* number of fit coefficients */
-#define NCOEFFS  12
-
+#define NCOEFFS  4
 /* nbreak = ncoeffs + 2 - k = ncoeffs - 2 since k = 4 */
 #define NBREAK   (NCOEFFS - 2)
 
@@ -34,7 +32,101 @@ Algebra::~Algebra()
 
 }
 
-int Algebra::BSpline() {
+int Algebra::BSplineTrajectory(vector<dove::Trajectory>& gt, vector<dove::Trajectory>* out, int index) {
+    ofstream out_;
+    if (index == 0 )
+        out_.open("analysis/spline_x.txt");
+    else 
+        out_.open("analysis/spline_y.txt");
+
+    const size_t n = gt.size();
+    printf(" n size %d \n", n);
+    const size_t ncoeffs = NCOEFFS;
+    const size_t nbreak = NBREAK;
+    size_t i, j;
+    gsl_bspline_workspace *bw;
+    gsl_vector *B;
+    double dy;
+    gsl_rng *r;
+    gsl_vector *c, *w;
+    gsl_vector *x, *y;
+    gsl_matrix *X, *cov;
+    gsl_multifit_linear_workspace *mw;
+    double chisq, Rsq, dof, tss;
+
+    gsl_rng_env_setup();
+    r = gsl_rng_alloc(gsl_rng_default);
+
+    bw = gsl_bspline_alloc(4, nbreak);
+    B = gsl_vector_alloc(ncoeffs);
+
+    x = gsl_vector_alloc(n);
+    y = gsl_vector_alloc(n);
+    X = gsl_matrix_alloc(n, ncoeffs);
+    c = gsl_vector_alloc(ncoeffs);
+    w = gsl_vector_alloc(n);
+    cov = gsl_matrix_alloc(ncoeffs, ncoeffs);
+    mw = gsl_multifit_linear_alloc(n, ncoeffs);
+
+    for (int i = 0 ; i < n; i++) {
+        double det;
+        if (index == 0 ) { 
+            if( n > 0 ) 
+                det = ((gt[i-1].x - gt[i].x));
+            else
+                det = ( gt[i].x * 0.1);
+            gsl_vector_set(y, i, gt[i].x);     
+        } else {
+            if( n > 0 ) 
+                det = ((gt[i-1].y - gt[i].y));
+            else
+                det = ( gt[i].y * 0.1);
+            gsl_vector_set(y, i, gt[i].y);
+        }
+        gsl_vector_set(x, i, i);
+        gsl_vector_set(w, i, det);   
+    }
+
+    gsl_bspline_knots_uniform(0.0, n, bw);
+
+    for (i = 0; i < n; ++i) {
+
+        double xi = gsl_vector_get(x, i);
+        gsl_bspline_eval(xi, B, bw);
+        for (j = 0; j < ncoeffs; ++j) {
+            double Bj = gsl_vector_get(B, j);
+            gsl_matrix_set(X, i, j, Bj);
+        }
+    }
+
+    gsl_multifit_wlinear(X, w, y, c, cov, &chisq, mw);
+    dof = n - ncoeffs;
+    printf("chisq %f %e  \n", chisq, chisq / dof);
+    double xi, yi, yerr, origin;
+    for(xi = 0 ; xi < n ; xi++) { 
+        gsl_bspline_eval(xi, B, bw);
+        gsl_multifit_linear_est(B, c, cov, &yi, &yerr);
+        origin = gsl_vector_get(y, xi);
+        out->push_back(dove::Trajectory(0, yi, 0));        
+        out_ << xi << " "<< yi << endl;
+        //printf(" %f %f %f \n", xi, origin, yi);
+
+    }
+    gsl_rng_free(r);
+    gsl_bspline_free(bw);
+    gsl_vector_free(B);
+    gsl_vector_free(x);
+    gsl_vector_free(y);
+    gsl_matrix_free(X);
+    gsl_vector_free(c);
+    gsl_vector_free(w);
+    gsl_matrix_free(cov);
+    gsl_multifit_linear_free(mw);
+
+    return 1;
+}
+
+int Algebra::BSplineExample() {
     
     const size_t n = N;
     const size_t ncoeffs = NCOEFFS;
