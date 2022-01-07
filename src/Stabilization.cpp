@@ -67,7 +67,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
 #endif
         printf(" ------------ 600 !\n");        
         p->swipe_start = 79; //600 OK        
-        p->swipe_end = 179;     
+        p->swipe_end = 180;     
     } else if (_in == "movie/4dmaker_603.mp4") {
         printf(" ------------ 603 !\n");
         p->swipe_start = 79;
@@ -432,7 +432,7 @@ int Dove::ProcessTK() {
         vector<dove::Trajectory> test_yout;    
         al.BSplineTrajectory(trajectory, &test_xout, 0);
         al.BSplineTrajectory(trajectory, &test_yout, 1);    
-        vector <dove::Trajectory> smoothed_trajectory;
+
         for(size_t i = 0; i < trajectory.size(); i++) {
             dl.Logger("spline output %f %f ", test_xout[i].y, test_yout[i].y);
             smoothed_trajectory.push_back(dove::Trajectory(test_xout[i].y, test_yout[i].y, 0));
@@ -464,6 +464,8 @@ int Dove::ProcessTK() {
     }
 
     // Step 4 - Generate new set of previous to current transform, such that the trajectory ends up being the same as the smoothed trajectory
+    printf("smoothed_trajectory size %d \n", smoothed_trajectory.size());
+
     vector <TransformParam> new_prev_to_cur_transform;
     // Accumulated frame to frame transform
     aa = 0;

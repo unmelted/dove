@@ -16,13 +16,6 @@
 
 #include "Algebra.hpp"
 
-/* number of data points to fit */
-#define N        200
-/* number of fit coefficients */
-#define NCOEFFS  4
-/* nbreak = ncoeffs + 2 - k = ncoeffs - 2 since k = 4 */
-#define NBREAK   (NCOEFFS - 2)
-
 Algebra::Algebra() {
 
 }
@@ -33,6 +26,10 @@ Algebra::~Algebra()
 }
 
 int Algebra::BSplineTrajectory(vector<dove::Trajectory>& gt, vector<dove::Trajectory>* out, int index) {
+    const int NCOEFFS = 4;
+    /* nbreak = ncoeffs + 2 - k = ncoeffs - 2 since k = 4 */
+    const int  NBREAK = (NCOEFFS - 2);
+
     ofstream out_;
     if (index == 0 )
         out_.open("analysis/spline_x.txt");
@@ -126,6 +123,12 @@ int Algebra::BSplineTrajectory(vector<dove::Trajectory>& gt, vector<dove::Trajec
 }
 
 int Algebra::BSplineExample() {
+/* number of data points to fit */
+#define N        200
+/* number of fit coefficients */
+#define NCOEFFS  4
+/* nbreak = ncoeffs + 2 - k = ncoeffs - 2 since k = 4 */
+#define NBREAK   (NCOEFFS - 2)
     
     const size_t n = N;
     const size_t ncoeffs = NCOEFFS;
