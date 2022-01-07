@@ -73,7 +73,8 @@ public:
     int threshold = 6;
 
     KALMAN* k;
-
+    ANALYSIS* a;
+    
     Dove(string infile, string outfile);
     Dove(int event, bool has_mask, int* coord, string infile, string outfile, string id = "TEST");
     ~Dove();
