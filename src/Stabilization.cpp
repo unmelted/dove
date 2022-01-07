@@ -438,13 +438,15 @@ int Dove::ProcessTK() {
     
     Algebra al;
     vector<dove::Trajectory> test_xout;
+    vector<dove::Trajectory> test_yout;    
     al.BSplineTrajectory(trajectory, &test_xout, 0);
-    al.BSplineTrajectory(trajectory, &test_xout, 1);    
+    al.BSplineTrajectory(trajectory, &test_yout, 1);    
     //return ERR_NONE;	
-
+    printf("OK ? trajectory size %d \n", trajectory.size());
     // Step 3 - Smooth out the trajectory using an averaging window
-    vector <dove::Trajectory> smoothed_trajectory; // trajectory at all frames
+    vector <dove::Trajectory> smoothed_trajectory;
     for(size_t i = 0; i < trajectory.size(); i++) {
+        /*
         double sum_x = 0;
         double sum_y = 0;
         double sum_a = 0;
@@ -463,9 +465,10 @@ int Dove::ProcessTK() {
         double avg_a = sum_a / count;
         double avg_x = sum_x / count;
         double avg_y = sum_y / count;
-
-        smoothed_trajectory.push_back(dove::Trajectory(avg_x, avg_y, avg_a));
-        k->out_smoothed << (i+1) << " " << avg_x << " " << avg_y << " " << avg_a << endl;
+        */
+        dl.Logger("spline output %f %f ", test_xout[i].y, test_yout[i].y);
+        smoothed_trajectory.push_back(dove::Trajectory(test_xout[i].y, test_yout[i].y, 0));
+        k->out_smoothed << (i+1) << " " << test_xout[i].y << " " << test_yout[i].y << " " << "0" << endl;
     }
 
     // Step 4 - Generate new set of previous to current transform, such that the trajectory ends up being the same as the smoothed trajectory

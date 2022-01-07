@@ -106,10 +106,9 @@ int Algebra::BSplineTrajectory(vector<dove::Trajectory>& gt, vector<dove::Trajec
     for(xi = 0 ; xi < n ; xi++) { 
         gsl_bspline_eval(xi, B, bw);
         gsl_multifit_linear_est(B, c, cov, &yi, &yerr);
-        origin = gsl_vector_get(y, xi);
         out->push_back(dove::Trajectory(0, yi, 0));        
         out_ << xi << " "<< yi << endl;
-        //printf(" %f %f %f \n", xi, origin, yi);
+//        printf(" %f %f \n", xi, yi);
 
     }
     gsl_rng_free(r);

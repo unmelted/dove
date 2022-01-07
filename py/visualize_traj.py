@@ -115,12 +115,10 @@ spline_y = []
 
 for line in added_lines1 :
     added_text = line.split()
-    print(added_text)
     spline_x.append( float(added_text[1]))
 
 for line in added_lines2 :
     added_text = line.split()
-    print(added_text)
     spline_y.append( float(added_text[1]))
 
 fig = plt.figure(figsize=(16,8))
