@@ -126,8 +126,8 @@ void Dove::Initialize(bool has_mask, int* coord) {
         // p->roi_sx = 430;
         // p->roi_sy = 850;
     } 
-    p->scale = 2;
-    p->interpolation_mode = SPLINE_LSF;
+    p->scale = 1;
+    p->interpolation_mode = SPLINE_LSF; //MEDIAN_KERNEL
 
     if (p->mode == OPTICALFLOW_LK_2DOF) {
         p->scale = 2;
