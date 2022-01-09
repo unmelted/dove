@@ -16,13 +16,6 @@
 
 #include "Algebra.hpp"
 
-/* number of data points to fit */
-#define N        200
-/* number of fit coefficients */
-#define NCOEFFS  4
-/* nbreak = ncoeffs + 2 - k = ncoeffs - 2 since k = 4 */
-#define NBREAK   (NCOEFFS - 2)
-
 Algebra::Algebra() {
 
 }
@@ -33,6 +26,10 @@ Algebra::~Algebra()
 }
 
 int Algebra::BSplineTrajectory(vector<dove::Trajectory>& gt, vector<dove::Trajectory>* out, int index) {
+    const int NCOEFFS = 4;
+    /* nbreak = ncoeffs + 2 - k = ncoeffs - 2 since k = 4 */
+    const int  NBREAK = (NCOEFFS - 2);
+
     ofstream out_;
     if (index == 0 )
         out_.open("analysis/spline_x.txt");
@@ -71,23 +68,19 @@ int Algebra::BSplineTrajectory(vector<dove::Trajectory>& gt, vector<dove::Trajec
     for (int i = 0 ; i < n; i++) {
         double det;
         if (index == 0 ) { 
-            if( n > 0 ) 
-                det = ((gt[i-1].x - gt[i].x));
-            else
-                det = ( gt[i].x * 0.1);
+            // if( n > 0 ) 
+            //     det = ((gt[i-1].x - gt[i].x));
+            // else
+            //     det = ( gt[i].x * 0.1);
             gsl_vector_set(y, i, gt[i].x);     
         } else {
-            if( n > 0 ) 
-                det = ((gt[i-1].y - gt[i].y));
-            else
-                det = ( gt[i].y * 0.1);
             gsl_vector_set(y, i, gt[i].y);
         }
         gsl_vector_set(x, i, i);
-        gsl_vector_set(w, i, det);   
+        gsl_vector_set(w, i, 1);   
     }
 
-    gsl_bspline_knots_uniform(0.0, n, bw);
+    gsl_bspline_knots_uniform(0.0, n-1, bw);
 
     for (i = 0; i < n; ++i) {
 
@@ -126,6 +119,12 @@ int Algebra::BSplineTrajectory(vector<dove::Trajectory>& gt, vector<dove::Trajec
 }
 
 int Algebra::BSplineExample() {
+/* number of data points to fit */
+#define N        200
+/* number of fit coefficients */
+#define NCOEFFS  4
+/* nbreak = ncoeffs + 2 - k = ncoeffs - 2 since k = 4 */
+#define NBREAK   (NCOEFFS - 2)
     
     const size_t n = N;
     const size_t ncoeffs = NCOEFFS;
