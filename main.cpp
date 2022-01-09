@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
     cout << "input : ";
     getline(cin, inpath);
     sprintf(infile, "movie\\%s.mp4", inpath.c_str());
-    sprintf(outfile, "movie\\%s_out2.avi", inpath.c_str());
+    sprintf(outfile, "movie\\%s_out2.mp4", inpath.c_str());
     cout << "main in " << infile << endl;
     cout << "main out " << outfile << endl;
 #endif
@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
     }
 
     bool has_mask = false;
-    int event = dove::HOCKEY; 
+    int event = dove::FIGURE; 
     Dove stblz(event, has_mask, coord, infile, outfile);
     stblz.Process();
 }

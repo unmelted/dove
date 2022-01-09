@@ -126,7 +126,7 @@ void Dove::Initialize(bool has_mask, int* coord) {
         // p->roi_sx = 430;
         // p->roi_sy = 850;
     } 
-    p->scale = 1;
+    p->scale = 2;
     p->interpolation_mode = SPLINE_LSF; //MEDIAN_KERNEL
 
     if (p->mode == OPTICALFLOW_LK_2DOF) {
@@ -252,8 +252,7 @@ int Dove::ProcessTK() {
     bool compare = false;
 #if defined GPU
     cv::Ptr<cudacodec::VideoReader> in = cudacodec::createVideoReader(_in);
-    //VideoCapture in(_in);
-    cv::Ptr<cudacodec::VideoWriter> out = cudacodec::createVideoWriter(_out, Size(p->dst_width, p->dst_height), 30);
+    //cv::Ptr<cudacodec::VideoWriter> out = cudacodec::createVideoWriter(_out, Size(p->dst_width, p->dst_height), 30);
 #else
     VideoCapture in(_in);
 #endif
@@ -512,11 +511,11 @@ int Dove::ProcessTK() {
 #if defined GPU
     Ptr<cudacodec::VideoReader> in2 = cudacodec::createVideoReader(_in);
 
-    //cv::VideoWriter out;
+    cv::VideoWriter out;
     //if (compare)
     //    out.open(_out, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(1930, 540));
     //else
-    //    out.open(_out, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(p->dst_width, p->dst_height));
+        out.open(_out, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(p->dst_width, p->dst_height));
 #else
     VideoCapture in2(_in);
     cv::VideoWriter out;
@@ -682,12 +681,14 @@ int Dove::ProcessTK() {
 
 
 #if defined GPU
-        out->write(canvas);
-        SetRefCG(src1ocg);
-        //Mat canvas_t;
-        //canvas.download(canvas_t);
-        //out << canvas_t;
+        //out->write(canvas);
         //SetRefCG(src1ocg);
+        Mat canvas_t;
+        canvas.download(canvas_t);
+        sprintf(filename, "%d_canvas_t.png", i);
+        imwrite(filename, canvas_t);
+        out << canvas_t;
+        SetRefCG(src1ocg);
 #else
         out << canvas;        
         SetRefC(src1oc);
@@ -697,7 +698,6 @@ int Dove::ProcessTK() {
     dl.Logger(".. %f", LapTimer(all));
     out.release();
     return ERR_NONE;
-
 }
 
 void Dove::CalculcateMargin(double minx, double maxx, double miny, double maxy, Rect* mg) {
@@ -792,8 +792,9 @@ int Dove::ImageProcess(Mat& src, Mat& dst) {
 #endif
 #if defined GPU
     cuda::GpuMat temp;
-    if (p->scale != 1)
+    if (p->scale != 1) {
         cuda::resize(src, temp, Size(int((float)src.cols / p->scale), int(float(src.rows) / p->scale)), 0, 0, 1);
+    }
     else
         src.copyTo(temp);
 
@@ -802,7 +803,6 @@ int Dove::ImageProcess(Mat& src, Mat& dst) {
         cuda::cvtColor(temp, temp, cv::COLOR_BGRA2GRAY);
         cuda::subtract(temp, sub, dst);
     }
-
 #else
     Mat temp;
     if(p->scale != 1)
