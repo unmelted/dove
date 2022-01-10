@@ -512,19 +512,21 @@ int Dove::ProcessTK() {
     Ptr<cudacodec::VideoReader> in2 = cudacodec::createVideoReader(_in);
 
     cv::VideoWriter out;
+    dl.Logger("default video quality %f", out.get(VIDEOWRITER_PROP_QUALITY));
+    out.set(VIDEOWRITER_PROP_QUALITY, 100.0);            
     //if (compare)
     //    out.open(_out, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(1930, 540));
     //else
-        out.open(_out, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(p->dst_width, p->dst_height));
+        out.open(_out, CAP_FFMPEG, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(p->dst_width, p->dst_height));
 #else
     VideoCapture in2(_in);
     cv::VideoWriter out;
+    dl.Logger("default video quality %f", out.get(VIDEOWRITER_PROP_QUALITY));
+    out.set(VIDEOWRITER_PROP_QUALITY, 100.0);    
     if (compare)
-        out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1930, 540));
+        out.open(_out, CAP_FFMPEG, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1930, 540));
     else
-        out.open(_out, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(p->dst_width, p->dst_height));
-    dl.Logger("default video quality %d", out.get(VIDEOWRITER_PROP_QUALITY));
-    out.set(VIDEOWRITER_PROP_QUALITY, 100);
+        out.open(_out, CAP_FFMPEG, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(p->dst_width, p->dst_height));
 #endif
 
     while(true) {
