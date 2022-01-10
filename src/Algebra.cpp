@@ -37,7 +37,8 @@ int Algebra::BSplineTrajectory(vector<dove::Trajectory>& gt, vector<dove::Trajec
         out_.open("analysis/spline_y.txt");
 
     const size_t n = gt.size();
-    printf(" n size %d \n", n);
+    dl.Logger(" n size %d", n);
+    
     const size_t ncoeffs = NCOEFFS;
     const size_t nbreak = NBREAK;
     size_t i, j;
@@ -223,8 +224,9 @@ int Algebra::BSplineExample() {
 }
 
 int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, double dy, int index,
-        vector<dove::TransformParam>* out) {
-    double da;
+        double* ndx, double* ndy) {
+
+    double da = 0;
     k->x += dx;
     k->y += dy;
     k->a += da;
@@ -253,13 +255,19 @@ int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, doubl
     double diff_y = k->X.y - k->y;
     double diff_a = k->X.a - k->a;
 
-    dx = dx + diff_x;
-    dy = dy + diff_y;
+    *ndx = dx + diff_x;
+    *ndy = dy + diff_y;
     da = da + diff_a;
-    dl.Logger("pre from kalman %f %f ", dx, dy);
-    //new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
-    //
-    a->out_new2 << index << " " << dx << " " << dy << " " << da << endl;     
-    out->push_back(dove::TransformParam(dx, dy, 0));                    
+    dl.Logger("pre from kalman %f %f ", *ndx, *ndy);
+    a->out_new2 << index << " " << *ndx << " " << *ndy << " " << da << endl;
+    return dove::ERR_NONE;
+}
 
+int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, double dy, int index,
+        vector<dove::TransformParam>* out) {
+    double new_dx = 0;
+    double new_dy = 0;
+    KalmanInOutput(k, a, dx, dy, index, &new_dx, &new_dy );
+    out->push_back(dove::TransformParam(new_dx, new_dy, 0));
+    return dove::ERR_NONE;
 }

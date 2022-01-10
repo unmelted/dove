@@ -351,42 +351,44 @@ int Dove::ProcessTK() {
                 dy = (pre_obj->cy - obj->cy) * p->track_scale;
                 dl.Logger("pre origin %f %f ", dx, dy);
                 if(p->run_kalman || p->run_kalman_pre) {
-                    k->x += dx;
-                    k->y += dy;
-                    k->a += da;
-                    a->out_transform2 << i << " " << dx << " " << dy << " " << da << endl;
+                    Algebra pre_kal;
+                    pre_kal.KalmanInOutput(k, a, dx, dy, i, &prev_to_cur_transform);
+                    // k->x += dx;
+                    // k->y += dy;
+                    // k->a += da;
+                    // a->out_transform2 << i << " " << dx << " " << dy << " " << da << endl;
 
-                    k->z = dove::Trajectory(k->x, k->y, k->a);
-                    if( i == p->swipe_start ){
-                        k->X = dove::Trajectory(0,0,0); //Initial estimate,  set 0
-                        k->P = dove::Trajectory(1,1,1); //set error variance,set 1
-                    }
-                    else
-                    {
-                        //time update（prediction）
-                        k->X_ = k->X; //X_(k) = X(k-1);
-                        k->P_ = k->P+ k->Q; //P_(k) = P(k-1)+Q;
-                        // measurement update（correction）
-                        k->K = k->P_/ ( k->P_+ k->R ); //gain;K(k) = P_(k)/( P_(k)+R );
-                        k->X = k->X_+ k->K * (k->z - k->X_); //z-X_ is residual,X(k) = X_(k)+K(k)*(z(k)-X_(k)); 
-                        k->P = (dove::Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
-                    }
-                    //smoothed_trajectory.push_back(X);
-                    a->out_smoothed2 << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
+                    // k->z = dove::Trajectory(k->x, k->y, k->a);
+                    // if( i == p->swipe_start ){
+                    //     k->X = dove::Trajectory(0,0,0); //Initial estimate,  set 0
+                    //     k->P = dove::Trajectory(1,1,1); //set error variance,set 1
+                    // }
+                    // else
+                    // {
+                    //     //time update（prediction）
+                    //     k->X_ = k->X; //X_(k) = X(k-1);
+                    //     k->P_ = k->P+ k->Q; //P_(k) = P(k-1)+Q;
+                    //     // measurement update（correction）
+                    //     k->K = k->P_/ ( k->P_+ k->R ); //gain;K(k) = P_(k)/( P_(k)+R );
+                    //     k->X = k->X_+ k->K * (k->z - k->X_); //z-X_ is residual,X(k) = X_(k)+K(k)*(z(k)-X_(k)); 
+                    //     k->P = (dove::Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
+                    // }
+                    // //smoothed_trajectory.push_back(X);
+                    // a->out_smoothed2 << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
 
-                    // target - current
-                    double diff_x = k->X.x - k->x;//
-                    double diff_y = k->X.y - k->y;
-                    double diff_a = k->X.a - k->a;
+                    // // target - current
+                    // double diff_x = k->X.x - k->x;//
+                    // double diff_y = k->X.y - k->y;
+                    // double diff_a = k->X.a - k->a;
 
-                    dx = dx + diff_x;
-                    dy = dy + diff_y;
-                    da = da + diff_a;
-                    dl.Logger("pre from kalman %f %f ", dx, dy);
-                    //new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
-                    //
-                    a->out_new2 << i << " " << dx << " " << dy << " " << da << endl;     
-                    prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));                    
+                    // dx = dx + diff_x;
+                    // dy = dy + diff_y;
+                    // da = da + diff_a;
+                    // dl.Logger("pre from kalman %f %f ", dx, dy);
+                    // //new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
+                    // //
+                    // a->out_new2 << i << " " << dx << " " << dy << " " << da << endl;     
+                    // prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));                    
                 } 
                 else if (p->interpolation_mode == MEDIAN_KERNEL || p->interpolation_mode == SPLINE_LSF) {
                     printf("[%d] not same. out_transform without kalman", i);                    
@@ -620,31 +622,11 @@ int Dove::ProcessTK() {
                 smth.at<double>(0,2) = dx;
                 smth.at<double>(1,2) = dy;
             } else {
-//#define MEMC                
-#if defined MEMC
-                double pdx = -new_prev_to_cur_transform[vi -1].dx;
-                double pdy = -new_prev_to_cur_transform[vi -1].dy;
-                double ndx = pdx * 0.5 + dx * 0.1;
-                double ndy = pdy * 0.5 + dy * 0.1;
-                smth.at<double>(0,2) = ndx;
-                smth.at<double>(1,2) = ndy;
-                dl.Logger("[%d] will Apply1 %f %f ",i, smth.at<double>(0,2), smth.at<double>(1,2));
-                Mat temp;
-                cv::warpAffine(refc, temp, smth, refc.size());                
-                out << temp;
-
-                smth.at<double>(0,2) = dx;
-                smth.at<double>(1,2) = dy;
-                dl.Logger("[%d] will Apply2 %f %f ",i, smth.at<double>(0,2), smth.at<double>(1,2));
-                cv::warpAffine(refc, refcw, smth, refc.size());
-                vi++;
-#else
                 smth.at<double>(0,2) = dx;
                 smth.at<double>(1,2) = dy;
                 dl.Logger("[%d] will Apply %f %f ",i, smth.at<double>(0,2), smth.at<double>(1,2));
                 ApplyImageRef();
                 vi++;
-#endif                
             }
         }
         else {
@@ -733,6 +715,46 @@ void Dove::CalculcateMargin(double minx, double maxx, double miny, double maxy, 
     dl.Logger("Rect Margin %d %d %d %d", mg->x, mg->y, mg->width, mg->height);
 }
 
+#if defined GPU
+int Dove::ImageProcess(cuda::GpuMat& src, cuda::GpuMat& dst) {
+#else
+int Dove::ImageProcess(Mat& src, Mat& dst) {
+#endif
+#if defined GPU
+    cuda::GpuMat temp;
+    if (p->scale != 1) {
+        cuda::resize(src, temp, Size(int((float)src.cols / p->scale), int(float(src.rows) / p->scale)), 0, 0, 1);
+    }
+    else
+        src.copyTo(temp);
+
+    if (!p->colored) {
+        cuda::GpuMat sub = cuda::GpuMat(Size(temp.cols, temp.rows), CV_8UC1, Scalar(19));
+        cuda::cvtColor(temp, temp, cv::COLOR_BGRA2GRAY);
+        cuda::subtract(temp, sub, dst);
+    }
+#else
+    Mat temp;
+    if(p->scale != 1)
+        cv::resize(src, temp, Size(int((float)src.cols/p->scale), int(float(src.rows)/p->scale)), 0,0,1);
+    else 
+        src.copyTo(temp);
+
+    if(!p->colored)
+        cv::cvtColor(temp, temp, COLOR_BGR2GRAY);
+    //if tk on? 
+    if(!p->run_tracking)
+        cv::GaussianBlur(temp, dst, {p->blur_size, p->blur_size}, p->blur_sigma, p->blur_sigma);
+    else
+        temp.copyTo(dst);
+
+    if (p->has_mask)
+        MakeMask();
+
+#endif    
+    return ERR_NONE;
+}
+
 int Dove::ProcessLK() {
     dl.Logger(" LK process start..");
 
@@ -789,45 +811,6 @@ int Dove::ProcessLK() {
 
     return ERR_NONE;
 };
-#if defined GPU
-int Dove::ImageProcess(cuda::GpuMat& src, cuda::GpuMat& dst) {
-#else
-int Dove::ImageProcess(Mat& src, Mat& dst) {
-#endif
-#if defined GPU
-    cuda::GpuMat temp;
-    if (p->scale != 1) {
-        cuda::resize(src, temp, Size(int((float)src.cols / p->scale), int(float(src.rows) / p->scale)), 0, 0, 1);
-    }
-    else
-        src.copyTo(temp);
-
-    if (!p->colored) {
-        cuda::GpuMat sub = cuda::GpuMat(Size(temp.cols, temp.rows), CV_8UC1, Scalar(19));
-        cuda::cvtColor(temp, temp, cv::COLOR_BGRA2GRAY);
-        cuda::subtract(temp, sub, dst);
-    }
-#else
-    Mat temp;
-    if(p->scale != 1)
-        cv::resize(src, temp, Size(int((float)src.cols/p->scale), int(float(src.rows)/p->scale)), 0,0,1);
-    else 
-        src.copyTo(temp);
-
-    if(!p->colored)
-        cv::cvtColor(temp, temp, COLOR_BGR2GRAY);
-    //if tk on? 
-    if(!p->run_tracking)
-        cv::GaussianBlur(temp, dst, {p->blur_size, p->blur_size}, p->blur_sigma, p->blur_sigma);
-    else
-        temp.copyTo(dst);
-
-    if (p->has_mask)
-        MakeMask();
-
-#endif    
-    return ERR_NONE;
-}
 
 int Dove::CalculateMove(int frame_id) {
 
