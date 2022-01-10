@@ -22,13 +22,16 @@
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_statistics.h>
 
+
 class Algebra {
     public:
     Algebra();
     ~Algebra();    
-
+    Dlog dl;
+    
+    void SetLogFilename(string name) {this->dl.SetLogFilename(name); };
     int BSplineExample();
     int BSplineTrajectory(vector<dove::Trajectory>& traj, vector<dove::Trajectory>* out, int index);
-
+    int KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, double dy, int index,  vector<dove::TransformParam>* out);
 };
 

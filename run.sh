@@ -23,15 +23,15 @@ if [ ! -d "analysis" ];then
 fi
 
 #./dove 4dmaker_598 166 596 3300 1520
-#./dove 4dmaker_600 166 596 3300 1520
+./dove 4dmaker_600 166 596 3300 1520
 #./dove 4dmaker_603 166 596 3300 1520
 #./dove 4dmaker_607 166 596 3300 1520
 #./dove 4dmaker_622 166 596 3300 1520
 #./dove 4dmaker_626 166 596 3300 1520
 #./dove 4dmaker_639 166 596 3300 1520
-./dove 4NylanderGoal 166 596 3300 1520
-./dove BUT_TATAR_4-0
-./dove 2018_02_09_17_58_50
+#./dove 4NylanderGoal 166 596 3300 1520
+#./dove BUT_TATAR_4-0
+#./dove 2018_02_09_17_58_50
 #./dove 2018_02_25_09_55_28
 #./dove 2018_02_13_19_37_53_0
 #python3 py/visualize_traj.py

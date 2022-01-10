@@ -17,7 +17,7 @@
 #include "Algebra.hpp"
 
 Algebra::Algebra() {
-
+    dl = Dlog();
 }
 
 Algebra::~Algebra() 
@@ -220,4 +220,46 @@ int Algebra::BSplineExample() {
     gsl_multifit_linear_free(mw);
 
     return 0;    
+}
+
+int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, double dy, int index,
+        vector<dove::TransformParam>* out) {
+    double da;
+    k->x += dx;
+    k->y += dy;
+    k->a += da;
+    a->out_transform2 << index << " " << dx << " " << dy << " " << da << endl;
+
+    k->z = dove::Trajectory(k->x, k->y, k->a);
+    if( index == 0 ){
+        k->X = dove::Trajectory(0,0,0); //Initial estimate,  set 0
+        k->P = dove::Trajectory(1,1,1); //set error variance,set 1
+    }
+    else
+    {
+        //time update（prediction）
+        k->X_ = k->X; //X_(k) = X(k-1);
+        k->P_ = k->P+ k->Q; //P_(k) = P(k-1)+Q;
+        // measurement update（correction）
+        k->K = k->P_/ ( k->P_+ k->R ); //gain;K(k) = P_(k)/( P_(k)+R );
+        k->X = k->X_+ k->K * (k->z - k->X_); //z-X_ is residual,X(k) = X_(k)+K(k)*(z(k)-X_(k)); 
+        k->P = (dove::Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
+    }
+    //smoothed_trajectory.push_back(X);
+    a->out_smoothed2 << index << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
+
+    // target - current
+    double diff_x = k->X.x - k->x;//
+    double diff_y = k->X.y - k->y;
+    double diff_a = k->X.a - k->a;
+
+    dx = dx + diff_x;
+    dy = dy + diff_y;
+    da = da + diff_a;
+    dl.Logger("pre from kalman %f %f ", dx, dy);
+    //new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
+    //
+    a->out_new2 << index << " " << dx << " " << dy << " " << da << endl;     
+    out->push_back(dove::TransformParam(dx, dy, 0));                    
+
 }

@@ -512,17 +512,21 @@ int Dove::ProcessTK() {
     Ptr<cudacodec::VideoReader> in2 = cudacodec::createVideoReader(_in);
 
     cv::VideoWriter out;
+    dl.Logger("default video quality %f", out.get(VIDEOWRITER_PROP_QUALITY));
+    out.set(VIDEOWRITER_PROP_QUALITY, 100.0);            
     //if (compare)
     //    out.open(_out, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(1930, 540));
     //else
-        out.open(_out, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(p->dst_width, p->dst_height));
+        out.open(_out, CAP_FFMPEG, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(p->dst_width, p->dst_height));
 #else
     VideoCapture in2(_in);
     cv::VideoWriter out;
+    dl.Logger("default video quality %f", out.get(VIDEOWRITER_PROP_QUALITY));
+    out.set(VIDEOWRITER_PROP_QUALITY, 100.0);    
     if (compare)
-        out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1930, 540));
+        out.open(_out, CAP_FFMPEG, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1930, 540));
     else
-        out.open(_out, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(p->dst_width, p->dst_height));
+        out.open(_out, CAP_FFMPEG, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(p->dst_width, p->dst_height));
 #endif
 
     while(true) {
@@ -685,8 +689,8 @@ int Dove::ProcessTK() {
         //SetRefCG(src1ocg);
         Mat canvas_t;
         canvas.download(canvas_t);
-        sprintf(filename, "%d_canvas_t.png", i);
-        imwrite(filename, canvas_t);
+        //sprintf(filename, "%d_canvas_t.png", i);
+        //imwrite(filename, canvas_t);
         out << canvas_t;
         SetRefCG(src1ocg);
 #else
