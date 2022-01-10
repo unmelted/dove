@@ -35,5 +35,6 @@ class Algebra {
     int KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, double dy, int index,
         double* ndx, double* ndy);
     int KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, double dy, int index,         vector<dove::TransformParam>* out);
+    int MedianKernel(dove::ANALYSIS* a, vector<dove::Trajectory> traj, int kernel_size, vector<dove::Trajectory>* out);
 };
 
