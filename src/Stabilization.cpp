@@ -523,6 +523,8 @@ int Dove::ProcessTK() {
         out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1930, 540));
     else
         out.open(_out, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(p->dst_width, p->dst_height));
+    dl.Logger("default video quality %d", out.get(VIDEOWRITER_PROP_QUALITY));
+    out.set(VIDEOWRITER_PROP_QUALITY, 100);
 #endif
 
     while(true) {
