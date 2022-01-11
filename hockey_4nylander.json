@@ -1,7 +1,7 @@
 {
     "input": "movie/4NylanderGoal.mp4",
     "output":"movie/4NylanderGoal_out2.mp4",
-    "event":"HOCKEY"
+    "event":"HOCKEY",
     "width":1920,
     "height": 1080,
      

@@ -201,8 +201,7 @@ int Algebra::BSplineExample() {
     {
         double xi, yi, yerr;
 
-        for (xi = 0.0; xi < 15.0; xi += 0.1)
-        {
+        for (xi = 0.0; xi < 15.0; xi += 0.1) {
             gsl_bspline_eval(xi, B, bw);
             gsl_multifit_linear_est(B, c, cov, &yi, &yerr);
             printf("%f %f\n", xi, yi);

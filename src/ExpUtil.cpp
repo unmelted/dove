@@ -1,7 +1,7 @@
   
 /*****************************************************************************
 *                                                                            *
-*                            Util         								 *
+*                            Util         					    			 *
 *                                                                            *
 *   Copyright (C) 2021 By 4dreplay, Incoporated. All Rights Reserved.        *
 ******************************************************************************
@@ -23,17 +23,18 @@ int ExpUtil::ImportVideoInfo(const string js, VIDEO_INFO* info) {
     json j;
     json_file >> j;
 
-    info->input = j["Input"].dump();
-    info->output = j["Output"].dump();
-    string ev = j["Event"].dump();
-    if(ev == "FIGURE")
+    info->input = j["input"];
+    info->output = j["output"];
+    string ev = j["event"];
+    cout << "event string : "<< ev << endl;
+    if( ev.compare("FIGURE") == 0 )
         info->event = dove::FIGURE;
     else
         info->event = dove::HOCKEY;
         
     info->width = j["width"];
     info->height = j["height"];
-    json sw_period = j["SwipePeriod"];
+    json sw_period = j["swipePeriod"];
     info->period_cnt = sw_period.size();
 
     for(auto& el : sw_period) {
@@ -46,7 +47,10 @@ int ExpUtil::ImportVideoInfo(const string js, VIDEO_INFO* info) {
 
         info->swipe_period.push_back(swi);
     }
-    
+
+    cout<< "input : "<<info->input <<endl;
+    cout<< "output : " <<info->output <<endl;
+    cout <<"event : " <<info->event <<endl;
     return ERR_NONE;
 }
 /*

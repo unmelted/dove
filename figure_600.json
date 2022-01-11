@@ -1,7 +1,7 @@
 {
     "input": "movie/4dmaker_600.mp4",
     "output":"movie/4dmaker_600_out2.mp4",
-    "event":"FIGURE"
+    "event":"FIGURE",
     "width":3840,
     "height": 2160,
      
