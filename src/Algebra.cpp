@@ -37,7 +37,8 @@ int Algebra::BSplineTrajectory(vector<dove::Trajectory>& gt, vector<dove::Trajec
         out_.open("analysis/spline_y.txt");
 
     const size_t n = gt.size();
-    printf(" n size %d \n", n);
+    dl.Logger(" n size %d", n);
+
     const size_t ncoeffs = NCOEFFS;
     const size_t nbreak = NBREAK;
     size_t i, j;
@@ -223,8 +224,9 @@ int Algebra::BSplineExample() {
 }
 
 int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, double dy, int index,
-        vector<dove::TransformParam>* out) {
-    double da;
+        double* ndx, double* ndy) {
+
+    double da = 0;
     k->x += dx;
     k->y += dy;
     k->a += da;
@@ -253,13 +255,44 @@ int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, doubl
     double diff_y = k->X.y - k->y;
     double diff_a = k->X.a - k->a;
 
-    dx = dx + diff_x;
-    dy = dy + diff_y;
+    *ndx = dx + diff_x;
+    *ndy = dy + diff_y;
     da = da + diff_a;
-    dl.Logger("pre from kalman %f %f ", dx, dy);
-    //new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
-    //
-    a->out_new2 << index << " " << dx << " " << dy << " " << da << endl;     
-    out->push_back(dove::TransformParam(dx, dy, 0));                    
+    dl.Logger("pre from kalman %f %f ", *ndx, *ndy);
+    a->out_new2 << index << " " << *ndx << " " << *ndy << " " << da << endl;
+    return dove::ERR_NONE;
+}
 
+int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, double dy, int index,
+        vector<dove::TransformParam>* out) {
+    double new_dx = 0;
+    double new_dy = 0;
+    KalmanInOutput(k, a, dx, dy, index, &new_dx, &new_dy );
+    out->push_back(dove::TransformParam(new_dx, new_dy, 0));
+    return dove::ERR_NONE;
+}
+
+int Algebra::MedianKernel(dove::ANALYSIS* a, vector<dove::Trajectory> traj, int kernel_size, vector<dove::Trajectory>* out) {
+    for(size_t i = 0; i < traj.size(); i++) {
+        double sum_x = 0;
+        double sum_y = 0;
+        double sum_a = 0;
+        int count = 0;
+
+        for(int j = -kernel_size; j <= kernel_size; j++) {
+            if(i+j >= 0 && i+j < traj.size()) {
+                sum_x += traj[i+j].x;
+                sum_y += traj[i+j].y;
+                sum_a += traj[i+j].a;
+
+                count++;
+            }
+        }
+        double avg_a = sum_a / count;
+        double avg_x = sum_x / count;
+        double avg_y = sum_y / count;
+        out->push_back(dove::Trajectory(avg_x, avg_y, avg_a));
+        a->out_smoothed << (i+1) << " " << avg_x << " " << avg_y << " " << "0" << endl;
+    }
+    return dove::ERR_NONE;
 }

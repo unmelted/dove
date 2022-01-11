@@ -25,108 +25,63 @@ Dove::Dove(int event, bool has_mask, int* coord, string infile, string outfile, 
     p = new PARAM();
     t = new TIMER();
     dl = Dlog();
-#if defined _MAC_
-    dt = Detection();
-#endif
     dl.SetLogFilename("TEST");    
-    dl.Logger("instance created.. ");
+    dl.Logger("instance created.. ");    
 
 #if defined _MAC_
+    dt = Detection();
     dt.SetLogger(dl);    
 #endif
+
     _in = infile;
     _out = outfile;
 
     dl.Logger("Start construct. %s %s  ", _in.c_str(), _out.c_str());
     p->event = event;
-    Initialize(false, coord);
+    Initialize();
 }
 
-Dove::Dove(string infile, string outfile) {
+Dove::Dove(VIDEO_INFO* vinfo) {
     p = new PARAM();
     t = new TIMER();
     dl = Dlog();
+    dl.SetLogFilename("TEST");    
+    dl.Logger("instance created.. ");    
+
 #if defined _MAC_
     dt = Detection();
-#endif
-    dl.SetLogFilename("TEST");
-
-#if defined _MAC_
     dt.SetLogger(dl);
 #endif
-    _in = infile;
-    _out = outfile;
-    Initialize(false, 0);    
+    ConvertToParam(vinfo);
+    Initialize();
 }
 
-void Dove::Initialize(bool has_mask, int* coord) {
-#if defined _MAC_
-    if(_in == "movie/4dmaker_600.mp4" || _in == "movie/4dmaker_600_out2.mp4") {
-#else
-    if (_in == "movie\\4dmaker_600f.mp4" || _in == "movie\\600.mp4") {
-#endif
-        printf(" ------------ 600 !\n");        
-        p->swipe_start = 79; //600 OK        
-        p->swipe_end = 180;     
-    } else if (_in == "movie/4dmaker_603.mp4") {
-        printf(" ------------ 603 !\n");
-        p->swipe_start = 79;
-        p->swipe_end = 181; //603 -- should conquer - couple gracking -- square merge needed 
-    } else if (_in == "movie/4dmaker_626.mp4") {
-        printf(" ------------ 626 !\n");        
-        p->swipe_start = 79;
-        p->swipe_end = 183; //626 OK emerald onepiece single
-    } else if (_in == "movie/4dmaker_639.mp4") {
-        p->swipe_start = 78;
-        p->swipe_end = 130; //639 white shirts man single -- square merge needed
-    } else if (_in == "movie/4dmaker_598.mp4") {
-        p->swipe_start = 79;
-        p->swipe_end = 165; //598 -- frame drop severe
-    } else if (_in == "movie/4dmaker_607.mp4") {
-        p->swipe_start = 79;
-        p->swipe_end = 178; //silver onepiece single - missing during swipe because character
-    }else if (_in == "movie/4dmaker_622.mp4") {
-        p->swipe_start = 79;
-        p->swipe_end = 165; //white onepiece single - missing during swipe because character
-    } else if (_in == "movie/4NylanderGoal.mp4") {
-        p->swipe_start = 153;
-        p->swipe_end = 188; 
-        p->roi_sx = 960;
-        p->roi_sy = 540;           
-    } else if (_in == "movie/BUT_TATAR_4-0.mp4") {
-        p->swipe_start = 188;
-        p->swipe_end = 232; 
-        p->roi_sx = 960;
-        p->roi_sy = 540;        
-    } else if (_in == "movie/2018_02_09_17_58_50.mp4") {
-        p->swipe_start = 64;
-        p->swipe_end = 88; //short track
-        p->roi_sx = 960;
-        p->roi_sy = 540;
-    } else if (_in == "movie/2018_02_25_09_55_28.mp4") {
-        p->swipe_start = 58;
-        p->swipe_end = 91; //short track
-        p->roi_sx = 1160; 
-        p->roi_sy = 730;
-    } else if (_in == "movie/2018_02_13_19_37_53_0.mp4") {
-        p->swipe_start = 51;
-        p->swipe_end = 84; //short track
-        p->roi_sx = 430; 
-        p->roi_sy = 850;
+void Dove::ConvertToParam(VIDEO_INFO* info) {
+    _in = info->input;
+    _out = info->output;
+    p->event = info->event;
+    if(info->width > 1920)
+        p->scale = 2;
+    else 
+        p->scale = 1;
+
+    if (p->event != FIGURE) {
+        p->roi_input = true;
+        p->colored = true;
+    }
+    else {
+        p->roi_input = false;
+        p->colored = false;        
     }
 
-    if (p->event == FIGURE) {
-        p->colored = false;    
-        p->mode = DETECT_TRACKING;
-        p->roi_input = false;
-    } else if(p->event == HOCKEY || p->event == SHORT) {
-        p->colored = true;
-        p->mode = DETECT_TRACKING;        
-        p->roi_input = true;
-        // p->roi_sx = 430;
-        // p->roi_sy = 850;
-    } 
-    p->scale = 2;
+}
+
+void Dove::Initialize() {
+#if defined LOCAL_TEST
+    ex.TestGetSwipeInfo(_in, p);
+#endif    
+
+    p->mode = DETECT_TRACKING;        
     p->interpolation_mode = SPLINE_LSF; //MEDIAN_KERNEL
 
     if (p->mode == OPTICALFLOW_LK_2DOF) {
@@ -178,15 +133,6 @@ void Dove::Initialize(bool has_mask, int* coord) {
         tck->SetInitialData(p);
     }
 
-    //if(has_mask == true) 
-    // {
-        //p->has_mask = true;
-        // p->sx = coord[0] / p->scale;
-        // p->sy = coord[1] / p->scale;
-        // p->width = coord[2] / p->scale;
-        // p->height = coord[3] / p->scale;    
-    // }
-
     p->blur_size = 5;
     p->blur_sigma = 0.7;
     p->dst_width = 1920;
@@ -218,8 +164,6 @@ void Dove::Initialize(bool has_mask, int* coord) {
     a->out_new.open("analysis/new_prev_to_cur_transformation.txt");        
 
     if(p->interpolation_mode == KALMAN_FILTER) {
-        k->pstd = (double)coord[0]/10000;
-        k->cstd = (double)coord[1]/10000;
         k->Q.set(k->pstd, k->pstd, k->pstd);
         k->R.set(k->cstd, k->cstd, k->cstd);      
     }
@@ -275,9 +219,6 @@ int Dove::ProcessTK() {
     StartTimer(all);    
     int t_frame_start = p->swipe_start;
     int t_frame_end = p->swipe_end;
-
-    bool oversampling = false;
-    vector<int>same;
 
     while(true) {
 #if defined GPU
@@ -351,51 +292,13 @@ int Dove::ProcessTK() {
                 dy = (pre_obj->cy - obj->cy) * p->track_scale;
                 dl.Logger("pre origin %f %f ", dx, dy);
                 if(p->run_kalman || p->run_kalman_pre) {
-                    k->x += dx;
-                    k->y += dy;
-                    k->a += da;
-                    a->out_transform2 << i << " " << dx << " " << dy << " " << da << endl;
-
-                    k->z = dove::Trajectory(k->x, k->y, k->a);
-                    if( i == p->swipe_start ){
-                        k->X = dove::Trajectory(0,0,0); //Initial estimate,  set 0
-                        k->P = dove::Trajectory(1,1,1); //set error variance,set 1
-                    }
-                    else
-                    {
-                        //time update（prediction）
-                        k->X_ = k->X; //X_(k) = X(k-1);
-                        k->P_ = k->P+ k->Q; //P_(k) = P(k-1)+Q;
-                        // measurement update（correction）
-                        k->K = k->P_/ ( k->P_+ k->R ); //gain;K(k) = P_(k)/( P_(k)+R );
-                        k->X = k->X_+ k->K * (k->z - k->X_); //z-X_ is residual,X(k) = X_(k)+K(k)*(z(k)-X_(k)); 
-                        k->P = (dove::Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
-                    }
-                    //smoothed_trajectory.push_back(X);
-                    a->out_smoothed2 << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
-
-                    // target - current
-                    double diff_x = k->X.x - k->x;//
-                    double diff_y = k->X.y - k->y;
-                    double diff_a = k->X.a - k->a;
-
-                    dx = dx + diff_x;
-                    dy = dy + diff_y;
-                    da = da + diff_a;
-                    dl.Logger("pre from kalman %f %f ", dx, dy);
-                    //new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
-                    //
-                    a->out_new2 << i << " " << dx << " " << dy << " " << da << endl;     
-                    prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));                    
+                    al.KalmanInOutput(k, a, dx, dy, i, &prev_to_cur_transform);                 
                 } 
                 else if (p->interpolation_mode == MEDIAN_KERNEL || p->interpolation_mode == SPLINE_LSF) {
-                    printf("[%d] not same. out_transform without kalman", i);                    
                     a->out_transform << i << " "<< dx << " "<< dy << " " << da << endl;            
                     prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));
                 } 
             } else {
-                same.push_back(i);
-                printf("[%d] same. out_transform without kalman", i);
                 a->out_transform << i << " "<< dx << " "<< dy << " " << da << endl;            
                 prev_to_cur_transform.push_back(TransformParam(dx, dy, 0));
             }
@@ -426,7 +329,6 @@ int Dove::ProcessTK() {
 
     vector <dove::Trajectory> smoothed_trajectory;    
     if(p->interpolation_mode == SPLINE_LSF) {
-        Algebra al;
         vector<dove::Trajectory> test_xout;
         vector<dove::Trajectory> test_yout;    
         al.BSplineTrajectory(trajectory, &test_xout, 0);
@@ -439,32 +341,11 @@ int Dove::ProcessTK() {
         }
     }
     else if (p->interpolation_mode == MEDIAN_KERNEL) {
-        for(size_t i = 0; i < trajectory.size(); i++) {
-            double sum_x = 0;
-            double sum_y = 0;
-            double sum_a = 0;
-            int count = 0;
-
-            for(int j = -p->smoothing_radius; j <= p->smoothing_radius; j++) {
-                if(i+j >= 0 && i+j < trajectory.size()) {
-                    sum_x += trajectory[i+j].x;
-                    sum_y += trajectory[i+j].y;
-                    sum_a += trajectory[i+j].a;
-
-                    count++;
-                }
-            }
-            double avg_a = sum_a / count;
-            double avg_x = sum_x / count;
-            double avg_y = sum_y / count;
-            smoothed_trajectory.push_back(dove::Trajectory(avg_x, avg_y, avg_a));
-            a->out_smoothed << (i+1) << " " << avg_x << " " << avg_y << " " << "0" << endl;
-        }
+        al.MedianKernel(a, trajectory, p->smoothing_radius, &smoothed_trajectory);
     }
 
     // Step 4 - Generate new set of previous to current transform, such that the trajectory ends up being the same as the smoothed trajectory
     printf("smoothed_trajectory size %d \n", smoothed_trajectory.size());
-
     vector <TransformParam> new_prev_to_cur_transform;
     // Accumulated frame to frame transform
     aa = 0;
@@ -585,66 +466,19 @@ int Dove::ProcessTK() {
             double dy = -new_prev_to_cur_transform[vi].dy;
 
             if(p->run_kalman_post) {
-                k->x += dx;
-                k->y += dy;
-                k->a += 0;
-                dl.Logger("post origin %f %f -- %f %f ", dx, dy, new_prev_to_cur_transform[vi].dx, new_prev_to_cur_transform[vi].dy);
-                a->out_transform << i << " " << dx << " " << dy << " " << 0 << endl;
-
-                k->z = dove::Trajectory(k->x, k->y, k->a);                
-                if( i == p->swipe_start ){
-                    k->X = dove::Trajectory(0,0,0); //Initial estimate,  set 0
-                    k->P = dove::Trajectory(1,1,1); //set error variance,set 1
-                }
-                else
-                {
-                    //time update（prediction）
-                    k->X_ = k->X; //X_(k) = X(k-1);
-                    k->P_ = k->P+ k->Q; //P_(k) = P(k-1)+Q;
-                    // measurement update（correction）
-                    k->K = k->P_/ ( k->P_+ k->R ); //gain;K(k) = P_(k)/( P_(k)+R );
-                    k->X = k->X_+ k->K * (k->z - k->X_); //z-X_ is residual,X(k) = X_(k)+K(k)*(z(k)-X_(k)); 
-                    k->P = (dove::Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
-                }
-                //smoothed_trajectory.push_back(X);
-                a->out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
-
-                // target - current
-                double diff_x = k->X.x - k->x;//
-                double diff_y = k->X.y - k->y;
-                double diff_a = k->X.a - k->a;
-
-                dx = dx + diff_x;
-                dy = dy + diff_y;
+                double new_dx = 0;
+                double new_dy = 0;
+                al.KalmanInOutput(k, a, dx, dy, i, &new_dx, &new_dy);
                 dl.Logger("post from kalman %f %f ", dx, dy);
-                smth.at<double>(0,2) = dx;
-                smth.at<double>(1,2) = dy;
-            } else {
-//#define MEMC                
-#if defined MEMC
-                double pdx = -new_prev_to_cur_transform[vi -1].dx;
-                double pdy = -new_prev_to_cur_transform[vi -1].dy;
-                double ndx = pdx * 0.5 + dx * 0.1;
-                double ndy = pdy * 0.5 + dy * 0.1;
-                smth.at<double>(0,2) = ndx;
-                smth.at<double>(1,2) = ndy;
-                dl.Logger("[%d] will Apply1 %f %f ",i, smth.at<double>(0,2), smth.at<double>(1,2));
-                Mat temp;
-                cv::warpAffine(refc, temp, smth, refc.size());                
-                out << temp;
 
-                smth.at<double>(0,2) = dx;
-                smth.at<double>(1,2) = dy;
-                dl.Logger("[%d] will Apply2 %f %f ",i, smth.at<double>(0,2), smth.at<double>(1,2));
-                cv::warpAffine(refc, refcw, smth, refc.size());
-                vi++;
-#else
+                smth.at<double>(0,2) = new_dx;
+                smth.at<double>(1,2) = new_dy;
+            } else {
                 smth.at<double>(0,2) = dx;
                 smth.at<double>(1,2) = dy;
                 dl.Logger("[%d] will Apply %f %f ",i, smth.at<double>(0,2), smth.at<double>(1,2));
                 ApplyImageRef();
                 vi++;
-#endif                
             }
         }
         else {
@@ -733,6 +567,46 @@ void Dove::CalculcateMargin(double minx, double maxx, double miny, double maxy, 
     dl.Logger("Rect Margin %d %d %d %d", mg->x, mg->y, mg->width, mg->height);
 }
 
+#if defined GPU
+int Dove::ImageProcess(cuda::GpuMat& src, cuda::GpuMat& dst) {
+#else
+int Dove::ImageProcess(Mat& src, Mat& dst) {
+#endif
+#if defined GPU
+    cuda::GpuMat temp;
+    if (p->scale != 1) {
+        cuda::resize(src, temp, Size(int((float)src.cols / p->scale), int(float(src.rows) / p->scale)), 0, 0, 1);
+    }
+    else
+        src.copyTo(temp);
+
+    if (!p->colored) {
+        cuda::GpuMat sub = cuda::GpuMat(Size(temp.cols, temp.rows), CV_8UC1, Scalar(19));
+        cuda::cvtColor(temp, temp, cv::COLOR_BGRA2GRAY);
+        cuda::subtract(temp, sub, dst);
+    }
+#else
+    Mat temp;
+    if(p->scale != 1)
+        cv::resize(src, temp, Size(int((float)src.cols/p->scale), int(float(src.rows)/p->scale)), 0,0,1);
+    else 
+        src.copyTo(temp);
+
+    if(!p->colored)
+        cv::cvtColor(temp, temp, COLOR_BGR2GRAY);
+    //if tk on? 
+    if(!p->run_tracking)
+        cv::GaussianBlur(temp, dst, {p->blur_size, p->blur_size}, p->blur_sigma, p->blur_sigma);
+    else
+        temp.copyTo(dst);
+
+    if (p->has_mask)
+        MakeMask();
+
+#endif    
+    return ERR_NONE;
+}
+
 int Dove::ProcessLK() {
     dl.Logger(" LK process start..");
 
@@ -789,45 +663,6 @@ int Dove::ProcessLK() {
 
     return ERR_NONE;
 };
-#if defined GPU
-int Dove::ImageProcess(cuda::GpuMat& src, cuda::GpuMat& dst) {
-#else
-int Dove::ImageProcess(Mat& src, Mat& dst) {
-#endif
-#if defined GPU
-    cuda::GpuMat temp;
-    if (p->scale != 1) {
-        cuda::resize(src, temp, Size(int((float)src.cols / p->scale), int(float(src.rows) / p->scale)), 0, 0, 1);
-    }
-    else
-        src.copyTo(temp);
-
-    if (!p->colored) {
-        cuda::GpuMat sub = cuda::GpuMat(Size(temp.cols, temp.rows), CV_8UC1, Scalar(19));
-        cuda::cvtColor(temp, temp, cv::COLOR_BGRA2GRAY);
-        cuda::subtract(temp, sub, dst);
-    }
-#else
-    Mat temp;
-    if(p->scale != 1)
-        cv::resize(src, temp, Size(int((float)src.cols/p->scale), int(float(src.rows)/p->scale)), 0,0,1);
-    else 
-        src.copyTo(temp);
-
-    if(!p->colored)
-        cv::cvtColor(temp, temp, COLOR_BGR2GRAY);
-    //if tk on? 
-    if(!p->run_tracking)
-        cv::GaussianBlur(temp, dst, {p->blur_size, p->blur_size}, p->blur_sigma, p->blur_sigma);
-    else
-        temp.copyTo(dst);
-
-    if (p->has_mask)
-        MakeMask();
-
-#endif    
-    return ERR_NONE;
-}
 
 int Dove::CalculateMove(int frame_id) {
 
@@ -1132,7 +967,6 @@ void Dove::ProcessChristmas() {
     int t_frame_start = p->swipe_start;
     int t_frame_end = p->swipe_end;
 
-    bool oversampling = false;
     vector<int>same;
 
     while(true) {

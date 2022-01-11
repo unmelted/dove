@@ -35,6 +35,7 @@
 #include "common/TimeUtil.hpp"
 #if defined _MAC_
 #include "darknet/yolo_v2_class.hpp"
+#define LOCAL_TEST
 #endif
 
 #if defined _WIN_ || _WINDOWS
@@ -400,6 +401,27 @@ typedef struct _kalman {
 	Trajectory R;// measurement noise covariance 
 
 } KALMAN;
+
+typedef struct _swipe_info {
+    int start;
+    int end;
+    int target_x;
+    int target_y;
+    int zoom;
+
+}SWIPE_INFO;
+
+typedef struct _videoinfo {
+
+    string input;
+    string output;
+    int event;
+    int width;
+    int height;
+    int period_cnt;
+    vector<SWIPE_INFO>swipe_period;
+
+}VIDEO_INFO;
 
 int stab_2dof(char* in, char* out, int coord[4]);
 int stab_live(char* infile);
