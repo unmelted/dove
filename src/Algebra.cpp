@@ -294,4 +294,5 @@ int Algebra::MedianKernel(dove::ANALYSIS* a, vector<dove::Trajectory> traj, int 
         out->push_back(dove::Trajectory(avg_x, avg_y, avg_a));
         a->out_smoothed << (i+1) << " " << avg_x << " " << avg_y << " " << "0" << endl;
     }
+    return dove::ERR_NONE;
 }
