@@ -25,108 +25,63 @@ Dove::Dove(int event, bool has_mask, int* coord, string infile, string outfile, 
     p = new PARAM();
     t = new TIMER();
     dl = Dlog();
-#if defined _MAC_
-    dt = Detection();
-#endif
     dl.SetLogFilename("TEST");    
-    dl.Logger("instance created.. ");
+    dl.Logger("instance created.. ");    
 
 #if defined _MAC_
+    dt = Detection();
     dt.SetLogger(dl);    
 #endif
+
     _in = infile;
     _out = outfile;
 
     dl.Logger("Start construct. %s %s  ", _in.c_str(), _out.c_str());
     p->event = event;
-    Initialize(false, coord);
+    Initialize();
 }
 
-Dove::Dove(string infile, string outfile) {
+Dove::Dove(VIDEO_INFO* vinfo) {
     p = new PARAM();
     t = new TIMER();
     dl = Dlog();
+    dl.SetLogFilename("TEST");    
+    dl.Logger("instance created.. ");    
+
 #if defined _MAC_
     dt = Detection();
-#endif
-    dl.SetLogFilename("TEST");
-
-#if defined _MAC_
     dt.SetLogger(dl);
 #endif
-    _in = infile;
-    _out = outfile;
-    Initialize(false, 0);    
+    ConvertToParam(vinfo);
+    Initialize();
 }
 
-void Dove::Initialize(bool has_mask, int* coord) {
-#if defined _MAC_
-    if(_in == "movie/4dmaker_600.mp4" || _in == "movie/4dmaker_600_out2.mp4") {
-#else
-    if (_in == "movie\\4dmaker_600f.mp4" || _in == "movie\\600.mp4") {
-#endif
-        printf(" ------------ 600 !\n");        
-        p->swipe_start = 79; //600 OK        
-        p->swipe_end = 180;     
-    } else if (_in == "movie/4dmaker_603.mp4") {
-        printf(" ------------ 603 !\n");
-        p->swipe_start = 79;
-        p->swipe_end = 181; //603 -- should conquer - couple gracking -- square merge needed 
-    } else if (_in == "movie/4dmaker_626.mp4") {
-        printf(" ------------ 626 !\n");        
-        p->swipe_start = 79;
-        p->swipe_end = 183; //626 OK emerald onepiece single
-    } else if (_in == "movie/4dmaker_639.mp4") {
-        p->swipe_start = 78;
-        p->swipe_end = 130; //639 white shirts man single -- square merge needed
-    } else if (_in == "movie/4dmaker_598.mp4") {
-        p->swipe_start = 79;
-        p->swipe_end = 165; //598 -- frame drop severe
-    } else if (_in == "movie/4dmaker_607.mp4") {
-        p->swipe_start = 79;
-        p->swipe_end = 178; //silver onepiece single - missing during swipe because character
-    }else if (_in == "movie/4dmaker_622.mp4") {
-        p->swipe_start = 79;
-        p->swipe_end = 165; //white onepiece single - missing during swipe because character
-    } else if (_in == "movie/4NylanderGoal.mp4") {
-        p->swipe_start = 153;
-        p->swipe_end = 188; 
-        p->roi_sx = 960;
-        p->roi_sy = 540;           
-    } else if (_in == "movie/BUT_TATAR_4-0.mp4") {
-        p->swipe_start = 188;
-        p->swipe_end = 232; 
-        p->roi_sx = 960;
-        p->roi_sy = 540;        
-    } else if (_in == "movie/2018_02_09_17_58_50.mp4") {
-        p->swipe_start = 64;
-        p->swipe_end = 88; //short track
-        p->roi_sx = 960;
-        p->roi_sy = 540;
-    } else if (_in == "movie/2018_02_25_09_55_28.mp4") {
-        p->swipe_start = 58;
-        p->swipe_end = 91; //short track
-        p->roi_sx = 1160; 
-        p->roi_sy = 730;
-    } else if (_in == "movie/2018_02_13_19_37_53_0.mp4") {
-        p->swipe_start = 51;
-        p->swipe_end = 84; //short track
-        p->roi_sx = 430; 
-        p->roi_sy = 850;
+void Dove::ConvertToParam(VIDEO_INFO* info) {
+    _in = info->input;
+    _out = info->output;
+    p->event = info->event;
+    if(info->width > 1920)
+        p->scale = 2;
+    else 
+        p->scale = 1;
+
+    if (p->event != FIGURE) {
+        p->roi_input = true;
+        p->colored = true;
+    }
+    else {
+        p->roi_input = false;
+        p->colored = false;        
     }
 
-    if (p->event == FIGURE) {
-        p->colored = false;    
-        p->mode = DETECT_TRACKING;
-        p->roi_input = false;
-    } else if(p->event == HOCKEY || p->event == SHORT) {
-        p->colored = true;
-        p->mode = DETECT_TRACKING;        
-        p->roi_input = true;
-        // p->roi_sx = 430;
-        // p->roi_sy = 850;
-    } 
-    p->scale = 2;
+}
+
+void Dove::Initialize() {
+#if defined LOCAL_TEST
+    ex.TestGetSwipeInfo(_in, p);
+#endif    
+
+    p->mode = DETECT_TRACKING;        
     p->interpolation_mode = SPLINE_LSF; //MEDIAN_KERNEL
 
     if (p->mode == OPTICALFLOW_LK_2DOF) {
@@ -178,15 +133,6 @@ void Dove::Initialize(bool has_mask, int* coord) {
         tck->SetInitialData(p);
     }
 
-    //if(has_mask == true) 
-    // {
-        //p->has_mask = true;
-        // p->sx = coord[0] / p->scale;
-        // p->sy = coord[1] / p->scale;
-        // p->width = coord[2] / p->scale;
-        // p->height = coord[3] / p->scale;    
-    // }
-
     p->blur_size = 5;
     p->blur_sigma = 0.7;
     p->dst_width = 1920;
@@ -218,8 +164,6 @@ void Dove::Initialize(bool has_mask, int* coord) {
     a->out_new.open("analysis/new_prev_to_cur_transformation.txt");        
 
     if(p->interpolation_mode == KALMAN_FILTER) {
-        k->pstd = (double)coord[0]/10000;
-        k->cstd = (double)coord[1]/10000;
         k->Q.set(k->pstd, k->pstd, k->pstd);
         k->R.set(k->cstd, k->cstd, k->cstd);      
     }
@@ -275,8 +219,6 @@ int Dove::ProcessTK() {
     StartTimer(all);    
     int t_frame_start = p->swipe_start;
     int t_frame_end = p->swipe_end;
-
-    Algebra pre_kal;
 
     while(true) {
 #if defined GPU
@@ -350,7 +292,7 @@ int Dove::ProcessTK() {
                 dy = (pre_obj->cy - obj->cy) * p->track_scale;
                 dl.Logger("pre origin %f %f ", dx, dy);
                 if(p->run_kalman || p->run_kalman_pre) {
-                    pre_kal.KalmanInOutput(k, a, dx, dy, i, &prev_to_cur_transform);                 
+                    al.KalmanInOutput(k, a, dx, dy, i, &prev_to_cur_transform);                 
                 } 
                 else if (p->interpolation_mode == MEDIAN_KERNEL || p->interpolation_mode == SPLINE_LSF) {
                     a->out_transform << i << " "<< dx << " "<< dy << " " << da << endl;            
@@ -387,7 +329,6 @@ int Dove::ProcessTK() {
 
     vector <dove::Trajectory> smoothed_trajectory;    
     if(p->interpolation_mode == SPLINE_LSF) {
-        Algebra al;
         vector<dove::Trajectory> test_xout;
         vector<dove::Trajectory> test_yout;    
         al.BSplineTrajectory(trajectory, &test_xout, 0);
@@ -400,8 +341,7 @@ int Dove::ProcessTK() {
         }
     }
     else if (p->interpolation_mode == MEDIAN_KERNEL) {
-        Algebra mk;
-        mk.MedianKernel(a, trajectory, p->smoothing_radius, &smoothed_trajectory);
+        al.MedianKernel(a, trajectory, p->smoothing_radius, &smoothed_trajectory);
     }
 
     // Step 4 - Generate new set of previous to current transform, such that the trajectory ends up being the same as the smoothed trajectory
@@ -528,8 +468,7 @@ int Dove::ProcessTK() {
             if(p->run_kalman_post) {
                 double new_dx = 0;
                 double new_dy = 0;
-                Algebra post_kal;
-                post_kal.KalmanInOutput(k, a, dx, dy, i, &new_dx, &new_dy);
+                al.KalmanInOutput(k, a, dx, dy, i, &new_dx, &new_dy);
                 dl.Logger("post from kalman %f %f ", dx, dy);
 
                 smth.at<double>(0,2) = new_dx;

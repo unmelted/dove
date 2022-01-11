@@ -35,6 +35,7 @@
 #include "common/TimeUtil.hpp"
 #if defined _MAC_
 #include "darknet/yolo_v2_class.hpp"
+#define LOCAL_TEST
 #endif
 
 #if defined _WIN_ || _WINDOWS
@@ -407,21 +408,17 @@ typedef struct _swipe_info {
     int target_x;
     int target_y;
     int zoom;
-    _swipe_info(int s, int e, int x, int y, int z) {
-        start = s;
-        end = e;
-        target_x = x;
-        target_y = y;
-        zoom = z;
-    }
+
 }SWIPE_INFO;
 
 typedef struct _videoinfo {
 
     string input;
     string output;
+    int event;
     int width;
     int height;
+    int period_cnt;
     vector<SWIPE_INFO>swipe_period;
 
 }VIDEO_INFO;
