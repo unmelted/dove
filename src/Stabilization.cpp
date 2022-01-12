@@ -173,12 +173,11 @@ void Dove::Initialize() {
 }
 
 Dove::~Dove() {
-    if(k != NULL && p->run_kalman)
-         delete k;
-    dl.Logger("delete k ");                 
+    delete k;
     delete p;
     delete t;
-    dl.Logger("delete p ,t ");
+    delete a;
+    dl.Logger("delete instance  OK");
 }
 
 int Dove::Process() {
@@ -545,8 +544,8 @@ void Dove::CalculcateMargin(double minx, double maxx, double miny, double maxy, 
     int my = max( abs(miny), maxy);
     int mintop = my;
     int minleft = mx;
-    int minright = 1920 - mx;
-    int minbottom = 1080 - my;
+    int minright = p->dst_width - mx;
+    int minbottom = p->dst_height - my;
     dl.Logger("top %d left %d right %d bottom %d", mintop, minleft, minright, minbottom);
 
     if (minleft > mintop * p->dst_width / p->dst_height)
@@ -605,6 +604,10 @@ int Dove::ImageProcess(Mat& src, Mat& dst) {
 
 #endif    
     return ERR_NONE;
+}
+
+int Dove::PostProcess() {
+
 }
 
 int Dove::ProcessLK() {

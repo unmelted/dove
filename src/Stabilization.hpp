@@ -33,8 +33,10 @@ class Dove {
 public: 
     PARAM* p;
     TIMER* t;
+    KALMAN* k;
+    ANALYSIS* a;    
+    Tracking* tck;        
     Dlog dl;
-    Tracking* tck;    
     Algebra al;
     ExpUtil ex;
 
@@ -74,9 +76,6 @@ public:
     char filename[30];
     int i = 0;
     int threshold = 6;
-
-    KALMAN* k;
-    ANALYSIS* a;
     
     Dove(int event, bool has_mask, int* coord, string infile, string outfile, string id = "TEST");
     Dove(VIDEO_INFO* vinfo);
@@ -94,6 +93,8 @@ public:
     int ImageProcess(Mat& src, Mat& dst);
 #endif
     void ConvertToParam(VIDEO_INFO* info);
+    int PostProcess();
+
     void SetRef(Mat& _src) {_src.copyTo(ref); };
     void SetRefC(Mat& _src) {_src.copyTo(refc); };
     int CalculateMove(Mat& cur, int frame_id);

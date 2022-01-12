@@ -39,18 +39,22 @@ int ExpUtil::ImportVideoInfo(const string js, VIDEO_INFO* info) {
 
     for(auto& el : sw_period) {
         SWIPE_INFO swi;
+        swi.order = el["no"];
         swi.start = el["start"];
         swi.end = el["end"];
         swi.target_x = el["target_x"];
         swi.target_y = el["target_y"];
         swi.zoom = el["zoom"];
 
-        info->swipe_period.push_back(swi);
+        info->swipe_period.push_back(swi); 
     }
+    std::sort(info->swipe_period.begin(), info->swipe_period.end(), [](SWIPE_INFO a, SWIPE_INFO b) {
+              return a.order > b.order;
+    });
 
-    cout<< "input : "<<info->input <<endl;
-    cout<< "output : " <<info->output <<endl;
-    cout <<"event : " <<info->event <<endl;
+    cout<< "input : "<<info->input << endl;
+    cout<< "output : " <<info->output << endl;
+    cout <<"event : " <<info->event << endl;
     return ERR_NONE;
 }
 /*

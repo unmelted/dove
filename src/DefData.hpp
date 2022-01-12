@@ -201,11 +201,6 @@ typedef struct _dtxy {
     int dy;
 }DT_XY;
 
-typedef enum _masktype { 
-    RECT    = 1,
-    CIRCLE  = 2,
-}MASKTYPE;
-
 typedef struct _param {   
     int event; 
     float scale;
@@ -365,18 +360,6 @@ typedef struct traj
     double a; // angle
 } Trajectory;
 
-typedef struct _analysis {
-    ofstream out_transform;
-    ofstream out_trajectory;
-    ofstream out_smoothed;
-    ofstream out_new;
-    ofstream out_transform2;    
-    ofstream out_trajectory2;
-    ofstream out_smoothed2;
-    ofstream out_new2;
-
-}ANALYSIS;
-
 typedef struct _kalman {
     double a = 0;
     double x = 0;
@@ -403,6 +386,7 @@ typedef struct _kalman {
 } KALMAN;
 
 typedef struct _swipe_info {
+    int order;
     int start;
     int end;
     int target_x;
@@ -410,6 +394,42 @@ typedef struct _swipe_info {
     int zoom;
 
 }SWIPE_INFO;
+
+typedef struct _analysis {
+    int swipe_order;
+    vector<Trajectory>cur_traj;
+    vector<Trajectory>smoothed_traj;
+    vector<Trajectory>new_delta;
+
+    ofstream out_transform;
+    ofstream out_trajectory;
+    ofstream out_smoothed;
+    ofstream out_new;
+}ANALYSIS;
+
+typedef struct _frameinfo {
+    int id;
+    bool onswipe;
+    int swipe_order;
+    int dx;
+    int dy;
+    double new_dx = 0;
+    double new_dy = 0;
+    _frameinfo() {};
+    _frameinfo(int i) {
+        id = i;
+        onswipe = false;
+        swipe_order = 0;
+        dx = 0; dy = 0;
+    };    
+    _frameinfo(int i, int o, int _dx, int _dy) {
+        id = i;        
+        onswipe = true;
+        swipe_order = o;
+        dx = _dx;
+        dy = _dy;
+    };
+} FRAME_INFO;
 
 typedef struct _videoinfo {
 

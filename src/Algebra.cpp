@@ -25,6 +25,10 @@ Algebra::~Algebra()
 
 }
 
+int Algebra::PostProcess(vector<dove::FRAME_INFO>& info, dove::ANALYSIS* a) {
+
+}
+
 int Algebra::BSplineTrajectory(vector<dove::Trajectory>& gt, vector<dove::Trajectory>* out, int index) {
     const int NCOEFFS = 4;
     /* nbreak = ncoeffs + 2 - k = ncoeffs - 2 since k = 4 */
@@ -95,7 +99,7 @@ int Algebra::BSplineTrajectory(vector<dove::Trajectory>& gt, vector<dove::Trajec
 
     gsl_multifit_wlinear(X, w, y, c, cov, &chisq, mw);
     dof = n - ncoeffs;
-    printf("chisq %f %e  \n", chisq, chisq / dof);
+    dl.Logger("chisq %f %e", chisq, chisq / dof);
     double xi, yi, yerr, origin;
     for(xi = 0 ; xi < n ; xi++) { 
         gsl_bspline_eval(xi, B, bw);
@@ -229,7 +233,7 @@ int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, doubl
     k->x += dx;
     k->y += dy;
     k->a += da;
-    a->out_transform2 << index << " " << dx << " " << dy << " " << da << endl;
+    a->out_transform << index << " " << dx << " " << dy << " " << da << endl;
 
     k->z = dove::Trajectory(k->x, k->y, k->a);
     if( index == 0 ){
@@ -247,7 +251,7 @@ int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, doubl
         k->P = (dove::Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
     }
     //smoothed_trajectory.push_back(X);
-    a->out_smoothed2 << index << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
+    a->out_smoothed << index << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
 
     // target - current
     double diff_x = k->X.x - k->x;//
@@ -258,7 +262,7 @@ int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, doubl
     *ndy = dy + diff_y;
     da = da + diff_a;
     dl.Logger("pre from kalman %f %f ", *ndx, *ndy);
-    a->out_new2 << index << " " << *ndx << " " << *ndy << " " << da << endl;
+    a->out_new << index << " " << *ndx << " " << *ndy << " " << da << endl;
     return dove::ERR_NONE;
 }
 
