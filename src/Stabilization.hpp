@@ -34,22 +34,23 @@ public:
     PARAM* p;
     TIMER* t;
     KALMAN* k;
-    ANALYSIS* a;    
-    Tracking* tck;        
+    Tracking* tck;
     Dlog dl;
     Algebra al;
     ExpUtil ex;
-
+    vector<ANALYSIS> an;
+    vector<FRAME_INFO> all;
+    
 #if defined _MAC_
     Detection dt;
     map<int, DT_OBJECTS>objects;
-#endif
-
     ofstream obj_trajectory;
     ofstream obj_c_trajectory;    
     map<int, DT_XY>dt_comp;
+#endif
+
+    vector<SWIPE_INFO> si;
     bool swipe_on;
-    int replay_style;
 
     TRACK_OBJ* obj;
     TRACK_OBJ* roi;
@@ -59,7 +60,7 @@ public:
 
     Mat mask;
     Mat smth;
-    Mat last_smth;
+
 #if defined GPU
     cuda::GpuMat refcg;
     cuda::GpuMat refcwg;
@@ -93,7 +94,7 @@ public:
     int ImageProcess(Mat& src, Mat& dst);
 #endif
     void ConvertToParam(VIDEO_INFO* info);
-    int PostProcess();
+    int MakeNewTrajectory();
 
     void SetRef(Mat& _src) {_src.copyTo(ref); };
     void SetRefC(Mat& _src) {_src.copyTo(refc); };

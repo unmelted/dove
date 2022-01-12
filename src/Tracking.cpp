@@ -340,40 +340,22 @@ float Tracking::GetIOU(Rect& r, int index, vector<Rect>& rects) {
     return max_iou;
 }
 
-void Tracking::DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin, int replay_style) {
+void Tracking::DrawObjectTracking(Mat& src, TRACK_OBJ* obj, TRACK_OBJ* roi, bool borigin) {
     Mat canvas;
     if(borigin == true) 
         src.copyTo(canvas);
     else
         diff.copyTo(canvas);
-
-    string contents = "";
-    switch(replay_style) {
-        case KEEP_TRACKING_SWIPE:
-            contents = "Keep tracking on swipe";
-        case SWIPE_ON :
-            contents = "Swipe on";
-        case SWIPE_END :
-            contents = "Swipe off";
-        case MISSED_TRACKING :
-            contents = "Missed object";
-        case TRACK_NONE :
-            contents = "None ";
-    }    
-    if(issame)
-        contents += " SAME";
         
     if(isfound == true){ 
         if(borigin == false) {
             rectangle(canvas, Point(obj->sx, obj->sy), Point(obj->ex, obj->ey), (255), 2);
             putText(canvas, "FOCUS", Point(obj->sx, obj->sy - 10), FONT_HERSHEY_SIMPLEX, 0.4, (255), 1);
             rectangle(canvas, Point(roi->sx, roi->sy), Point(roi->ex, roi->ey), (255), 2);
-            putText(canvas, contents, Point(10, 10), FONT_HERSHEY_SIMPLEX, 0.4, (255), 1);            
         } else if(borigin == true){
             rectangle(canvas, Point(obj->sx * p->track_scale, obj->sy * p->track_scale), Point(obj->ex * p->track_scale, obj->ey * p->track_scale), (0), 2);
             putText(canvas, "FOCUS", Point(obj->sx * p->track_scale, (obj->sy - 20) * p->track_scale), FONT_HERSHEY_SIMPLEX, 0.6, (0), 1);
             rectangle(canvas, Point(roi->sx* p->track_scale, roi->sy * p->track_scale), Point(roi->ex * p->track_scale, roi->ey * p->track_scale), (0), 2);                
-            putText(canvas, contents, Point(10, 10), FONT_HERSHEY_SIMPLEX, 0.4, (0), 1);
         }
     }
     imshow("FIRST PROCESS", canvas);

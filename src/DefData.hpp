@@ -397,9 +397,10 @@ typedef struct _swipe_info {
 
 typedef struct _analysis {
     int swipe_order;
-    vector<Trajectory>cur_traj;
-    vector<Trajectory>smoothed_traj;
-    vector<Trajectory>new_delta;
+    vector<TransformParam>cur_delta;
+    vector<TransformParam>cur_traj;
+    vector<TransformParam>smoothed_traj;
+    vector<TransformParam>new_delta;
 
     ofstream out_transform;
     ofstream out_trajectory;
@@ -408,7 +409,7 @@ typedef struct _analysis {
 }ANALYSIS;
 
 typedef struct _frameinfo {
-    int id;
+    int index;
     bool onswipe;
     int swipe_order;
     int dx;
@@ -417,18 +418,19 @@ typedef struct _frameinfo {
     double new_dy = 0;
     _frameinfo() {};
     _frameinfo(int i) {
-        id = i;
+        index = i;
         onswipe = false;
         swipe_order = 0;
         dx = 0; dy = 0;
     };    
     _frameinfo(int i, int o, int _dx, int _dy) {
-        id = i;        
+        index = i;        
         onswipe = true;
         swipe_order = o;
         dx = _dx;
         dy = _dy;
     };
+
 } FRAME_INFO;
 
 typedef struct _videoinfo {
