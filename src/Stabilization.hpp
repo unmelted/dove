@@ -94,7 +94,7 @@ public:
     int ImageProcess(Mat& src, Mat& dst);
 #endif
     void ConvertToParam(VIDEO_INFO* info);
-    int MakeNewTrajectory();
+    int MakeNewTrajectory(Rect* mg);
 
     void SetRef(Mat& _src) {_src.copyTo(ref); };
     void SetRefC(Mat& _src) {_src.copyTo(refc); };

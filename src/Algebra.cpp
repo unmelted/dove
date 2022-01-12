@@ -25,10 +25,6 @@ Algebra::~Algebra()
 
 }
 
-int Algebra::PostProcess(vector<dove::FRAME_INFO>& info, dove::ANALYSIS* a) {
-
-}
-
 int Algebra::BSplineTrajectory(vector<dove::Trajectory>& gt, vector<dove::Trajectory>* out, int index) {
     const int NCOEFFS = 4;
     /* nbreak = ncoeffs + 2 - k = ncoeffs - 2 since k = 4 */
@@ -266,16 +262,15 @@ int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, doubl
     return dove::ERR_NONE;
 }
 
-int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, double dy, int index,
-        vector<dove::TransformParam>* out) {
+int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, double dy, int index) {
     double new_dx = 0;
     double new_dy = 0;
     KalmanInOutput(k, a, dx, dy, index, &new_dx, &new_dy );
-    out->push_back(dove::TransformParam(new_dx, new_dy, 0));
+    a->new_delta.push_back(dove::TransformParam(new_dx, new_dy, 0));
     return dove::ERR_NONE;
 }
 
-int Algebra::MedianKernel(dove::ANALYSIS* a, vector<dove::Trajectory> traj, int kernel_size, vector<dove::Trajectory>* out) {
+int Algebra::MedianKernel(dove::ANALYSIS* a, vector<dove::Trajectory> traj, int kernel_size) {
     for(size_t i = 0; i < traj.size(); i++) {
         double sum_x = 0;
         double sum_y = 0;
@@ -294,7 +289,7 @@ int Algebra::MedianKernel(dove::ANALYSIS* a, vector<dove::Trajectory> traj, int 
         double avg_a = sum_a / count;
         double avg_x = sum_x / count;
         double avg_y = sum_y / count;
-        out->push_back(dove::Trajectory(avg_x, avg_y, avg_a));
+        a->smoothed_traj.push_back(dove::Trajectory(avg_x, avg_y, avg_a));
         a->out_smoothed << (i+1) << " " << avg_x << " " << avg_y << " " << "0" << endl;
     }
     return dove::ERR_NONE;

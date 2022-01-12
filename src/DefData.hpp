@@ -398,14 +398,23 @@ typedef struct _swipe_info {
 typedef struct _analysis {
     int swipe_order;
     vector<TransformParam>cur_delta;
-    vector<TransformParam>cur_traj;
-    vector<TransformParam>smoothed_traj;
+    vector<Trajectory>cur_traj;
+    vector<Trajectory>smoothed_traj;
     vector<TransformParam>new_delta;
 
     ofstream out_transform;
     ofstream out_trajectory;
     ofstream out_smoothed;
     ofstream out_new;
+
+    _analysis(int i, char* a, char* b, char* c, char* d) {
+        swipe_order = i;
+        out_transform.open(a);
+        out_trajectory.open(b);
+        out_smoothed.open(c);
+        out_new.open(d);
+    };
+
 }ANALYSIS;
 
 typedef struct _frameinfo {
