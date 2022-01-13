@@ -264,13 +264,19 @@ int Dove::ProcessTK() {
 
         if (frame_index == t_frame_start) {
 #if defined GPU
-            if (p->roi_input)
+            if (p->roi_input) {
+                p->roi_sx = si[swipe_index].target_x;
+                p->roi_sy = si[swipe_index].target_y;                    
                 tck->TrackerInitFx(src1og, frame_index, p->roi_sx, p->roi_sy, obj, roi);
+            }
             else
                 tck->TrackerInit(src1og, frame_index, obj, roi);
 #else
-            if(p->roi_input)
-                tck->TrackerInitFx(src1o, frame_index, p->roi_sx, p->roi_sy, obj, roi);                
+            if(p->roi_input) {
+                p->roi_sx = si[swipe_index].target_x;
+                p->roi_sy = si[swipe_index].target_y;
+                tck->TrackerInitFx(src1o, frame_index, p->roi_sx, p->roi_sy, obj, roi);
+            }
             else 
                 tck->TrackerInit(src1o, frame_index, obj, roi);
 #endif

@@ -7,7 +7,7 @@
      
     "SwipePeriod" : [
         {
-            "no":"1",
+            "no":1,
             "start":153,
             "end":188,
             "target_x": 960,
