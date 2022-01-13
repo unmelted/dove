@@ -300,7 +300,7 @@ int Dove::ProcessTK() {
 
             dx = (pre_obj->cx - obj->cx) * p->track_scale;
             dy = (pre_obj->cy - obj->cy) * p->track_scale;
-            dl.Logger("%f %f %f %f -> pre origin %f %f ", pre_obj->cx, pre_obj->cy, obj->cx, obj->cy, dx, dy);
+            dl.Logger("pre origin %f %f ", dx, dy);
             FRAME_INFO one(frame_index, swipe_index, dx, dy);
             all.push_back(one);               
 
