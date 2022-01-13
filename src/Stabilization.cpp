@@ -285,7 +285,7 @@ int Dove::ProcessTK() {
 #endif            
         }
 
-        //tck->DrawObjectTracking(src1o, obj, roi, false);
+        tck->DrawObjectTracking(src1o, obj, roi, false);
         double dx = 0;
         double dy = 0;
         double da = 0;
@@ -293,7 +293,7 @@ int Dove::ProcessTK() {
 
             dx = (pre_obj->cx - obj->cx) * p->track_scale;
             dy = (pre_obj->cy - obj->cy) * p->track_scale;
-            dl.Logger("pre origin %f %f ", dx, dy);
+            dl.Logger("%f %f %f %f -> pre origin %f %f ", pre_obj->cx, pre_obj->cy, obj->cx, obj->cy, dx, dy);
             FRAME_INFO one(frame_index, swipe_index, dx, dy);
             all.push_back(one);               
 
@@ -301,8 +301,10 @@ int Dove::ProcessTK() {
                 swipe_index++;
                 if(swipe_index == si.size())
                     final = true;
-                t_frame_start = si[swipe_index].start;
-                t_frame_end = si[swipe_index].end;
+                else {
+                    t_frame_start = si[swipe_index].start;
+                    t_frame_end = si[swipe_index].end;
+                }
 
 #if defined GPU
                 tck->SetBg(src1og, frame_index);
