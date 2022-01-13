@@ -64,6 +64,7 @@ void Dove::ConvertToParam(VIDEO_INFO* info) {
     si.resize(info->swipe_period.size());
     copy(info->swipe_period.begin(), info->swipe_period.end(), si.begin());
 
+
     if(info->period_cnt == 0)
         info->period_cnt = 1;
 
@@ -79,24 +80,6 @@ void Dove::ConvertToParam(VIDEO_INFO* info) {
     else {
         p->roi_input = false;
         p->colored = false;        
-    }
-
-    char prev_cur[200];
-    char cur_tra[200];
-    char new_tra[200];
-    char new_delta[200];
-
-    for(int i = 0 ; i < info->period_cnt ; i++){
-        sprintf(prev_cur, "analysis/prev_to_cur_transformation_%d.txt", i);
-        sprintf(cur_tra, "analysis/trajectory_%d.txt", i);        
-        sprintf(new_tra, "analysis/smoothed_trajectory_%d.txt", i);
-        sprintf(new_delta, "analysis/new_prev_to_cur_transformation_%d.txt", i);
-        ANALYSIS one(i, prev_cur, cur_tra, new_tra, new_delta);        
-        // one.out_transform.open(prev_cur);
-        // one.out_trajectory.open(cur_tra);
-        // one.out_smoothed.open(new_tra);
-        // one.out_new.open(new_delta);     
-        an.push_back(one);
     }
 }
 
@@ -186,6 +169,19 @@ void Dove::Initialize() {
         k->R.set(k->cstd, k->cstd, k->cstd);      
     }
 
+    string prev_cur = "analysis/prev_to_cur_transformation.txt";
+    string cur_tra = "analysis/trajectory.txt";
+    string new_tra = "analysis/smoothed_trajectory.txt";
+    string new_delta = "analysis/new_prev_to_cur_transformation.txt";
+    out_transform.open(prev_cur);
+    out_trajectory.open(cur_tra);
+    out_smoothed.open(new_tra);
+    out_new.open(new_delta);
+    an.out_transform = &out_transform;
+    an.out_transform = &out_trajectory;
+    an.out_smoothed = &out_smoothed;
+    an.out_new = &out_new;
+
     smth.create(2 , 3 , CV_64F);       
     smth.at<double>(0,0) = 1; 
     smth.at<double>(0,1) = 0; 
@@ -216,7 +212,6 @@ int Dove::ProcessTK() {
     bool compare = false;
 #if defined GPU
     cv::Ptr<cudacodec::VideoReader> in = cudacodec::createVideoReader(_in);
-    //cv::Ptr<cudacodec::VideoWriter> out = cudacodec::createVideoWriter(_out, Size(p->dst_width, p->dst_height), 30);
 #else
     VideoCapture in(_in);
 #endif
@@ -295,9 +290,8 @@ int Dove::ProcessTK() {
 #endif
             FRAME_INFO one(frame_index, swipe_index, 0, 0);
             all.push_back(one);
-        } else if(frame_index == t_frame_end) {
-
-        } else {
+        } 
+        else {
 #if defined GPU            
             tck->TrackerUpdate(src1og, frame_index, obj, roi);
 #else
@@ -311,26 +305,14 @@ int Dove::ProcessTK() {
         double da = 0;
         if (frame_index > t_frame_start && frame_index <= t_frame_end) {
 
-            if(!tck->issame) 
-            { 
-                dx = (pre_obj->cx - obj->cx) * p->track_scale;
-                dy = (pre_obj->cy - obj->cy) * p->track_scale;
-                dl.Logger("pre origin %f %f ", dx, dy);
-                if(p->run_kalman || p->run_kalman_pre) {
-                    al.KalmanInOutput(k, &an[swipe_index], dx, dy, frame_index);
-                } 
-                else if (p->interpolation_mode == MEDIAN_KERNEL || p->interpolation_mode == SPLINE_LSF) {
-                    an[swipe_index].out_transform << frame_index << " "<< dx << " "<< dy << " " << da << endl;
-                    an[swipe_index].cur_delta.push_back(TransformParam(dx, dy, 0));
-                } 
-            } else {
-                an[swipe_index].out_transform << frame_index << " "<< dx << " "<< dy << " " << da << endl;
-                an[swipe_index].cur_delta.push_back(TransformParam(dx, dy, 0));
-            }
+            dx = (pre_obj->cx - obj->cx) * p->track_scale;
+            dy = (pre_obj->cy - obj->cy) * p->track_scale;
+            dl.Logger("pre origin %f %f ", dx, dy);
+            FRAME_INFO one(frame_index, swipe_index, dx, dy);
+            all.push_back(one);               
 
             if (tck->isfound)
                 obj->copy(pre_obj);
-            
             if(frame_index == t_frame_end) {
 #if defined GPU
                 tck->SetBg(src1og, frame_index);
@@ -339,12 +321,10 @@ int Dove::ProcessTK() {
 #endif
                 swipe_index++;
                 t_frame_start = si[swipe_index].start;
-                t_frame_end = si[swipe_index].end;                          
+                t_frame_end = si[swipe_index].end;
             }
-            FRAME_INFO one(frame_index, swipe_index, dx, dy);
-            all.push_back(one);            
         }
-        frame_index++;
+        frame_index++;            
     }
 
     //dl.Logger("[%d] Image Analysis  %f ", i, LapTimer(all)); 
@@ -356,17 +336,11 @@ int Dove::ProcessTK() {
 #if defined GPU
     Ptr<cudacodec::VideoReader> in2 = cudacodec::createVideoReader(_in);
     cv::VideoWriter out;
-    //if (compare)
-    //    out.open(_out, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(1930, 540));
-    //else
-        out.open(_out, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(p->dst_width, p->dst_height));
+    out.open(_out, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(p->dst_width, p->dst_height));
 #else
     VideoCapture in2(_in);
     cv::VideoWriter out;  
-    if (compare)
-        out.open(_out, VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, Size(1930, 540));
-    else
-        out.open(_out, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(p->dst_width, p->dst_height));
+    out.open(_out, VideoWriter::fourcc('A', 'V', 'C', '1'), 30, Size(p->dst_width, p->dst_height));
 #endif
 
     while(true) {
@@ -399,26 +373,20 @@ int Dove::ProcessTK() {
         }
 
 #if defined GPU
-        //if (compare)
-        //    cuda::GpuMat canvas = cuda::GpuMat(540, 1930, CV_8UC3);
-        //else
-            cuda::GpuMat canvas = cuda::GpuMat(cv::Size(p->dst_width, p->dst_height), CV_8UC3);
+        cuda::GpuMat canvas = cuda::GpuMat(cv::Size(p->dst_width, p->dst_height), CV_8UC3);
 #else
         Mat canvas;
-        if (compare)
-            canvas = Mat::zeros(540, 1930, CV_8UC3);
-        else
-            canvas = Mat::zeros(p->dst_height, p->dst_width, CV_8UC3);
+        canvas = Mat::zeros(p->dst_height, p->dst_width, CV_8UC3);
 #endif
 
         if (all[frame_index].onswipe == true) {
-            double dx = -1 * all[frame_index].new_dx;
-            double dy = -1 * all[frame_index].new_dy;
+            double dx = all[frame_index].new_dx;
+            double dy = all[frame_index].new_dy;
 
             if(p->run_kalman_post) {
                 double new_dx = 0;
                 double new_dy = 0;
-                al.KalmanInOutput(k, &an[swipe_index], dx, dy, frame_index, &new_dx, &new_dy);
+                al.KalmanInOutput(k, &an, dx, dy, frame_index, &new_dx, &new_dy);
                 dl.Logger("post from kalman %f %f ", dx, dy);
 
                 smth.at<double>(0,2) = new_dx;
@@ -439,29 +407,10 @@ int Dove::ProcessTK() {
         }
 
 #if defined GPU
-        if (compare) {
-            cuda::resize(refcg, refcg, Size(960, 540));
-            cuda::resize(refcwg, refcwg, Size(960, 540));
-            refcg.copyTo(canvas(Range::all(), Range(0, 960)));
-            refcwg.copyTo(canvas(Range::all(), Range(970, 1930)));
-        }
-        else
-            refcwg.copyTo(canvas);
-
+        refcwg.copyTo(canvas);
         canvas = refcwg(mg);
         cuda::resize(canvas, canvas, Size(p->dst_width, p->dst_height));
 #else
-        if(compare) {
-            cv::resize(refc, refc, Size(960, 540));        
-            cv::resize(refcw, refcw, Size(960, 540));
-            refc.copyTo(canvas(Range::all(), Range(0, 960)));
-            refcw.copyTo(canvas(Range::all(), Range(970, 1930)));
-        }
-        else {
-            canvas = refcw(mg);
-            cv::resize(canvas, canvas, Size(p->dst_width, p->dst_height));
-        }
-
         canvas = refcw(mg);
         cv::resize(canvas, canvas, Size(p->dst_width, p->dst_height));
 #endif
@@ -568,52 +517,66 @@ int Dove::MakeNewTrajectory(Rect* mg) {
     double miny = p->dst_height;
     double maxy = 0;    
 
-    for(int index = 0 ; index < an.size(); index ++) {
-        for(size_t i = 0 ; i < an[index].cur_delta.size(); i ++) {
-            x += an[index].cur_delta[i].dx;
-            y += an[index].cur_delta[i].dy;
-            a += an[index].cur_delta[i].da;
+    for(int index = 0 ; index < si.size(); index ++) {
+        vector<TransformParam>cur_delta;        
+        vector<Trajectory>cur_traj;
+        vector<Trajectory>smoothed_traj;
+        vector<TransformParam>new_delta;
+        int findex = 0;
 
-            an[index].cur_traj.push_back(dove::Trajectory(x, y, a));
-            an[index].out_trajectory << i << " " << x << " " << y << " " << a << endl;
+        for(size_t i = si[index].start ; i < si[index].end; i ++) {
+            findex = i - si[index].start;
+            cur_delta.push_back(TransformParam(all[findex].dx, all[findex].dy, 0));
+            x += all[findex].dx;
+            y += all[findex].dy;
+            a += 0;
+
+            cur_traj.push_back(Trajectory(x, y, a));
+            out_transform << i << " " << all[findex].dx << " " << all[findex].dy << " 0" << endl;
+            out_trajectory << i << " " << x << " " << y << " " << a << endl;
+            findex++;
         }
 
         if(p->interpolation_mode == SPLINE_LSF) {
             vector<dove::Trajectory> sp_xout;
             vector<dove::Trajectory> sp_yout;    
-            al.BSplineTrajectory(an[index].cur_traj, &sp_xout, 0);
-            al.BSplineTrajectory(an[index].cur_traj, &sp_yout, 1);    
+            al.BSplineTrajectory(cur_traj, &sp_xout, 0);
+            al.BSplineTrajectory(cur_traj, &sp_yout, 1);    
 
-            for(size_t i = 0; i < an[index].cur_traj.size(); i++) {
+            for(size_t i = 0; i < cur_traj.size(); i++) {
                 dl.Logger("spline output %f %f ", sp_xout[i].y, sp_yout[i].y);
-                an[index].smoothed_traj.push_back(dove::Trajectory(sp_xout[i].y, sp_yout[i].y, 0));
-                an[index].out_smoothed << i << " " << sp_xout[i].y << " " << sp_yout[i].y << " " << "0" << endl;
+                smoothed_traj.push_back(dove::Trajectory(sp_xout[i].y, sp_yout[i].y, 0));
+                out_smoothed << i << " " << sp_xout[i].y << " " << sp_yout[i].y << " " << "0" << endl;
             }
         }
         else if (p->interpolation_mode == MEDIAN_KERNEL) {
-            al.MedianKernel(&an[index], an[index].cur_traj, p->smoothing_radius);
+            al.MedianKernel(&an, cur_traj, &smoothed_traj, p->smoothing_radius);
         }
 
         a = 0;
         x = 0;
         y = 0;
 
-        for(size_t i = 0; i < an[index].cur_delta.size(); i++) {
-            x += an[index].cur_delta[i].dx;
-            y += an[index].cur_delta[i].dy;
-            a += an[index].cur_delta[i].da;
+        for(size_t i = si[index].start ; i < si[index].end; i ++) {
+            findex = i - si[index].start;            
+            x += cur_delta[i].dx;
+            y += cur_delta[i].dy;
+            a += cur_delta[i].da;
 
             // target - current
-            double diff_x = an[index].smoothed_traj[i].x - x;
-            double diff_y = an[index].smoothed_traj[i].y - y;
-            double diff_a = an[index].smoothed_traj[i].a - a;
+            double diff_x = smoothed_traj[i].x - x;
+            double diff_y = smoothed_traj[i].y - y;
+            double diff_a = smoothed_traj[i].a - a;
 
-            double dx = an[index].cur_delta[i].dx + diff_x;
-            double dy = an[index].cur_delta[i].dy + diff_y;
-            double da = an[index].cur_delta[i].da + diff_a;
+            double dx = cur_delta[i].dx + diff_x;
+            double dy = cur_delta[i].dy + diff_y;
+            double da = cur_delta[i].da + diff_a;
 
-            an[index].new_delta.push_back(TransformParam(dx, dy, da));
-            an[index].out_new << i << " " << dx << " " << dy << " " << da << endl;
+            new_delta.push_back(TransformParam(dx, dy, da));
+            out_new << i << " " << dx << " " << dy << " " << da << endl;
+            
+            all[findex].new_dx = -1 * dx;
+            all[findex].new_dy = -1 * dy;
 
             if(dx < minx)
                 minx = dx;
@@ -623,7 +586,14 @@ int Dove::MakeNewTrajectory(Rect* mg) {
                 miny = dy;
             if (dy > maxy)
                 maxy = dy;
+
+            findex++;
         }
+
+        cur_delta.clear();
+        cur_traj.clear();
+        smoothed_traj.clear();
+        new_delta.clear();
     }
     
     dl.Logger("minx %f maxx %f miny %f maxy %f", minx, maxx, miny, maxy);
@@ -860,13 +830,13 @@ int Dove::CalculateMove_LK(Mat& cur, int frame_id) {
     dl.Logger("origin dx %f dy %f", dx ,dy);
 
     if(p->run_kalman) {
-        an[0].out_transform << i << " " << dx << " " << dy << " " << da << endl;        
+        out_transform << i << " " << dx << " " << dy << " " << da << endl;        
 		k->x += dx;
 		k->y += dy;
 		k->a += da;
 		//trajectory.push_back(Trajectory(x,y,a));
 		//
-		an[0].out_trajectory << i << " " << k->x << " " << k->y << " " << k->a << endl;
+		out_trajectory << i << " " << k->x << " " << k->y << " " << k->a << endl;
 		k->z = dove::Trajectory(k->x, k->y, k->a);
 
 		if(i == 1){
@@ -884,7 +854,7 @@ int Dove::CalculateMove_LK(Mat& cur, int frame_id) {
 			k->P = (dove::Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
 		}
 		//smoothed_trajectory.push_back(X);
-		an[0].out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
+		out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
 
 		// target - current
 		double diff_x = k->X.x - k->x;//
@@ -897,7 +867,7 @@ int Dove::CalculateMove_LK(Mat& cur, int frame_id) {
         dl.Logger("from kalman %f %f ", dx, dy);
 		//new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
 		//
-		an[0].out_new << i << " " << dx << " " << dy << " " << da << endl;        
+		out_new << i << " " << dx << " " << dy << " " << da << endl;        
     }
 
     if(p->mode == OPTICALFLOW_LK_2DOF){
@@ -1079,13 +1049,13 @@ void Dove::ProcessChristmas() {
             dl.Logger("origin dx %f dy %f", dx ,dy);
 
             if(p->run_kalman) {
-                an[0].out_transform << i << " " << dx << " " << dy << " " << da << endl;        
+                out_transform << i << " " << dx << " " << dy << " " << da << endl;        
                 k->x += dx;
                 k->y += dy;
                 k->a += 0;
                 //trajectory.push_back(Trajectory(x,y,a));
                 //
-                an[0].out_trajectory << i << " " << k->x << " " << k->y << " " << k->a << endl;
+                out_trajectory << i << " " << k->x << " " << k->y << " " << k->a << endl;
                 k->z = dove::Trajectory(k->x, k->y, k->a);
 
                 if(i == 1){
@@ -1103,7 +1073,7 @@ void Dove::ProcessChristmas() {
                     k->P = (dove::Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
                 }
                 //smoothed_trajectory.push_back(X);
-                an[0].out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
+                out_smoothed << i << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
 
                 // target - current
                 double diff_x = k->X.x - k->x;//
@@ -1116,7 +1086,7 @@ void Dove::ProcessChristmas() {
                 dl.Logger("from kalman %f %f ", dx, dy);
                 //new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
                 //
-                an[0].out_new << i << " " << dx << " " << dy << " " << da << endl;        
+                out_new << i << " " << dx << " " << dy << " " << da << endl;        
             }
 
             smth.at<double>(0,0) = 1; 

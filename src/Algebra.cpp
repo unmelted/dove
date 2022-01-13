@@ -229,7 +229,7 @@ int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, doubl
     k->x += dx;
     k->y += dy;
     k->a += da;
-    a->out_transform << index << " " << dx << " " << dy << " " << da << endl;
+    *a->out_transform << index << " " << dx << " " << dy << " " << da << endl;
 
     k->z = dove::Trajectory(k->x, k->y, k->a);
     if( index == 0 ){
@@ -247,7 +247,7 @@ int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, doubl
         k->P = (dove::Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
     }
     //smoothed_trajectory.push_back(X);
-    a->out_smoothed << index << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
+    *a->out_smoothed << index << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
 
     // target - current
     double diff_x = k->X.x - k->x;//
@@ -258,19 +258,19 @@ int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, doubl
     *ndy = dy + diff_y;
     da = da + diff_a;
     dl.Logger("pre from kalman %f %f ", *ndx, *ndy);
-    a->out_new << index << " " << *ndx << " " << *ndy << " " << da << endl;
+    *a->out_new << index << " " << *ndx << " " << *ndy << " " << da << endl;
     return dove::ERR_NONE;
 }
 
-int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, double dy, int index) {
-    double new_dx = 0;
-    double new_dy = 0;
-    KalmanInOutput(k, a, dx, dy, index, &new_dx, &new_dy );
-    a->new_delta.push_back(dove::TransformParam(new_dx, new_dy, 0));
-    return dove::ERR_NONE;
-}
+// int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, double dy, int index) {
+//     double new_dx = 0;
+//     double new_dy = 0;
+//     KalmanInOutput(k, a, dx, dy, index, &new_dx, &new_dy );
+//     a->new_delta.push_back(dove::TransformParam(new_dx, new_dy, 0));
+//     return dove::ERR_NONE;
+// }
 
-int Algebra::MedianKernel(dove::ANALYSIS* a, vector<dove::Trajectory> traj, int kernel_size) {
+int Algebra::MedianKernel(dove::ANALYSIS* a, vector<dove::Trajectory> traj, vector<dove::Trajectory>* out, int kernel_size) {
     for(size_t i = 0; i < traj.size(); i++) {
         double sum_x = 0;
         double sum_y = 0;
@@ -289,8 +289,8 @@ int Algebra::MedianKernel(dove::ANALYSIS* a, vector<dove::Trajectory> traj, int 
         double avg_a = sum_a / count;
         double avg_x = sum_x / count;
         double avg_y = sum_y / count;
-        a->smoothed_traj.push_back(dove::Trajectory(avg_x, avg_y, avg_a));
-        a->out_smoothed << (i+1) << " " << avg_x << " " << avg_y << " " << "0" << endl;
+        out->push_back(dove::Trajectory(avg_x, avg_y, avg_a));
+        *a->out_smoothed << (i+1) << " " << avg_x << " " << avg_y << " " << "0" << endl;
     }
     return dove::ERR_NONE;
 }

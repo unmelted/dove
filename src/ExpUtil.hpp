@@ -29,6 +29,7 @@ public:
 
     int ImportVideoInfo(const string js, VIDEO_INFO* info);
     void TestGetSwipeInfo(string _in, PARAM* p);
+
 private:
 
 };

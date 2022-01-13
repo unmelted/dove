@@ -15,9 +15,10 @@
 */
 
 #include "ExpUtil.hpp"
-using json = nlohmann::json;
 
+using json = nlohmann::json;
 using namespace dove;
+
 int ExpUtil::ImportVideoInfo(const string js, VIDEO_INFO* info) {
     ifstream json_file(js);
     json j;
@@ -57,6 +58,7 @@ int ExpUtil::ImportVideoInfo(const string js, VIDEO_INFO* info) {
     cout <<"event : " <<info->event << endl;
     return ERR_NONE;
 }
+
 /*
 void ExpUtil::Export(vector<string>image_paths, vector<SCENE>cal_group, PARAM* p) {
 

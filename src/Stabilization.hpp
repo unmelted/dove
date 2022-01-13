@@ -38,8 +38,8 @@ public:
     Dlog dl;
     Algebra al;
     ExpUtil ex;
-    vector<ANALYSIS> an;
     vector<FRAME_INFO> all;
+    ANALYSIS an;
     
 #if defined _MAC_
     Detection dt;
@@ -125,5 +125,9 @@ public:
     int SpiralSearch(int t_sum, int _x, int _y, int* vst_map, WIN_INFO* _win, PARAM* p);
     void InfoMove(WIN_INFO* t, WIN_INFO* q);
 
-
+private :
+    ofstream out_transform;
+    ofstream out_trajectory;
+    ofstream out_smoothed;
+    ofstream out_new;
 };
