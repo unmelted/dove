@@ -274,7 +274,8 @@ int Dove::ProcessTK() {
             else 
                 tck->TrackerInit(src1o, frame_index, obj, roi);
 #endif
-            FRAME_INFO one(frame_index, swipe_index, 0, 0);
+//            FRAME_INFO one(frame_index, swipe_index, 0, 0);
+            FRAME_INFO one(frame_index);
             all.push_back(one);
         } 
         else {
@@ -285,7 +286,7 @@ int Dove::ProcessTK() {
 #endif            
         }
 
-        tck->DrawObjectTracking(src1o, obj, roi, false);
+        //tck->DrawObjectTracking(src1o, obj, roi, false);
         double dx = 0;
         double dy = 0;
         double da = 0;
@@ -353,14 +354,14 @@ int Dove::ProcessTK() {
             cv::resize(src1oc, src1oc, Size(p->dst_width, p->dst_height));
 #endif
 
-        if (i == 0)
+        if (frame_index == 0)
         {
 #if defined GPU
             SetRefCG(src1ocg);
 #else
             SetRefC(src1oc);
 #endif
-            i++;
+            frame_index++;
             continue;
         }
 
@@ -372,8 +373,8 @@ int Dove::ProcessTK() {
 #endif
 
         if (all[frame_index].onswipe == true) {
-            double dx = all[frame_index].new_dx;
-            double dy = all[frame_index].new_dy;
+            double dx = -all[frame_index].new_dx;
+            double dy = -all[frame_index].new_dy;
 
             if(p->run_kalman_post) {
                 double new_dx = 0;
@@ -563,8 +564,8 @@ int Dove::MakeNewTrajectory(Rect* mg) {
             new_delta.push_back(TransformParam(dx, dy, da));
             out_new << j << " " << dx << " " << dy << " " << da << endl;
             
-            all[j].new_dx = -1 * dx;
-            all[j].new_dy = -1 * dy; 
+            all[j].new_dx = dx;
+            all[j].new_dy = dy; 
 
             if(dx < minx)
                 minx = dx;
