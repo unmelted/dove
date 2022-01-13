@@ -120,7 +120,7 @@ int ColoredTracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OB
     cur.copyTo(prev);
    
     bool ret = tracker->update(cur, rect_roi);
-    dl.Logger("[%d] colortracker update %d %d %d %d ",index, rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
+    //dl.Logger("[%d] colortracker update %d %d %d %d ",index, rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
    
     if (ret == false) {
         dl.Logger("tracker miss --------------------------------------------");

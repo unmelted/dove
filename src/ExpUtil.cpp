@@ -35,27 +35,24 @@ int ExpUtil::ImportVideoInfo(const string js, VIDEO_INFO* info) {
         
     info->width = j["width"];
     info->height = j["height"];
-    json sw_period = j["swipePeriod"];
-    info->period_cnt = sw_period.size();
 
-    for(auto& el : sw_period) {
+    for(auto& elm : j["SwipePeriod"]) {
         SWIPE_INFO swi;
-        swi.order = el["no"];
-        swi.start = el["start"];
-        swi.end = el["end"];
-        swi.target_x = el["target_x"];
-        swi.target_y = el["target_y"];
-        swi.zoom = el["zoom"];
-
+        swi.order = elm["no"];
+        swi.start = elm["start"];
+        swi.end = elm["end"];
+        swi.target_x = elm["target_x"];
+        swi.target_y = elm["target_y"];
+        swi.zoom = elm["zoom"];
         info->swipe_period.push_back(swi); 
     }
-    std::sort(info->swipe_period.begin(), info->swipe_period.end(), [](SWIPE_INFO a, SWIPE_INFO b) {
-              return a.order > b.order;
-    });
 
+    std::sort(info->swipe_period.begin(), info->swipe_period.end(), [](SWIPE_INFO a, SWIPE_INFO b) {
+              return a.order < b.order;
+    });
     cout<< "input : "<<info->input << endl;
     cout<< "output : " <<info->output << endl;
-    cout <<"event : " <<info->event << endl;
+    cout<< "event : " <<info->event << endl;
     return ERR_NONE;
 }
 

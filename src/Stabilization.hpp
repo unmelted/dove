@@ -40,7 +40,7 @@ public:
     ExpUtil ex;
     vector<FRAME_INFO> all;
     ANALYSIS an;
-    
+
 #if defined _MAC_
     Detection dt;
     map<int, DT_OBJECTS>objects;
@@ -78,7 +78,6 @@ public:
     int i = 0;
     int threshold = 6;
     
-    Dove(int event, bool has_mask, int* coord, string infile, string outfile, string id = "TEST");
     Dove(VIDEO_INFO* vinfo);
     ~Dove();
     void Initialize();    

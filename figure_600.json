@@ -10,8 +10,8 @@
             "no":1,
             "start":79,
             "end":180,
-            "target_x": 0,
-            "target_y": 0,
+            "target_x": -1,
+            "target_y": -1,
             "zoom": 100  
         }
     ]

@@ -21,26 +21,6 @@ using namespace std;
 using namespace cv;
 using namespace dove;
 
-Dove::Dove(int event, bool has_mask, int* coord, string infile, string outfile, string id) {
-    p = new PARAM();
-    t = new TIMER();
-    dl = Dlog();
-    dl.SetLogFilename("TEST");    
-    dl.Logger("instance created.. ");    
-
-#if defined _MAC_
-    dt = Detection();
-    dt.SetLogger(dl);    
-#endif
-
-    _in = infile;
-    _out = outfile;
-
-    dl.Logger("Start construct. %s %s  ", _in.c_str(), _out.c_str());
-    p->event = event;
-    Initialize();
-}
-
 Dove::Dove(VIDEO_INFO* vinfo) {
     p = new PARAM();
     t = new TIMER();
@@ -52,26 +32,35 @@ Dove::Dove(VIDEO_INFO* vinfo) {
     dt = Detection();
     dt.SetLogger(dl);
 #endif
+
     ConvertToParam(vinfo);
     Initialize();
 }
 
 void Dove::ConvertToParam(VIDEO_INFO* info) {
-
     _in = info->input;
     _out = info->output;
     p->event = info->event;
-    si.resize(info->swipe_period.size());
-    copy(info->swipe_period.begin(), info->swipe_period.end(), si.begin());
-
-
-    if(info->period_cnt == 0)
-        info->period_cnt = 1;
+    int size = info->swipe_period.size();
+    for(int i = 0 ; i < size; i ++)
+    {
+        SWIPE_INFO one;
+        one.order = i;        
+        one.start = info->swipe_period[i].start;
+        one.end = info->swipe_period[i].end;
+        one.target_x = info->swipe_period[i].target_x;
+        one.target_y = info->swipe_period[i].target_y;
+        one.zoom = info->swipe_period[i].zoom;
+        si.push_back(one);
+        dl.Logger("SW Period %d %d ", one.start, one.end);
+        dl.Logger("target %d %d zoom %d \n", one.target_x, one.target_y, one.zoom);        
+    }
 
     if(info->width > 1920)
         p->scale = 2;
     else 
         p->scale = 1;
+    dl.Logger("Video width %d, scale %f", info->width, p->scale);
 
     if (p->event != FIGURE) {
         p->roi_input = true;
@@ -85,7 +74,7 @@ void Dove::ConvertToParam(VIDEO_INFO* info) {
 
 void Dove::Initialize() {
 #if defined LOCAL_TEST
-    ex.TestGetSwipeInfo(_in, p);
+//    ex.TestGetSwipeInfo(_in, p);
 #endif    
 
     p->mode = DETECT_TRACKING;        
@@ -209,25 +198,23 @@ int Dove::Process() {
 }   
 
 int Dove::ProcessTK() {
-    bool compare = false;
+
 #if defined GPU
     cv::Ptr<cudacodec::VideoReader> in = cudacodec::createVideoReader(_in);
+    cuda::GpuMat src1ocg; 
+    cuda::GpuMat src1og;
+
 #else
     VideoCapture in(_in);
 #endif
-
     dl.Logger("Process TK started ");
-#if defined GPU
-    cuda::GpuMat src1ocg; 
-    cuda::GpuMat src1og;
-#endif
 
     Mat src1oc; Mat src1o;
     int frame_index = 0;
     int swipe_index = 0;
     int result = 0;
     int found = 0;
-    vector <TransformParam> prev_to_cur_transform;
+    bool final = false;
     TRACK_OBJ* pre_obj = new TRACK_OBJ();;
 
     TIMER* tm;
@@ -241,13 +228,12 @@ int Dove::ProcessTK() {
 #if defined GPU
          if (!in->nextFrame(src1ocg))
              break;
-
 #else 
         in >> src1oc;
         if(src1oc.data == NULL)
             break;
 #endif
-
+        dl.Logger("Frameindex [%d] ", frame_index);
         if ( frame_index == 0)
         {                     
 #if defined GPU
@@ -263,7 +249,7 @@ int Dove::ProcessTK() {
             continue;
         }
                 
-        if(frame_index < t_frame_start || frame_index > t_frame_end) {
+        if(frame_index < t_frame_start || frame_index > t_frame_end || final == true) {
             FRAME_INFO one(frame_index);
             all.push_back(one);            
             frame_index++;
@@ -311,19 +297,23 @@ int Dove::ProcessTK() {
             FRAME_INFO one(frame_index, swipe_index, dx, dy);
             all.push_back(one);               
 
-            if (tck->isfound)
-                obj->copy(pre_obj);
             if(frame_index == t_frame_end) {
+                swipe_index++;
+                if(swipe_index == si.size())
+                    final = true;
+                t_frame_start = si[swipe_index].start;
+                t_frame_end = si[swipe_index].end;
+
 #if defined GPU
                 tck->SetBg(src1og, frame_index);
 #else
                 tck->SetBg(src1o, frame_index);
 #endif
-                swipe_index++;
-                t_frame_start = si[swipe_index].start;
-                t_frame_end = si[swipe_index].end;
             }
         }
+
+        if (tck->isfound)
+            obj->copy(pre_obj);        
         frame_index++;            
     }
 
@@ -394,7 +384,7 @@ int Dove::ProcessTK() {
             } else {
                 smth.at<double>(0,2) = dx;
                 smth.at<double>(1,2) = dy;
-                dl.Logger("[%d] will Apply %f %f ",i, smth.at<double>(0,2), smth.at<double>(1,2));
+                dl.Logger("[%d] will Apply %f %f ", frame_index, smth.at<double>(0,2), smth.at<double>(1,2));
             }
             ApplyImageRef();
         }
@@ -507,8 +497,7 @@ int Dove::ImageProcess(Mat& src, Mat& dst) {
 }
 
 int Dove::MakeNewTrajectory(Rect* mg) {
-
-    dl.Logger("PostPrcess start ... ");
+    dl.Logger("PostPrcess start ... all frame %d ", all.size());
     double a = 0;
     double x = 0;
     double y = 0;
@@ -516,25 +505,23 @@ int Dove::MakeNewTrajectory(Rect* mg) {
     double maxx = 0;
     double miny = p->dst_height;
     double maxy = 0;    
-
+    int sindex = 0;
     for(int index = 0 ; index < si.size(); index ++) {
         vector<TransformParam>cur_delta;        
         vector<Trajectory>cur_traj;
         vector<Trajectory>smoothed_traj;
         vector<TransformParam>new_delta;
-        int findex = 0;
 
-        for(size_t i = si[index].start ; i < si[index].end; i ++) {
-            findex = i - si[index].start;
-            cur_delta.push_back(TransformParam(all[findex].dx, all[findex].dy, 0));
-            x += all[findex].dx;
-            y += all[findex].dy;
+        for(size_t i = si[index].start+1 ; i < si[index].end; i ++) {
+            //findex = i - si[index].start;
+            cur_delta.push_back(TransformParam(all[i].dx, all[i].dy, 0));
+            x += all[i].dx;
+            y += all[i].dy;
             a += 0;
 
             cur_traj.push_back(Trajectory(x, y, a));
-            out_transform << i << " " << all[findex].dx << " " << all[findex].dy << " 0" << endl;
+            out_transform << i << " " << all[i].dx << " " << all[i].dy << " 0" << endl;
             out_trajectory << i << " " << x << " " << y << " " << a << endl;
-            findex++;
         }
 
         if(p->interpolation_mode == SPLINE_LSF) {
@@ -543,10 +530,10 @@ int Dove::MakeNewTrajectory(Rect* mg) {
             al.BSplineTrajectory(cur_traj, &sp_xout, 0);
             al.BSplineTrajectory(cur_traj, &sp_yout, 1);    
 
-            for(size_t i = 0; i < cur_traj.size(); i++) {
+            for(size_t i = 0, j = si[index].start +1; i < cur_traj.size(); i++, j++) {
                 dl.Logger("spline output %f %f ", sp_xout[i].y, sp_yout[i].y);
                 smoothed_traj.push_back(dove::Trajectory(sp_xout[i].y, sp_yout[i].y, 0));
-                out_smoothed << i << " " << sp_xout[i].y << " " << sp_yout[i].y << " " << "0" << endl;
+                out_smoothed << j << " " << sp_xout[i].y << " " << sp_yout[i].y << " " << "0" << endl;
             }
         }
         else if (p->interpolation_mode == MEDIAN_KERNEL) {
@@ -557,8 +544,7 @@ int Dove::MakeNewTrajectory(Rect* mg) {
         x = 0;
         y = 0;
 
-        for(size_t i = si[index].start ; i < si[index].end; i ++) {
-            findex = i - si[index].start;            
+        for(size_t i = 0, j = si[index].start +1; j < si[index].end; i++, j++) {
             x += cur_delta[i].dx;
             y += cur_delta[i].dy;
             a += cur_delta[i].da;
@@ -573,10 +559,10 @@ int Dove::MakeNewTrajectory(Rect* mg) {
             double da = cur_delta[i].da + diff_a;
 
             new_delta.push_back(TransformParam(dx, dy, da));
-            out_new << i << " " << dx << " " << dy << " " << da << endl;
+            out_new << j << " " << dx << " " << dy << " " << da << endl;
             
-            all[findex].new_dx = -1 * dx;
-            all[findex].new_dy = -1 * dy;
+            all[j].new_dx = -1 * dx;
+            all[j].new_dy = -1 * dy; 
 
             if(dx < minx)
                 minx = dx;
@@ -586,8 +572,6 @@ int Dove::MakeNewTrajectory(Rect* mg) {
                 miny = dy;
             if (dy > maxy)
                 maxy = dy;
-
-            findex++;
         }
 
         cur_delta.clear();
