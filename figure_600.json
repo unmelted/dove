@@ -1,17 +1,25 @@
 {
     "input": "movie/4dmaker_600.mp4",
     "output":"movie/4dmaker_600_out2.mp4",
-    "event":"FIGURE"
+    "event":"FIGURE",
     "width":3840,
     "height": 2160,
      
     "SwipePeriod" : [
         {
-            "no":"1",
+            "no":1,
             "start":79,
             "end":180,
-            "target_x": 0,
-            "target_y": 0,
+            "target_x": -1,
+            "target_y": -1,
+            "zoom": 100  
+        },
+        {
+            "no":2,
+            "start":200,
+            "end":230,
+            "target_x": -1,
+            "target_y": -1,
             "zoom": 100  
         }
     ]

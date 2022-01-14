@@ -33,21 +33,24 @@ class Dove {
 public: 
     PARAM* p;
     TIMER* t;
+    KALMAN* k;
+    Tracking* tck;
     Dlog dl;
-    Tracking* tck;    
     Algebra al;
     ExpUtil ex;
+    vector<FRAME_INFO> all;
+    ANALYSIS an;
 
 #if defined _MAC_
     Detection dt;
     map<int, DT_OBJECTS>objects;
-#endif
-
     ofstream obj_trajectory;
     ofstream obj_c_trajectory;    
     map<int, DT_XY>dt_comp;
+#endif
+
+    vector<SWIPE_INFO> si;
     bool swipe_on;
-    int replay_style;
 
     TRACK_OBJ* obj;
     TRACK_OBJ* roi;
@@ -57,7 +60,7 @@ public:
 
     Mat mask;
     Mat smth;
-    Mat last_smth;
+
 #if defined GPU
     cuda::GpuMat refcg;
     cuda::GpuMat refcwg;
@@ -74,11 +77,7 @@ public:
     char filename[30];
     int i = 0;
     int threshold = 6;
-
-    KALMAN* k;
-    ANALYSIS* a;
     
-    Dove(int event, bool has_mask, int* coord, string infile, string outfile, string id = "TEST");
     Dove(VIDEO_INFO* vinfo);
     ~Dove();
     void Initialize();    
@@ -94,6 +93,8 @@ public:
     int ImageProcess(Mat& src, Mat& dst);
 #endif
     void ConvertToParam(VIDEO_INFO* info);
+    int MakeNewTrajectory(Rect* mg);
+
     void SetRef(Mat& _src) {_src.copyTo(ref); };
     void SetRefC(Mat& _src) {_src.copyTo(refc); };
     int CalculateMove(Mat& cur, int frame_id);
@@ -123,5 +124,9 @@ public:
     int SpiralSearch(int t_sum, int _x, int _y, int* vst_map, WIN_INFO* _win, PARAM* p);
     void InfoMove(WIN_INFO* t, WIN_INFO* q);
 
-
+private :
+    ofstream out_transform;
+    ofstream out_trajectory;
+    ofstream out_smoothed;
+    ofstream out_new;
 };

@@ -95,7 +95,7 @@ int Algebra::BSplineTrajectory(vector<dove::Trajectory>& gt, vector<dove::Trajec
 
     gsl_multifit_wlinear(X, w, y, c, cov, &chisq, mw);
     dof = n - ncoeffs;
-    printf("chisq %f %e  \n", chisq, chisq / dof);
+    dl.Logger("chisq %f %e", chisq, chisq / dof);
     double xi, yi, yerr, origin;
     for(xi = 0 ; xi < n ; xi++) { 
         gsl_bspline_eval(xi, B, bw);
@@ -201,8 +201,7 @@ int Algebra::BSplineExample() {
     {
         double xi, yi, yerr;
 
-        for (xi = 0.0; xi < 15.0; xi += 0.1)
-        {
+        for (xi = 0.0; xi < 15.0; xi += 0.1) {
             gsl_bspline_eval(xi, B, bw);
             gsl_multifit_linear_est(B, c, cov, &yi, &yerr);
             printf("%f %f\n", xi, yi);
@@ -230,7 +229,7 @@ int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, doubl
     k->x += dx;
     k->y += dy;
     k->a += da;
-    a->out_transform2 << index << " " << dx << " " << dy << " " << da << endl;
+    *a->out_transform << index << " " << dx << " " << dy << " " << da << endl;
 
     k->z = dove::Trajectory(k->x, k->y, k->a);
     if( index == 0 ){
@@ -248,7 +247,7 @@ int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, doubl
         k->P = (dove::Trajectory(1,1,1) - k->K) * k->P_; //P(k) = (1-K(k))*P_(k);
     }
     //smoothed_trajectory.push_back(X);
-    a->out_smoothed2 << index << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
+    *a->out_smoothed << index << " " << k->X.x << " " << k->X.y << " " << k->X.a << endl;
 
     // target - current
     double diff_x = k->X.x - k->x;//
@@ -259,20 +258,19 @@ int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, doubl
     *ndy = dy + diff_y;
     da = da + diff_a;
     dl.Logger("pre from kalman %f %f ", *ndx, *ndy);
-    a->out_new2 << index << " " << *ndx << " " << *ndy << " " << da << endl;
+    *a->out_new << index << " " << *ndx << " " << *ndy << " " << da << endl;
     return dove::ERR_NONE;
 }
 
-int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, double dy, int index,
-        vector<dove::TransformParam>* out) {
-    double new_dx = 0;
-    double new_dy = 0;
-    KalmanInOutput(k, a, dx, dy, index, &new_dx, &new_dy );
-    out->push_back(dove::TransformParam(new_dx, new_dy, 0));
-    return dove::ERR_NONE;
-}
+// int Algebra::KalmanInOutput(dove::KALMAN* k, dove::ANALYSIS* a, double dx, double dy, int index) {
+//     double new_dx = 0;
+//     double new_dy = 0;
+//     KalmanInOutput(k, a, dx, dy, index, &new_dx, &new_dy );
+//     a->new_delta.push_back(dove::TransformParam(new_dx, new_dy, 0));
+//     return dove::ERR_NONE;
+// }
 
-int Algebra::MedianKernel(dove::ANALYSIS* a, vector<dove::Trajectory> traj, int kernel_size, vector<dove::Trajectory>* out) {
+int Algebra::MedianKernel(dove::ANALYSIS* a, vector<dove::Trajectory> traj, vector<dove::Trajectory>* out, int kernel_size) {
     for(size_t i = 0; i < traj.size(); i++) {
         double sum_x = 0;
         double sum_y = 0;
@@ -292,7 +290,7 @@ int Algebra::MedianKernel(dove::ANALYSIS* a, vector<dove::Trajectory> traj, int 
         double avg_x = sum_x / count;
         double avg_y = sum_y / count;
         out->push_back(dove::Trajectory(avg_x, avg_y, avg_a));
-        a->out_smoothed << (i+1) << " " << avg_x << " " << avg_y << " " << "0" << endl;
+        *a->out_smoothed << (i+1) << " " << avg_x << " " << avg_y << " " << "0" << endl;
     }
     return dove::ERR_NONE;
 }

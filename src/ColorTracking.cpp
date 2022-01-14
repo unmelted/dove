@@ -31,7 +31,7 @@ void ColoredTracking::SetBg(Mat& src, int frame_id) {
         scale_h = int(src.rows/p->track_scale);
         cv::resize(src, bg, Size(scale_w, scale_h));
     }
-
+    imwrite("cpu_bg.png", bg);
     dl.Logger("Colored Setbg function finish %d %d ", bg.cols, bg.rows);    
 }
 
@@ -53,6 +53,7 @@ void ColoredTracking::SetBg(cuda::GpuMat& src, int frame_id) {
         cuda::resize(src, src, Size(scale_w, scale_h));
     }
     src.download(bg);
+    imwrite("gpu_bg2.png", bg);    
     dl.Logger("Colored Setbg function finish %d %d ", bg.cols, bg.rows);    
 }
 
@@ -97,7 +98,7 @@ int ColoredTracking::TrackerInit(Mat& src, int index, TRACK_OBJ* obj, TRACK_OBJ*
 
     cv::minMaxLoc(diff, &minval, &maxval, &minloc, &maxloc, Mat());
     dl.Logger("PickArea minval %f maxval %f minloc %d %d maxloc %d %d", minval, maxval, minloc.x, minloc.y, maxloc.x, maxloc.y);
-
+    imwrite("cpu_diff.png", diff);
     obj->update(maxloc.x -30, maxloc.y -30, 60, 90);
     obj->update();
     roi->update(obj->sx - 10, obj->sy - 10, obj->w + 20, obj->h + 20);    
@@ -119,7 +120,7 @@ int ColoredTracking::TrackerUpdate(Mat& src, int index, TRACK_OBJ* obj, TRACK_OB
     cur.copyTo(prev);
    
     bool ret = tracker->update(cur, rect_roi);
-    dl.Logger("[%d] colortracker update %d %d %d %d ",index, rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
+    //dl.Logger("[%d] colortracker update %d %d %d %d ",index, rect_roi.x, rect_roi.y, rect_roi.width, rect_roi.height);
    
     if (ret == false) {
         dl.Logger("tracker miss --------------------------------------------");

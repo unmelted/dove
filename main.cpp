@@ -26,6 +26,11 @@ using namespace cv;
 
 int main(int argc, char* argv[]) {
 
+    if (argc < 2 ) {
+        printf("Please input VIDEO JSON FILE");
+        return 0;
+    }
+
     string jsonfile(argv[1]);
     cout << jsonfile;
     ExpUtil in;
@@ -36,7 +41,8 @@ int main(int argc, char* argv[]) {
         result = stblz.Process();
     }
 
-    
+    return 1;
+
     /* old version : cmd input 
     char infile[40];
     char outfile[40];

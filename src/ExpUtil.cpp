@@ -1,7 +1,7 @@
   
 /*****************************************************************************
 *                                                                            *
-*                            Util         								 *
+*                            Util         					    			 *
 *                                                                            *
 *   Copyright (C) 2021 By 4dreplay, Incoporated. All Rights Reserved.        *
 ******************************************************************************
@@ -15,40 +15,47 @@
 */
 
 #include "ExpUtil.hpp"
-using json = nlohmann::json;
 
+using json = nlohmann::json;
 using namespace dove;
+
 int ExpUtil::ImportVideoInfo(const string js, VIDEO_INFO* info) {
     ifstream json_file(js);
     json j;
     json_file >> j;
 
-    info->input = j["Input"].dump();
-    info->output = j["Output"].dump();
-    string ev = j["Event"].dump();
-    if(ev == "FIGURE")
+    info->input = j["input"];
+    info->output = j["output"];
+    string ev = j["event"];
+    cout << "event string : "<< ev << endl;
+    if( ev.compare("FIGURE") == 0 )
         info->event = dove::FIGURE;
     else
         info->event = dove::HOCKEY;
         
     info->width = j["width"];
     info->height = j["height"];
-    json sw_period = j["SwipePeriod"];
-    info->period_cnt = sw_period.size();
 
-    for(auto& el : sw_period) {
+    for(auto& elm : j["SwipePeriod"]) {
         SWIPE_INFO swi;
-        swi.start = el["start"];
-        swi.end = el["end"];
-        swi.target_x = el["target_x"];
-        swi.target_y = el["target_y"];
-        swi.zoom = el["zoom"];
-
-        info->swipe_period.push_back(swi);
+        swi.order = elm["no"];
+        swi.start = elm["start"];
+        swi.end = elm["end"];
+        swi.target_x = elm["target_x"];
+        swi.target_y = elm["target_y"];
+        swi.zoom = elm["zoom"];
+        info->swipe_period.push_back(swi); 
     }
-    
+
+    std::sort(info->swipe_period.begin(), info->swipe_period.end(), [](SWIPE_INFO a, SWIPE_INFO b) {
+              return a.order < b.order;
+    });
+    cout<< "input : "<<info->input << endl;
+    cout<< "output : " <<info->output << endl;
+    cout<< "event : " <<info->event << endl;
     return ERR_NONE;
 }
+
 /*
 void ExpUtil::Export(vector<string>image_paths, vector<SCENE>cal_group, PARAM* p) {
 
